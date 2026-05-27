@@ -81,65 +81,65 @@ namespace Cute_Randomizer.Randomizers
             {
                 bool added = false;
 
-                if (obj.GetComponent(typeof(GeoRock)))
+                if (obj.GetComponent<GeoRock>())
                 {
                     AddToList(workingScene, obj, worldObjects["geoRocks"], ref added);
                 }
-                if (obj.GetComponent(typeof(BreakableHolder)))
+                if (obj.GetComponent<BreakableHolder>())
                 {
                     AddToList(workingScene, obj, worldObjects["breakableHolders"], ref added);
                 }
-                if (obj.GetComponent(typeof(HealthManager)))
+                if (obj.GetComponent<HealthManager>())
                 {
                     AddToList(workingScene, obj, worldObjects["enemies"], ref added);
                 }
-                if (obj.GetComponent(typeof(ShopMenuStock)))
+                if (obj.GetComponent<ShopMenuStock>())
                 {
                     AddToList(workingScene, obj, worldObjects["shopMenus"], ref added);
                 }
-                if (obj.GetComponent(typeof(RosaryCacheHanging)))
+                if (obj.GetComponent<RosaryCacheHanging>())
                 {
                     AddToList(workingScene, obj, worldObjects["rosaryStrings"], ref added);
                 }
-                if (obj.GetComponent(typeof(GeoControl)))
+                if (obj.GetComponent<GeoControl>())
                 {
                     AddToList(workingScene, obj, worldObjects["floorGeo"], ref added);
                     AddToObjectHolders(obj, typeof(GeoControl), workingScene);
                 }
-                if (obj.GetComponent(typeof(TransitionPoint)))
+                if (obj.GetComponent<TransitionPoint>())
                 {
                     AddToList(workingScene, obj, worldObjects["transitionPoints"], ref added);
                 }
-                if (obj.GetComponent(typeof(RestBench)))
+                if (obj.GetComponent<RestBench>())
                 {
                     AddToList(workingScene, obj, worldObjects["restBenches"], ref added);
                 }
-                if (obj.GetComponent(typeof(RosaryCacheShrine)))
+                if (obj.GetComponent<RosaryCacheShrine>())
                 {
                     AddToList(workingScene, obj, worldObjects["rosaryShrines"], ref added);
                 }
-                if (obj.GetComponent(typeof(PersistentBoolItem)))
+                if (obj.GetComponent<PersistentBoolItem>())
                 {
                     AddToList(workingScene, obj, worldObjects["persistentItems"], ref added);
 
                 }
-                if (obj.GetComponent(typeof(CollectableItemPickup)))
+                if (obj.GetComponent<CollectableItemPickup>())
                 {
                     AddToList(workingScene, obj, worldObjects["collectableItems"], ref added);
                     AddToObjectHolders(obj, typeof(CollectableItemPickup), workingScene);
                 }
-                if (obj.GetComponent(typeof(SavedItemTrackerMarker)))
+                if (obj.GetComponent<SavedItemTrackerMarker>())
                 {
                     AddToList(workingScene, obj, worldObjects["savedItemThingy"], ref added);
                     AddToObjectHolders(obj, typeof(SavedItemTrackerMarker), workingScene);
                 }
-                if (obj.GetComponent(typeof(Breakable)))
+                if (obj.GetComponent<Breakable>())
                 {
                     AddToList(workingScene, obj, worldObjects["breakable"], ref added);
                 }
                 // Boss Additive Loader
 
-                if (obj.tag.Equals("Mapper NPC") || obj.GetComponent(typeof(PlayMakerNPC)))
+                if (obj.CompareTag("Mapper NPC") || obj.GetComponent<PlayMakerNPC>())
                 {
                     AddToList(workingScene, obj, worldObjects["NPCs"], ref added);
                 }
@@ -160,23 +160,23 @@ namespace Cute_Randomizer.Randomizers
                 if (!added)
                 {
                     // add ignores here
-                    if (obj.GetComponent(typeof(HeroCorpseMarker)) ||
-                        obj.GetComponent(typeof(ParticleSystem)) ||
-                        obj.GetComponent(typeof(TrackTriggerObjects)) ||
-                        obj.GetComponent(typeof(AlertRange)) ||
-                        obj.name.ToLower().StartsWith("terrain collider") ||
-                        obj.name.ToLower().StartsWith("temp fog") ||
-                        obj.name.ToLower().StartsWith("lava haze") ||
-                        obj.GetComponent(typeof(HazardRespawnMarker)) ||
-                        obj.GetComponent(typeof(NoClamberRegion)) ||
-                        obj.GetComponent(typeof(Roof)) ||
-                        obj.GetComponent(typeof(EnviroRegion)) ||
-                        obj.GetComponent(typeof(NoTeleportRegion)) ||
-                        obj.GetComponent(typeof(SendEnemyMessageTrigger)) ||
-                        obj.GetComponent(typeof(GrassWind)) ||
-                        obj.GetComponent(typeof(HitResponse)) ||
-                        obj.GetComponent(typeof(TriggerEnterEvent)) ||
-                        obj.GetComponent(typeof(PushableRubble)) ||
+                    if (obj.GetComponent<HeroCorpseMarker>() ||
+                        obj.GetComponent<ParticleSystem>() ||
+                        obj.GetComponent<TrackTriggerObjects>() ||
+                        obj.GetComponent<AlertRange>() ||
+                        obj.name.StartsWith("terrain collider", StringComparison.CurrentCultureIgnoreCase) ||
+                        obj.name.StartsWith("temp fog", StringComparison.CurrentCultureIgnoreCase) ||
+                        obj.name.StartsWith("lava haze", StringComparison.CurrentCultureIgnoreCase) ||
+                        obj.GetComponent<HazardRespawnMarker>() ||
+                        obj.GetComponent<NoClamberRegion>() ||
+                        obj.GetComponent<Roof>() ||
+                        obj.GetComponent<EnviroRegion>() ||
+                        obj.GetComponent<NoTeleportRegion>() ||
+                        obj.GetComponent<SendEnemyMessageTrigger>() ||
+                        obj.GetComponent<GrassWind>() ||
+                        obj.GetComponent<HitResponse>() ||
+                        obj.GetComponent<TriggerEnterEvent>() ||
+                        obj.GetComponent<PushableRubble>() ||
                         obj.layer.Equals(0) || // probably decorations, or unsorted?
                         obj.layer.Equals(1) || // vignettes
                         obj.layer.Equals(11) || // enemy fighting helpers?
@@ -256,18 +256,18 @@ namespace Cute_Randomizer.Randomizers
                 {
                     if (newObjectHolder.FirstOrDefault(o => o.Holders.Contains(obj.name)) is var objectHolder and not null)
                     {
-                        if (obj.GetComponent(typeof(CollectableItemPickup)))
+                        if (obj.GetComponent<CollectableItemPickup>())
                         {
-                            ((CollectableItemPickup)obj.GetComponent(typeof(CollectableItemPickup))).SetItem(objectHolder.Item);
+                            obj.GetComponent<CollectableItemPickup>().SetItem(objectHolder.Item);
                         }
-                        else if (obj.GetComponent(typeof(SavedItemTrackerMarker)))
+                        else if (obj.GetComponent<SavedItemTrackerMarker>())
                         {
                             /*foreach (SavedItem item in items)
                             {
                                 Adder(item);
                             }*/
                         }
-                        else if (obj.GetComponent(typeof(GeoControl)))
+                        else if (obj.GetComponent<GeoControl>())
                         {
 
                         }
@@ -314,7 +314,7 @@ namespace Cute_Randomizer.Randomizers
         {
             if (componentType.Equals(typeof(SavedItemTrackerMarker)))
             {
-                SavedItem[] items = [.. ((SavedItemTrackerMarker)obj.GetComponent(typeof(SavedItemTrackerMarker))).Items];
+                SavedItem[] items = [.. obj.GetComponent<SavedItemTrackerMarker>().Items];
                 foreach (SavedItem item in items)
                 {
                     Adder(item);
@@ -322,7 +322,7 @@ namespace Cute_Randomizer.Randomizers
             }
             else if (componentType.Equals(typeof(CollectableItemPickup)))
             {
-                SavedItem item = ((CollectableItemPickup)obj.GetComponent(typeof(CollectableItemPickup))).Item;
+                SavedItem item = obj.GetComponent<CollectableItemPickup>().Item;
                 Adder(item);
             }
             else if (componentType.Equals(typeof(GeoControl)))
@@ -368,16 +368,8 @@ namespace Cute_Randomizer.Randomizers
         {
 
             Cute_Rando_Core.ImportJsonFile("World_Objects", out string tempWorldObjects);
-
+            
             worldObjects = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, HashSet<string>>>>(File.ReadAllText(tempWorldObjects));
-            /*try
-            {
-                worldObjects = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, HashSet<string>>>>(File.ReadAllText(Cute_Rando_Core.dataLocation + "\\\\World_Objects.json"));
-            }
-            catch (FileNotFoundException)
-            {
-                Console.Error.WriteLine($"File World_Objects.json not found when trying to import.");
-            }*/
         }
 
         /// <summary>
@@ -385,7 +377,7 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         internal static void ExportWorldObjectsFile()
         {
-            Cute_Rando_Core.ExportJsonFile("World_Objects", worldObjects);
+            if (worldObjects != null) Cute_Rando_Core.ExportJsonFile("World_Objects", worldObjects);
         }
     }
 }

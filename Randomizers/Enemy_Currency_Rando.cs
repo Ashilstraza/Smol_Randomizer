@@ -49,7 +49,7 @@ namespace Cute_Randomizer.Randomizers
         /// <summary>
         /// Current scene
         /// </summary>
-        private static string operatingScene;
+        private static string operatingScene = "";
         /// <summary>
         /// If the core of the randomizer is enabled
         /// </summary>
@@ -178,7 +178,7 @@ namespace Cute_Randomizer.Randomizers
             string name = thing.name;
 
             int cullIndex = name.IndexOf('(') - 1;
-            if (cullIndex > 0) name = name.Remove(cullIndex);
+            if (cullIndex > 0) name = name[..cullIndex];
 
             switch (RandomizerConsistency)
             {
@@ -235,7 +235,7 @@ namespace Cute_Randomizer.Randomizers
             string name = thing.name;
 
             int cullIndex = name.IndexOf('(') - 1;
-            if (cullIndex > 0) name = name.Remove(cullIndex);
+            if (cullIndex > 0) name = name[..cullIndex];
 
             switch (RandomizerConsistency)
             {

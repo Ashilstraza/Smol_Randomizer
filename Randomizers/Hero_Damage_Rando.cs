@@ -2,14 +2,10 @@
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using Cute_Randomizer.Settings;
-using GenericVariableExtension;
 using HarmonyLib;
-using InControl.UnityDeviceProfiles;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Cute_Randomizer.Randomizers
 {
@@ -18,10 +14,6 @@ namespace Cute_Randomizer.Randomizers
     /// </summary>
     internal class Hero_Damage_Rando
     {
-        /// <summary>
-        /// The Player's data (unused currently)
-        /// </summary>
-        private static PlayerData playerDataInstance;
         /// <summary>
         /// The nail damage if based on the game instance
         /// </summary>
@@ -69,7 +61,6 @@ namespace Cute_Randomizer.Randomizers
         {
             // Roundabout way of poking fingers into DebugMod without requiring it as a dependancy
             Chainloader.PluginInfos.TryGetValue("io.github.hk-speedrunning.debugmod", out PluginInfo DebugMod);
-            playerDataInstance = PlayerData.instance;
 
             if (Harmony.GetPatchInfo(AccessTools.Method(typeof(PlayerData), "get_nailDamage"))?.Postfixes?.FirstOrDefault(patch => patch.owner == "io.github.hk-speedrunning.debugmod") != null)
             {
@@ -87,15 +78,14 @@ namespace Cute_Randomizer.Randomizers
         /// <param name="__result">The to-be returned nail damage amount</param>
         private static void DebugModGetNailDamagePostfix(ref int __result)
         {
-            PlayerDataGetNailDamagePostfix(ref __result, ref playerDataInstance);
+            PlayerDataGetNailDamagePostfix(ref __result);
         }
 
         /// <summary>
         /// Patch that hooks get_NailDamage to tweak the nail's damage
         /// </summary>
         /// <param name="__result">The to-be returned nail damage amount</param>
-        /// <param name="__instance">The instance of the PlayerData object</param>
-        private static void PlayerDataGetNailDamagePostfix(ref int __result, ref PlayerData __instance)
+        private static void PlayerDataGetNailDamagePostfix(ref int __result)
         {
             if (!coreEnableRandomization || __result == 0 || PlayerNailDamageRando == RandomizerEnable.Disabled) return;
             

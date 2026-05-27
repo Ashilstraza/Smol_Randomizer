@@ -32,7 +32,7 @@ namespace Cute_Randomizer.Randomizers
         private static bool coreEnableRandomization = false;
 
         // Used for determining if we need to update and clear the dictionaries
-        private static Scene currentScene;
+        private static string currentScene = "";
         private static FloatRange currentArchitectCrestSetting;
         private static bool architectCrestChanging = false;
         private static FloatRange currentShardChanceSetting;
@@ -86,9 +86,9 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         /// <param name="scene">The new scene that is loading</param>
         /// <param name="mode">?</param>
-        private static void OnSceneLoad(Scene scene, LoadSceneMode mode)
+        private static void OnSceneLoad(Scene scene, LoadSceneMode _)
         {
-            currentScene = scene;
+            currentScene = scene.name;
         }
 
         /// <summary>
@@ -110,15 +110,15 @@ namespace Cute_Randomizer.Randomizers
                     multiplierAC = consistantACMultiplier;
                     break;
                 case RandomizerConsistency3.Scene:
-                    if (!sceneMultiplier.TryGetValue(currentScene.name, out multiplier))
+                    if (!sceneMultiplier.TryGetValue(currentScene, out multiplier))
                     {
                         multiplier = Cute_Rando_Core.TupleRandoHelper(ShardChanceMultiplier.AsTuple());
-                        sceneMultiplier[currentScene.name] = multiplier;
+                        sceneMultiplier[currentScene] = multiplier;
                     }
-                    if (!sceneACMultiplier.TryGetValue(currentScene.name, out multiplierAC))
+                    if (!sceneACMultiplier.TryGetValue(currentScene, out multiplierAC))
                     {
                         multiplierAC = Cute_Rando_Core.TupleRandoHelper(ArchitectCrestMultiplier.AsTuple());
-                        sceneACMultiplier[currentScene.name] = multiplierAC;
+                        sceneACMultiplier[currentScene] = multiplierAC;
                     }
                     break;
                 case RandomizerConsistency3.None:

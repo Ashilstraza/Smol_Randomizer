@@ -152,10 +152,7 @@ namespace Cute_Randomizer.Settings
         /// <returns>the hash</returns>
         public override int GetHashCode()
         {
-            int hashCode = -897720056;
-            hashCode = hashCode * -1521134295 + min.GetHashCode();
-            hashCode = hashCode * -1521134295 + max.GetHashCode();
-            return hashCode;
+            return HashCode.Combine(min, max);
         }
     }
 }

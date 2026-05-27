@@ -41,7 +41,7 @@ namespace Cute_Randomizer.Handlers
             }
             set
             {
-                if (value < 1) throw new ArgumentOutOfRangeException("count is less than 1");
+                if (value < 1) throw new ArgumentOutOfRangeException(nameof(value), "count is less than 1");
                 _count = value;
             }
         }

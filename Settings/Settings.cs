@@ -100,7 +100,7 @@ namespace Cute_Randomizer.Settings
             Type entryType = entry.BoxedValue.GetType();
             if (entryType == typeof(FloatRange))
             {
-                FloatRange value = entry.BoxedValue as FloatRange;
+                FloatRange value = (FloatRange)entry.BoxedValue;
                 string min = (value.Min * 100).ToString();
                 string max = (value.Max * 100).ToString();
                 TextRange(ref min, ref max, RangeType.Percent);
@@ -115,7 +115,7 @@ namespace Cute_Randomizer.Settings
             }
             else if (entryType == typeof(IntRange))
             {
-                IntRange value = entry.BoxedValue as IntRange;
+                IntRange value = (IntRange)entry.BoxedValue;
                 string min = value.Min.ToString();
                 string max = value.Max.ToString();
                 TextRange(ref min, ref max, RangeType.Value);

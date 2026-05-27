@@ -9,7 +9,7 @@ namespace Cute_Randomizer.Handlers
         public GameObject GameObject
         {
             get { return _heldGameObject; }
-            set { _heldGameObject ??= value; }
+            set { _heldGameObject = _heldGameObject != null ? _heldGameObject : value; }
         }
 
         public override bool CanGetMore()
@@ -34,7 +34,7 @@ namespace Cute_Randomizer.Handlers
 
         internal CustomHolder SetGameObject(GameObject obj)
         {
-            if (_heldGameObject is not null) throw new ArgumentException("GameObject was already set. Create a new CustomHolder instead.");
+            if (_heldGameObject != null) throw new ArgumentException("GameObject was already set. Create a new CustomHolder instead.");
             GameObject = obj;
             return this;
         }

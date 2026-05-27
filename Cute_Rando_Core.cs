@@ -47,7 +47,8 @@ namespace Cute_Randomizer
         /// <summary>
         /// Mod's directory
         /// </summary>
-        public static string dataLocation = "";
+        public static string DataLocation => dataLocation;
+        private static string dataLocation = "";
         /// <summary>
         /// Dictionary containing the randomizers that want to update active enemies
         /// </summary>
@@ -101,7 +102,6 @@ namespace Cute_Randomizer
             Enemy_Currency_Rando.InitRandomizer();
             World_Currency_Drop_Rando.InitRandomizer();
             Enemy_Health_Rando.InitRandomizer();
-            Basic_Item_Rando.InitRandomizer();
             Enemy_Damage_Rando.InitRandomizer();
             Hero_Damage_Rando.InitRandomizer();
         }
@@ -125,7 +125,7 @@ namespace Cute_Randomizer
         private void Update()
         {
             if (GameManager.SilentInstance == null) return;
-            if (!randomize || GameManager.instance.sm?.sceneType != SceneType.GAMEPLAY) return;
+            if (!randomize || (GameManager.instance.sm != null ? GameManager.instance.sm.sceneType : null) != SceneType.GAMEPLAY) return;
 
             if (updateActiveLimitRegions)
             {
@@ -153,7 +153,7 @@ namespace Cute_Randomizer
         /// <summary>
         /// Update the settings we care about
         /// </summary>
-        private void UpdateSettings()
+        private static void UpdateSettings()
         {
             testing = Settings.Settings.TestNewThings;
             randomize = Settings.Settings.EnableRandomizer;
@@ -238,15 +238,15 @@ namespace Cute_Randomizer
         {
             if (randomizer == null)
             {
-                throw new ArgumentNullException("randomizer", "Unable to register null as a randomizer.");
+                throw new ArgumentNullException(nameof(randomizer), "Unable to register null as a randomizer.");
             }
             else if (randomizer.Name == null)
             {
-                throw new ArgumentNullException("Name", "Randomizer has a null name.");
+                throw new ArgumentException("Randomizer has a null name.");
             }
             else if (randomizer.Method == null)
             {
-                throw new ArgumentNullException("Action", "Randomizer has a null action.");
+                throw new ArgumentException("Randomizer has a null action.");
             }
 
             if (!allRandomizerActions.Add(randomizer)) return false;
@@ -292,11 +292,11 @@ namespace Cute_Randomizer
         {
             if (randomizer == null)
             {
-                throw new ArgumentNullException("randomizer", "Not able to unregister a null randomizer.");
+                throw new ArgumentNullException(nameof(randomizer), "Not able to unregister a null randomizer.");
             }
             if (randomizer.Name == null)
             {
-                throw new ArgumentNullException("randomizer", "Not able to unregister a randomizer with a null name.");
+                throw new ArgumentException("Not able to unregister a randomizer with a null name.");
             }
 
             if (!allRandomizerActions.Remove(randomizer)) return false;
@@ -389,5 +389,6 @@ namespace Cute_Randomizer
     /// <summary>
     /// Class stub to allow adding the [ModMenuIgnore] attribute to the mod so that it doesn't get auto generated.
     /// </summary>
+    [AttributeUsage(AttributeTargets.Class)]
     internal class ModMenuIgnoreAttribute : Attribute { }
 }
