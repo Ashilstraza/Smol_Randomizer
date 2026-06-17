@@ -1,16 +1,20 @@
 <Project>
-  <PropertyGroup>
-    <!-- These properties will control the generated plugin info and Thunderstore manifest. -->
-    <!-- 
-    This is the name of your plugin as it would appear in-game and in a mod installer. 
-    Allowed characters are A-Z, a-z, 0-9 and _ 
-    -->
-    <AssemblyTitle>Ashen Randomizer</AssemblyTitle>
-    <!--
+	<PropertyGroup>
+		<!-- These properties will control the generated plugin info and Thunderstore manifest. -->
+		<Title>Ashen Randomizer</Title>
+		<AssemblyTitle>Ashen Randomizer</AssemblyTitle>
+		<Description>Randomizer for Miscellanious Things</Description>
+		<PackageId>ashilstraza.randomizer.cute</PackageId>
+		<!--
     This is the version of your plugin as it would appear in-game and in a mod installer.
     It should follow the format major.minor.patch (semantic versioning). If you publish your mod
     as a library to NuGet, this version will also be used as the package version.
     -->
-    <Version>0.0.1</Version>
-  </PropertyGroup>
+		<Version>0.0.1</Version>
+		<Authors>Ashilstraza</Authors>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageIcon>icon.png</PackageIcon>
+		<RepositoryUrl>https://github.com/Ashilstraza/Cute_Randomizer</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/Ashilstraza/Cute_Randomizer</PackageProjectUrl>
+	</PropertyGroup>
 </Project>

@@ -28,15 +28,16 @@
     <LangVersion>latest</LangVersion>
     <ErrorReport>prompt</ErrorReport>
     <Prefer32Bit>false</Prefer32Bit>
+    <DebugType>none</DebugType>
   </PropertyGroup>
   <PropertyGroup>
+	<RootNamespace>Cute_Randomizer</RootNamespace>
     <OutputType>Library</OutputType>
     <ProjectGuid>{EFDFDB26-27F7-4D32-A2F9-B62969CFF794}</ProjectGuid>
 	 <TargetFramework>netstandard2.1</TargetFramework>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <TargetFrameworkProfile />
     <StartupObject />
-    <RootNamespace>Cute_Randomizer</RootNamespace>
     <Nullable>enable</Nullable>
     <EnableNETAnalyzers>True</EnableNETAnalyzers>
     <AnalysisMode>recommended</AnalysisMode>
@@ -46,10 +47,8 @@
     <RestoreLockedMode Condition="'$(CI)' == 'true'">True</RestoreLockedMode>
     <!-- Shortens and anonymizes paths in debug symbols relative to the project directory. Breakpoints will not work, however. -->
     <PathMap Condition="'$(Configuration)' == 'Release'">$(MSBuildProjectDirectory)=/</PathMap>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>icon.png</PackageIcon>
-    <RepositoryUrl>https://github.com/Ashilstraza/Cute_Randomizer</RepositoryUrl>
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="References\**" />
@@ -59,15 +58,13 @@
   <ItemGroup>
     <PackageReference Include="BepInEx.Analyzers" Version="1.0.8" PrivateAssets="all" />
     <PackageReference Include="BepInEx.Core" Version="5.4.21" />
-    <PackageReference Include="HarmonyX" Version="2.16.1" />
-    <PackageReference Include="Harmonize" Version="1.0.6" PrivateAssets="all" />
+    <PackageReference Include="HarmonyX" Version="2.9.0" />
     <PackageReference Include="Hamunii.BepInEx.AutoPlugin" Version="2.1.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Unity.Analyzers" Version="1.25.0" PrivateAssets="all" />
     <PackageReference Include="Newtonsoft.Json">
       <Version>13.0.4</Version>
     </PackageReference>
     <PackageReference Include="UnityEngine.Modules" Version="6000.0.50" IncludeAssets="compile" />
-    <PackageReference Include="Silksong.GameLibs" Version="*-*" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
@@ -99,15 +96,17 @@
       <HintPath>References\UnityEngine.UIModule.dll</HintPath>
     </Reference>
   </ItemGroup>
+  
   <Target Name="CopyAndPackageMod" AfterTargets="PostBuildEvent">
     <ItemGroup>
       <Binaries Include="$(TargetPath)" LocalDir="/" PackDir="/" />
-      <Binaries Include="$(TargetDir)/$(TargetName).pdb" LocalDir="/" PackDir="/" />
+      <Binaries Include="$(TargetDir)/$(TargetName).pdb" LocalDir="/" PackDir="/" Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' " />
     </ItemGroup>
     <PropertyGroup>
       <ThunderstoreDir>$(ProjectDir)/thunderstore</ThunderstoreDir>
     </PropertyGroup>
     <!-- Local install -->
+	<RemoveDir Directories="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)" />
     <Copy SourceFiles="@(Binaries)" DestinationFolder="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)/%(Binaries.LocalDir)" Condition="'$(SilksongPluginsFolder)' != '' And Exists('$(SilksongPluginsFolder)')" />
     <!-- Thunderstore packaging -->
     <RemoveDir Directories="$(ThunderstoreDir)/temp;$(ThunderstoreDir)/dist" />

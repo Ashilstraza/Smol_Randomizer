@@ -1,19 +1,25 @@
 ﻿using BepInEx;
 using Cute_Randomizer.Randomizers;
+using Cute_Randomizer.Settings;
 using GlobalEnums;
 using HarmonyLib;
+using HutongGames.PlayMaker;
+using HutongGames.PlayMaker.Actions;
 using Newtonsoft.Json;
+using Silksong.ModMenu.Plugin;
+using Silksong.ModMenu.Screens;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using UnityEngine.SceneManagement;
 
 namespace Cute_Randomizer
 {
-    [ModMenuIgnore]
+    [BepInDependency("org.silksong-modding.modmenu")]
     [BepInPlugin(GUID, MODNAME, VERSION)]
-    public class Cute_Rando_Core : BaseUnityPlugin
+    public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCustomMenu
     {
         /// <summary>
         /// Mod ID
@@ -50,9 +56,20 @@ namespace Cute_Randomizer
         public static string DataLocation => dataLocation;
         private static string dataLocation = "";
         /// <summary>
-        /// Dictionary containing the randomizers that want to update active enemies
+        /// If we are testing new things
         /// </summary>
-        private static readonly Dictionary<string, Action<HealthManager>> activeEnemyRandomizers = [];
+        internal static bool testing = false;
+        /// <summary>
+        /// If we actually want to randomize
+        /// </summary>
+        internal static bool randomize = true;
+        /// <summary>
+        /// Our reference for harmony
+        /// </summary>
+        internal static readonly Harmony harmony = new(GUID);
+
+        internal static SettingMenu cuteRandomizerSettingWindow;
+
         /// <summary>
         /// Dictionary containing the randomizers that want to update the active limit regions
         /// </summary>
@@ -70,26 +87,9 @@ namespace Cute_Randomizer
         /// </summary>
         private static readonly Dictionary<string, Action> activeGameShutdown = [];
         /// <summary>
-        /// Dictionary containing the randomizers that want to update when hero damagers activate
-        /// </summary>
-        private static readonly Dictionary<string, Action<DamageHero>> activeHeroDamagers = [];
-        /// <summary>
         /// Dictionary containing the randomizers that want to update on first frame of a new scene
         /// </summary>
         private static readonly Dictionary<string, Action> activeOnFirstSceneFrame = [];
-
-        /// <summary>
-        /// If we are testing new things
-        /// </summary>
-        internal static bool testing = false;
-        /// <summary>
-        /// If we actually want to randomize
-        /// </summary>
-        internal static bool randomize = true;
-        /// <summary>
-        /// Our reference for harmony
-        /// </summary>
-        internal static readonly Harmony harmony = new(GUID);
 
         /// <summary>
         /// On Startup (no window visible)
@@ -104,6 +104,7 @@ namespace Cute_Randomizer
             Enemy_Health_Rando.InitRandomizer();
             Enemy_Damage_Rando.InitRandomizer();
             Hero_Damage_Rando.InitRandomizer();
+            Enemy_Size_Rando.InitRandomizer();
         }
 
         /// <summary>
@@ -129,6 +130,7 @@ namespace Cute_Randomizer
 
             if (updateActiveLimitRegions)
             {
+                //foreach (ICurrencyLimitRegion region in (HashSet<ICurrencyLimitRegion>)TraverseHelper(typeof(CurrencyObjectLimitRegion), "_activeRegions").GetValue())
                 foreach (ICurrencyLimitRegion region in (HashSet<ICurrencyLimitRegion>)Traverse.Create<CurrencyObjectLimitRegion>().Field("_activeRegions").GetValue())
                 {
                     foreach (var randomizer in activeLimitRegions)
@@ -155,7 +157,9 @@ namespace Cute_Randomizer
         /// </summary>
         private static void UpdateSettings()
         {
+#if DEBUG
             testing = Settings.Settings.TestNewThings;
+#endif
             randomize = Settings.Settings.EnableRandomizer;
         }
 
@@ -191,12 +195,27 @@ namespace Cute_Randomizer
         }
 
         /// <summary>
+        /// Create the custom mod menu
+        /// </summary>
+        /// <returns>the built mod menu</returns>
+        public AbstractMenuScreen BuildCustomMenu()
+        {
+            cuteRandomizerSettingWindow = new(MODNAME);
+            return cuteRandomizerSettingWindow.Build();
+        }
+
+        /// <summary>
         /// Imports a json file to a string object for further processing. Will auto append .json extension.
         /// </summary>
         /// <param name="fileName">the file's name without extension</param>
         /// <param name="importTarget">string of the object to load into</param>
         internal static void ImportJsonFile(string fileName, out string importTarget)
         {
+            if (!File.Exists(dataLocation + "\\\\" + fileName + ".json"))
+                {
+                importTarget = "";
+                return;
+            }
             try
             {
                 importTarget = File.ReadAllText(dataLocation + "\\\\" + fileName + ".json");
@@ -249,6 +268,18 @@ namespace Cute_Randomizer
                 throw new ArgumentException("Randomizer has a null action.");
             }
 
+            foreach (Randomizer_Info randoInfo in allRandomizerActions)
+            {
+                if (randomizer.Name == randoInfo.Name)
+                {
+                    Console.Error.WriteLine($"[{MODNAME}] Unable to register randomizer action: There already is a randomizer with the same name.");
+                }
+                else if (randomizer.Method == randoInfo.Method)
+                {
+                    Console.Error.WriteLine($"[{MODNAME}] Unable to register randomizer action: Duplicate action.");
+                }
+            }
+
             if (!allRandomizerActions.Add(randomizer)) return false;
 
             if (allRandomizers.Add(randomizer.Name))
@@ -257,10 +288,8 @@ namespace Cute_Randomizer
             switch (randomizer.RandomizerType)
             {
                 case RandomizerEventType.ActiveHeroDamager:
-                    activeHeroDamagers.Add(randomizer.Name, (Action<DamageHero>)Delegate.CreateDelegate(type: typeof(Action<DamageHero>), method: randomizer.Method));
-                    break;
                 case RandomizerEventType.ActiveEnemy:
-                    activeEnemyRandomizers.Add(randomizer.Name, (Action<HealthManager>)Delegate.CreateDelegate(type: typeof(Action<HealthManager>), method: randomizer.Method));
+                    // Handled by Harmony Patches
                     break;
                 case RandomizerEventType.ActiveLimitRegion:
                     activeLimitRegions.Add(randomizer.Name, (Action<ICurrencyLimitRegion>)Delegate.CreateDelegate(type: typeof(Action<ICurrencyLimitRegion>), method: randomizer.Method));
@@ -273,6 +302,9 @@ namespace Cute_Randomizer
                     break;
                 case RandomizerEventType.GameStartup:
                     activeGameStartup.Add(randomizer.Name, (Action)Delegate.CreateDelegate(type: typeof(Action), method: randomizer.Method));
+                    break;
+                case RandomizerEventType.GameShutdown:
+                    activeGameShutdown.Add(randomizer.Name, (Action)Delegate.CreateDelegate(type: typeof (Action), method: randomizer.Method));
                     break;
                 default:
                     Console.Error.WriteLine("Unimplimented entryType");
@@ -305,11 +337,24 @@ namespace Cute_Randomizer
 
             switch (randomizer.RandomizerType)
             {
+                case RandomizerEventType.ActiveHeroDamager:
                 case RandomizerEventType.ActiveEnemy:
-                    activeEnemyRandomizers.Remove(randomizer.Name);
+                    // Handled by Harmony Patches
                     break;
                 case RandomizerEventType.ActiveLimitRegion:
                     activeLimitRegions.Remove(randomizer.Name);
+                    break;
+                case RandomizerEventType.OnSceneLoad:
+                    activeOnSceneLoad.Remove(randomizer.Name);
+                    break;
+                case RandomizerEventType.OnFirstSceneFrame:
+                    activeOnFirstSceneFrame.Remove(randomizer.Name);
+                    break;
+                case RandomizerEventType.GameStartup:
+                    activeGameStartup.Remove(randomizer.Name);
+                    break;
+                case RandomizerEventType.GameShutdown:
+                    activeGameShutdown.Remove(randomizer.Name);
                     break;
                 default:
                     Console.Error.WriteLine("Unimplimented entryType");
@@ -348,6 +393,53 @@ namespace Cute_Randomizer
         {
             return UnityEngine.Random.Range(tuple.min, tuple.max);
         }
+
+        /// <summary>
+        /// Array of bosses that we want to look for
+        /// </summary>
+        public static readonly string[] bossFilter =
+        [
+            "Lace",
+            "Phantom",
+            "Silk Boss",
+            "Bone Beast",
+            "Trobbio",
+            "Shakra",
+            "Mapper",
+            "Forebrother",
+            "Garmond",
+            "SG_head"
+        ];
+
+        /// <summary>
+        /// Checks to see if a given HealthManager is attached to a boss
+        /// 
+        /// <para>Logic borrowed from SimpleEnemyRando</para>
+        /// </summary>
+        /// <param name="thing">HealthManager we want to check</param>
+        /// <returns>Returns true if it is a boss, otherwise false</returns>
+        public static bool IsBoss(HealthManager thing)
+        {
+            // Test if thing is somehow null or it has no death effect (moss mother arena eggs for example)
+            if (thing == null || thing.GetComponent<EnemyDeathEffects>() is EnemyDeathEffectsNoEffect) return false;
+
+            // Test by boss name
+            foreach (string bossName in bossFilter)
+            {
+                if (thing.name.Contains(bossName)) return true;
+            }
+
+            // Test by boss title card
+            foreach (PlayMakerFSM fsm in thing.GetComponents<PlayMakerFSM>())
+            {
+                foreach (FsmState state in fsm.FsmStates)
+                {
+                    if (state?.Actions.Any(action => action is DisplayBossTitle) == true) return true;
+                }
+            }
+
+            return false;
+        }
     }
 
     /// <summary>
@@ -385,10 +477,4 @@ namespace Cute_Randomizer
         /// </summary>
         public MethodInfo Method => method;
     }
-
-    /// <summary>
-    /// Class stub to allow adding the [ModMenuIgnore] attribute to the mod so that it doesn't get auto generated.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Class)]
-    internal class ModMenuIgnoreAttribute : Attribute { }
 }
