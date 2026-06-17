@@ -87,10 +87,10 @@ namespace Cute_Randomizer.Randomizers
         /// <param name="__result">The to-be returned nail damage amount</param>
         private static void PlayerDataGetNailDamagePostfix(ref int __result)
         {
-            if (!coreEnableRandomization || __result == 0 || PlayerNailDamageRando == RandomizerEnable.Disabled) return;
+            if (!coreEnableRandomization || __result == 0 || !PlayerNailDamageRando) return;
             
             __result = NailDamage(__result);
-            if (__result <= 0 && PlayerNailDamageMinimum == RandomizerEnable.Enabled) __result = 1;
+            if (__result <= 0 && PlayerNailDamageMinimum) __result = 1;
         }
 
         /// <summary>
@@ -140,8 +140,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static PlayerNailDamageConsistancy ConsistancySetting
         {
-            get { return (PlayerNailDamageConsistancy)consistancySetting.BoxedValue; }
-            internal set { consistancySetting.BoxedValue = value; }
+            get => (PlayerNailDamageConsistancy)consistancySetting.BoxedValue;
+            internal set => consistancySetting.BoxedValue = value;
         }
         private static ConfigEntry<PlayerNailDamageConsistancy> consistancySetting;
         /// <summary>
@@ -151,36 +151,36 @@ namespace Cute_Randomizer.Randomizers
         /// <summary>
         /// Setting for if nail damage should be randomized
         /// </summary>
-        public static RandomizerEnable PlayerNailDamageRando
+        public static bool PlayerNailDamageRando
         {
-            get { return (RandomizerEnable)playerNailDamageRando.BoxedValue; }
-            internal set { playerNailDamageRando.BoxedValue = value; }
+            get => (bool)playerNailDamageRando.BoxedValue;
+            internal set => playerNailDamageRando.BoxedValue = value;
         }
-        private static ConfigEntry<RandomizerEnable> playerNailDamageRando;
+        private static ConfigEntry<bool> playerNailDamageRando;
         /// <summary>
         /// Default choice for if nail damage should be randomized
         /// </summary>
-        public static readonly RandomizerEnable defaultPlayerNailDamageRando = RandomizerEnable.Disabled;
+        public static readonly bool defaultPlayerNailDamageRando = false;
         /// <summary>
         /// Setting for if there should be a minimum damage for the nail
         /// </summary>
-        public static RandomizerEnable PlayerNailDamageMinimum
+        public static bool PlayerNailDamageMinimum
         {
-            get { return (RandomizerEnable)playerNailDamageMinimum.BoxedValue; }
-            internal set { playerNailDamageMinimum.BoxedValue = value; }
+            get => (bool)playerNailDamageMinimum.BoxedValue;
+            internal set => playerNailDamageMinimum.BoxedValue = value;
         }
-        private static ConfigEntry<RandomizerEnable> playerNailDamageMinimum;
+        private static ConfigEntry<bool> playerNailDamageMinimum;
         /// <summary>
         /// Default choice for minimum nail damage
         /// </summary>
-        public static readonly RandomizerEnable defaultPlayerNailDamageMinimum = RandomizerEnable.Enabled;
+        public static readonly bool defaultPlayerNailDamageMinimum = true;
         /// <summary>
         /// Setting for the amount we should shift the nail damage
         /// </summary>
         public static int PlayerNailDamageShift
         {
-            get { return (int)playerNailDamageShift.BoxedValue; }
-            internal set { playerNailDamageShift.BoxedValue = value; }
+            get => (int)playerNailDamageShift.BoxedValue;
+            internal set => playerNailDamageShift.BoxedValue = value;
         }
         private static ConfigEntry<int> playerNailDamageShift;
         /// <summary>
@@ -214,7 +214,8 @@ namespace Cute_Randomizer.Randomizers
                 key: "Hornet Damage Shift",
                 defaultValue: defaultPlayerNailDamageShift,
                 configDescription: new ConfigDescription(
-                    description: "Shifts Hornet's damage up or down within a set value around her normal needle upgrade value.",
+                    description: "Shifts Hornet's damage up or down within a set value around her normal needle upgrade value. Acceptable values range from 0 to 20.",
+                    acceptableValues: new AcceptableValueRange<int>(0, 20),
                     tags: new ConfigurationManagerAttributes
                     {
                         Order = 2

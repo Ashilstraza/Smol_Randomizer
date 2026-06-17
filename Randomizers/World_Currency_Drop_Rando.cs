@@ -98,14 +98,14 @@ namespace Cute_Randomizer.Randomizers
         /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
         private static void SetCurrency(ICurrencyLimitRegion region)
         {
-            if (!coreEnableRandomization || region == null || (ArchitectChanceEnable == RandomizerEnable.Disabled && ShardChanceEnable == RandomizerEnable.Disabled)) return;
+            if (!coreEnableRandomization || region == null || (!ArchitectChanceEnable && !ShardChanceEnable)) return;
 
             float multiplier;
             float multiplierAC;
 
             switch (ConsistencySetting)
             {
-                case RandomizerConsistency3.Game:
+                case RandomizerConsistency3.Save:
                     multiplier = consistantMultiplier;
                     multiplierAC = consistantACMultiplier;
                     break;
@@ -141,18 +141,18 @@ namespace Cute_Randomizer.Randomizers
                 float num = (float)Cute_Rando_Core.TraverseHelper(o, "Probability").GetValue();
                 if ((int)Cute_Rando_Core.TraverseHelper(o, "dropAmount").GetValue() > 0)
                 {
-                    if (ShardChanceEnable == RandomizerEnable.Enabled)
+                    if (ShardChanceEnable)
                     {
                         num *= multiplier;
                         Cute_Rando_Core.TraverseHelper(o, "Probability").SetValue(num);
                     }
-                    if (ArchitectChanceEnable == RandomizerEnable.Enabled) newArchitectProbabilities[i] = num * multiplierAC;
+                    if (ArchitectChanceEnable) newArchitectProbabilities[i] = num * multiplierAC;
                 }
-                else if (ArchitectChanceEnable == RandomizerEnable.Enabled) newArchitectProbabilities[i] = num;
+                else if (ArchitectChanceEnable) newArchitectProbabilities[i] = num;
                 i++;
             }
 
-            if (ArchitectChanceEnable == RandomizerEnable.Enabled) architectProbabilities.SetValue(newArchitectProbabilities);
+            if (ArchitectChanceEnable) architectProbabilities.SetValue(newArchitectProbabilities);
         }
 
         #region Settings
@@ -161,8 +161,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static RandomizerConsistency3 ConsistencySetting
         {
-            get { return (RandomizerConsistency3)consistencySetting.BoxedValue; }
-            internal set { consistencySetting.BoxedValue = value; }
+            get => (RandomizerConsistency3)consistencySetting.BoxedValue;
+            internal set => consistencySetting.BoxedValue = value;
         }
         private static ConfigEntry<RandomizerConsistency3> consistencySetting;
         /// <summary>
@@ -172,23 +172,23 @@ namespace Cute_Randomizer.Randomizers
         /// <summary>
         /// Randomize shard drop chance from hitting specific walls
         /// </summary>
-        public static RandomizerEnable ShardChanceEnable
+        public static bool ShardChanceEnable
         {
-            get { return (RandomizerEnable)shardChanceEnable.BoxedValue; }
-            internal set { shardChanceEnable.BoxedValue = value; }
+            get => (bool)shardChanceEnable.BoxedValue;
+            internal set => shardChanceEnable.BoxedValue = value;
         }
-        private static ConfigEntry<RandomizerEnable> shardChanceEnable;
+        private static ConfigEntry<bool> shardChanceEnable;
         /// <summary>
         /// Default choice for wall shard drop chance randomizer
         /// </summary>
-        public static readonly RandomizerEnable defaultShardChanceEnable = RandomizerEnable.Disabled;
+        public static readonly bool defaultShardChanceEnable = false;
         /// <summary>
         /// Percent range for regular shard drop chance multiplier
         /// </summary>
         public static FloatRange ShardChanceMultiplier
         {
-            get { return (FloatRange)shardChanceMultiplier.BoxedValue; }
-            internal set { shardChanceMultiplier.BoxedValue = value; }
+            get => (FloatRange)shardChanceMultiplier.BoxedValue;
+            internal set => shardChanceMultiplier.BoxedValue = value;
         }
         private static ConfigEntry<FloatRange> shardChanceMultiplier;
         /// <summary>
@@ -198,23 +198,23 @@ namespace Cute_Randomizer.Randomizers
         /// <summary>
         /// Randomize architect crest shard drop chance
         /// </summary>
-        public static RandomizerEnable ArchitectChanceEnable
+        public static bool ArchitectChanceEnable
         {
-            get { return (RandomizerEnable)architectChanceEnable.BoxedValue; }
-            internal set { architectChanceEnable.BoxedValue = value; }
+            get => (bool)architectChanceEnable.BoxedValue;
+            internal set => architectChanceEnable.BoxedValue = value;
         }
-        private static ConfigEntry<RandomizerEnable> architectChanceEnable;
+        private static ConfigEntry<bool> architectChanceEnable;
         /// <summary>
         /// Default choice for architect crest shard drop chance randomizer
         /// </summary>
-        public static readonly RandomizerEnable defaultArchitectChanceEnable = RandomizerEnable.Disabled;
+        public static readonly bool defaultArchitectChanceEnable = false;
         /// <summary>
         /// Percent range for architect crest multiplier
         /// </summary>
         public static FloatRange ArchitectCrestMultiplier
         {
-            get { return (FloatRange)architectCrestMultiplier.BoxedValue; }
-            internal set { architectCrestMultiplier.BoxedValue = value; }
+            get => (FloatRange)architectCrestMultiplier.BoxedValue;
+            internal set => architectCrestMultiplier.BoxedValue = value;
         }
         private static ConfigEntry<FloatRange> architectCrestMultiplier;
         /// <summary>
@@ -316,7 +316,7 @@ namespace Cute_Randomizer.Randomizers
             {
                 architectCrestChanging = true;
                 currentArchitectCrestSetting = architectCrestFloat;
-                if (ConsistencySetting == RandomizerConsistency3.Game)
+                if (ConsistencySetting == RandomizerConsistency3.Save)
                 {
                     UpdateConsistantMultipliers();
                 }
@@ -335,7 +335,7 @@ namespace Cute_Randomizer.Randomizers
             if (!currentShardChanceSetting.Equals(shardChanceFloat))
             {
                 currentShardChanceSetting = shardChanceFloat;
-                if (ConsistencySetting == RandomizerConsistency3.Game)
+                if (ConsistencySetting == RandomizerConsistency3.Save)
                 {
                     shardChanceChanging = true;
                     UpdateConsistantMultipliers();

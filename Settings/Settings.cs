@@ -10,13 +10,14 @@ namespace Cute_Randomizer.Settings
     public static class Settings
     {
         #region Settings
+#if DEBUG
         /// <summary>
         /// If we want to test new things
         /// </summary>
         public static bool TestNewThings
         {
-            get { return (bool)testNewThings.BoxedValue; }
-            internal set { testNewThings.BoxedValue = value; }
+            get => (bool)testNewThings.BoxedValue;
+            internal set => testNewThings.BoxedValue = value;
         }
         private static ConfigEntry<bool> testNewThings;
         /// <summary>
@@ -24,19 +25,20 @@ namespace Cute_Randomizer.Settings
         /// </summary>
         public static readonly bool defaultTestNewThings = false;
         /// <summary>
+#endif
         /// Enables the randomization of the various things
         /// </summary>
         public static bool EnableRandomizer
         {
-            get { return (bool)enableRandomizer.BoxedValue; }
-            internal set { enableRandomizer.BoxedValue = value; }
+            get => (bool)enableRandomizer.BoxedValue;
+            internal set => enableRandomizer.BoxedValue = value;
         }
         internal static ConfigEntry<bool> enableRandomizer;
         /// <summary>
         /// Default if we want to randomize the various things
         /// </summary>
         public static readonly bool defaultEnableRandomizer = true;
-        #endregion
+#endregion
 
         /// <summary>
         /// Our config file
@@ -55,7 +57,7 @@ namespace Cute_Randomizer.Settings
         /// <summary>
         /// Reference to the randomizer's config file to allow adding settings.
         /// </summary>
-        public static ConfigFile ConfigFile { get { return configFile; } }
+        public static ConfigFile ConfigFile => configFile;
 
         /// <summary>
         /// Initialize the various settings.
@@ -79,14 +81,14 @@ namespace Cute_Randomizer.Settings
                     {
                         Order = 1
                     }));
+#if DEBUG
             testNewThings = config.Bind(
                 "Testing",
                 "Test new things",
                 defaultTestNewThings,
                 new ConfigDescription(
                     "Test new things"));
-
-
+#endif
         }
 
         //private static 
@@ -208,32 +210,35 @@ namespace Cute_Randomizer.Settings
     }
 
     /// <summary>
-    /// Randomizer Enable/Disable
-    /// </summary>
-    public enum RandomizerEnable
-    {
-        Disabled,
-        Enabled
-    }
-
-    /// <summary>
-    /// Randomizer Consistency Type
+    /// Four Randomizer Consistency Types
     /// </summary>
     public enum RandomizerConsistency4
     {
         None,
         EnemyType,
         Scene,
-        Game
+        Save
     }
 
     /// <summary>
-    /// The options for world shard consistancy
+    /// Three Randomizer Consistency Types
     /// </summary>
     public enum RandomizerConsistency3
     {
         None,
         Scene,
-        Game
+        Save
+    }
+
+    /// <summary>
+    /// Enemy Type Flags
+    /// </summary>
+    [Flags]
+    public enum RandomizerEnemyTypeFlags
+    {
+        None,
+        Enemy,
+        Boss,
+        Both
     }
 }

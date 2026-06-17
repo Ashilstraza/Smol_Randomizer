@@ -176,7 +176,7 @@ namespace Cute_Randomizer.Randomizers
                 {
                     damage = Cute_Rando_Core.TupleRandoHelper(DamageRange.AsTuple());
                 }
-                if (damage <= 0 && EnemyDamageMinimum == RandomizerEnable.Enabled) damage = 1;
+                if (damage <= 0 && EnemyDamageMinimum) damage = 1;
                 else if (damage < 0) damage = 0;
             }
         }
@@ -204,9 +204,9 @@ namespace Cute_Randomizer.Randomizers
         /// Setting for how consistant the enemy damage should be
         /// </summary>
         public static RandomizerConsistency4 RandomizerConsistency
-        {
-            get { return (RandomizerConsistency4)randomizerConsistency.BoxedValue; }
-            internal set { randomizerConsistency.BoxedValue = value; }
+        { 
+            get => (RandomizerConsistency4)randomizerConsistency.BoxedValue; 
+            internal set => randomizerConsistency.BoxedValue = value;
         }
         private static ConfigEntry<RandomizerConsistency4> randomizerConsistency;
         /// <summary>
@@ -217,9 +217,9 @@ namespace Cute_Randomizer.Randomizers
         /// Randomize the damage of enemies
         /// </summary>
         public static RandomizeByFlatAmount DamageModifierType
-        {
-            get { return (RandomizeByFlatAmount)damageModifierType.BoxedValue; }
-            internal set { damageModifierType.BoxedValue = value; }
+        { 
+            get => (RandomizeByFlatAmount)damageModifierType.BoxedValue; 
+            internal set => damageModifierType.BoxedValue = value;
         }
         private static ConfigEntry<RandomizeByFlatAmount> damageModifierType;
         /// <summary>
@@ -230,9 +230,9 @@ namespace Cute_Randomizer.Randomizers
         /// Shift the damage that enemies do by +X or -X
         /// </summary>
         public static int DamageShift
-        {
-            get { return (int)damageShift.BoxedValue; }
-            internal set { damageShift.BoxedValue = value; }
+        { 
+            get => (int)damageShift.BoxedValue; 
+            internal set => damageShift.BoxedValue = value;
         }
         private static ConfigEntry<int> damageShift;
         /// <summary>
@@ -243,9 +243,9 @@ namespace Cute_Randomizer.Randomizers
         /// Randomizes the damage between a range of values
         /// </summary>
         public static IntRange DamageRange
-        {
-            get { return (IntRange)damageRange.BoxedValue; }
-            internal set { damageRange.BoxedValue = value; }
+        { 
+            get => (IntRange)damageRange.BoxedValue; 
+            internal set => damageRange.BoxedValue = value;
         }
         private static ConfigEntry<IntRange> damageRange;
         /// <summary>
@@ -255,16 +255,16 @@ namespace Cute_Randomizer.Randomizers
         /// <summary>
         /// Locks minimum damage for an enemy to 1
         /// </summary>
-        public static RandomizerEnable EnemyDamageMinimum
-        {
-            get { return (RandomizerEnable)enemyDamageMinimum.BoxedValue; }
-            internal set { enemyDamageMinimum.BoxedValue = value; }
+        public static bool EnemyDamageMinimum
+        { 
+            get => (bool)enemyDamageMinimum.BoxedValue; 
+            internal set => enemyDamageMinimum.BoxedValue = value;
         }
-        private static ConfigEntry<RandomizerEnable> enemyDamageMinimum;
+        private static ConfigEntry<bool> enemyDamageMinimum;
         /// <summary>
         /// Default setting if minimum damage should be enabled
         /// </summary>
-        public static readonly RandomizerEnable defaultEnemyDamageMinimum = RandomizerEnable.Disabled;
+        public static readonly bool defaultEnemyDamageMinimum = false;
         
         /// <summary>
         /// Config Section Name
@@ -292,7 +292,8 @@ namespace Cute_Randomizer.Randomizers
                 key: "Enemy Damage Shift",
                 defaultValue: defaultDamageShift,
                 configDescription: new ConfigDescription(
-                    description: "Set damage shift amount.",
+                    description: "Set damage shift amount. Acceptable values range from 0 to 10.",
+                    acceptableValues: new AcceptableValueRange<int>(0, 10),
                     tags: new ConfigurationManagerAttributes
                     {
                         Order = 3

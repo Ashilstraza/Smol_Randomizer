@@ -119,7 +119,9 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         private static void GameStartup()
         {
-            Cute_Rando_Core.harmony.Patch(AccessTools.Method(typeof(HealthManager), "OnEnable"), postfix: new HarmonyMethod(typeof(Enemy_Currency_Rando), nameof(HealthManagerOnEnablePostfix)));
+            Cute_Rando_Core.harmony.Patch(
+                AccessTools.Method(typeof(HealthManager), "OnEnable"), 
+                postfix: new HarmonyMethod(typeof(Enemy_Currency_Rando), nameof(HealthManagerOnEnablePostfix)));
         }
 
         /// <summary>
@@ -135,12 +137,21 @@ namespace Cute_Randomizer.Randomizers
         /// Patch that hooks the end of OnEnable of objects that have a HealthManager to adjust their currency
         /// </summary>
         /// <param name="__instance">The HealthManager that we want to adjust</param>
-        private static void HealthManagerOnEnablePostfix(ref HealthManager __instance)
+        private static void HealthManagerOnEnablePostfix(
+            ref HealthManager __instance, 
+            ref int ___smallGeoDrops, 
+            ref int ___mediumGeoDrops, 
+            ref int ___largeGeoDrops, 
+            ref int ___shellShardDrops)
         {
             if (!coreEnableRandomization) return;
             if (currentEnemyHealthManagers.Add(__instance))
             {
-                SetCurrency(__instance);
+                SetCurrency(__instance, 
+                    ref ___smallGeoDrops, 
+                    ref ___mediumGeoDrops, 
+                    ref ___largeGeoDrops, 
+                    ref ___shellShardDrops);
             }
         }
 
@@ -149,7 +160,12 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         /// <param name="thing">the HealthManager to adjust values in</param>
         /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
-        private static void SetCurrency(HealthManager thing)
+        private static void SetCurrency(
+            HealthManager thing, 
+            ref int smallGeoDrops, 
+            ref int mediumGeoDrops, 
+            ref int largeGeoDrops, 
+            ref int shellShardDrops)
         {
             if (thing == null) return;
             
@@ -157,13 +173,13 @@ namespace Cute_Randomizer.Randomizers
             {
                 RandomizeRosary(thing, out RandomizedGeoSet geoSet);
 
-                Cute_Rando_Core.TraverseHelper(thing, "smallGeoDrops").SetValue(geoSet.SmallGeo);
-                Cute_Rando_Core.TraverseHelper(thing, "mediumGeoDrops").SetValue(geoSet.MediumGeo);
-                Cute_Rando_Core.TraverseHelper(thing, "largeGeoDrops").SetValue(geoSet.LargeGeo);
+                smallGeoDrops = geoSet.SmallGeo;
+                mediumGeoDrops = geoSet.MediumGeo;
+                largeGeoDrops = geoSet.LargeGeo;
             }
             
             if(ShardRandomizerType != RandomizeByRangeTypes.Disabled)
-                Cute_Rando_Core.TraverseHelper(thing, "shellShardDrops").SetValue(RandomizeShards(thing));
+                shellShardDrops = RandomizeShards(thing, ref shellShardDrops);
         }
 
         /// <summary>
@@ -172,7 +188,7 @@ namespace Cute_Randomizer.Randomizers
         /// <param name="thing">HealthManager of the enemy</param>
         /// <returns>shards for enemy to drop</returns>
         /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
-        private static int RandomizeShards(HealthManager thing)
+        private static int RandomizeShards(HealthManager thing, ref int shellShardDrops)
         {
             int shards;
             string name = thing.name;
@@ -185,7 +201,7 @@ namespace Cute_Randomizer.Randomizers
                 case RandomizerConsistency4.EnemyType:
                     if (!enemyShards.TryGetValue(name, out shards))
                     {
-                        shards = GetRandoTypeShards(thing);
+                        shards = GetRandoTypeShards(ref shellShardDrops);
                         enemyShards[name] = shards;
                     }
 
@@ -194,29 +210,29 @@ namespace Cute_Randomizer.Randomizers
 
                     if (!sceneShards.TryGetValue(operatingScene, out Dictionary<string, int> shardSet))
                     {
-                        shards = GetRandoTypeShards(thing);
+                        shards = GetRandoTypeShards(ref shellShardDrops);
                         sceneShards[operatingScene] = new() { { name, shards } };
                     }
                     else
                     {
                         if (!shardSet.TryGetValue(name, out shards))
                         {
-                            shards = GetRandoTypeShards(thing);
+                            shards = GetRandoTypeShards(ref shellShardDrops);
                             shardSet[name] = shards;
                         }
                     }
 
                     return shards;
                 case RandomizerConsistency4.None:
-                    return GetRandoTypeShards(thing);
+                    return GetRandoTypeShards(ref shellShardDrops);
                 default:
                     throw new NotImplementedException();
             }
 
-            static int GetRandoTypeShards(HealthManager thing)
+            static int GetRandoTypeShards(ref int shellShardDrops)
             {
                 if (ShardRandomizerType == RandomizeByRangeTypes.Percent)
-                    return (int)Math.Round((int)Cute_Rando_Core.TraverseHelper(thing, "shellShardDrops").GetValue() * Cute_Rando_Core.TupleRandoHelper(ShardPercentDropRange.AsTuple()));
+                    return (int)Math.Round(shellShardDrops * Cute_Rando_Core.TupleRandoHelper(ShardPercentDropRange.AsTuple()));
                 else if (ShardRandomizerType == RandomizeByRangeTypes.Value)
                     return Cute_Rando_Core.TupleRandoHelper(ShardValueDropRange.AsTuple());
                 else
@@ -304,15 +320,13 @@ namespace Cute_Randomizer.Randomizers
         }
 
         #region Settings
-        
-        public static readonly RandomizerEnable defaultCurrencyEnable = RandomizerEnable.Disabled;
         /// <summary>
         /// Setting for how consistant the currency drops should be
         /// </summary>
         public static RandomizerConsistency4 RandomizerConsistency
         {
-            get { return (RandomizerConsistency4)randomizerConsistency.BoxedValue; }
-            internal set { randomizerConsistency.BoxedValue = value; }
+            get => (RandomizerConsistency4)randomizerConsistency.BoxedValue;
+            internal set => randomizerConsistency.BoxedValue = value;
         }
         private static ConfigEntry<RandomizerConsistency4> randomizerConsistency;
         /// <summary>
@@ -324,8 +338,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static RandomizeByRangeTypes RosaryRandomizerType
         {
-            get { return (RandomizeByRangeTypes)rosaryRandomizerType.BoxedValue; }
-            internal set { rosaryRandomizerType.BoxedValue = value; }
+            get => (RandomizeByRangeTypes)rosaryRandomizerType.BoxedValue;
+            internal set => rosaryRandomizerType.BoxedValue = value;
         }
         private static ConfigEntry<RandomizeByRangeTypes> rosaryRandomizerType;
         /// <summary>
@@ -337,8 +351,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static FloatRange RosaryPercentDropRange
         {
-            get { return (FloatRange)rosaryPercentDropRange.BoxedValue; }
-            internal set { rosaryPercentDropRange.BoxedValue = value; }
+            get => (FloatRange)rosaryPercentDropRange.BoxedValue;
+            internal set => rosaryPercentDropRange.BoxedValue = value;
         }
         private static ConfigEntry<FloatRange> rosaryPercentDropRange;
         /// <summary>
@@ -350,8 +364,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static IntRange RosaryValueDropRange
         {
-            get { return (IntRange)rosaryValueDropRange.BoxedValue; }
-            internal set { rosaryValueDropRange.BoxedValue = value; }
+            get => (IntRange)rosaryValueDropRange.BoxedValue; 
+            internal set => rosaryValueDropRange.BoxedValue = value;
         }
         private static ConfigEntry<IntRange> rosaryValueDropRange;
         /// <summary>
@@ -362,9 +376,9 @@ namespace Cute_Randomizer.Randomizers
         /// Randomize quantity of shards dropped
         /// </summary>
         public static RandomizeByRangeTypes ShardRandomizerType
-        {
-            get { return (RandomizeByRangeTypes)shardRandomizerType.BoxedValue; }
-            internal set { shardRandomizerType.BoxedValue = value; }
+        { 
+            get => (RandomizeByRangeTypes)shardRandomizerType.BoxedValue; 
+            internal set => shardRandomizerType.BoxedValue = value;
         }
         private static ConfigEntry<RandomizeByRangeTypes> shardRandomizerType;
         /// <summary>
@@ -375,9 +389,9 @@ namespace Cute_Randomizer.Randomizers
         /// Percent range for shard drops
         /// </summary>
         public static FloatRange ShardPercentDropRange
-        {
-            get { return (FloatRange)shardPercentDropRange.BoxedValue; }
-            internal set { shardPercentDropRange.BoxedValue = value; }
+        { 
+            get => (FloatRange)shardPercentDropRange.BoxedValue; 
+            internal set => shardPercentDropRange.BoxedValue = value;
         }
         private static ConfigEntry<FloatRange> shardPercentDropRange;
         /// <summary>
@@ -388,9 +402,9 @@ namespace Cute_Randomizer.Randomizers
         /// Value range for shard drops
         /// </summary>
         public static IntRange ShardValueDropRange
-        {
-            get { return (IntRange)shardValueDropRange.BoxedValue; }
-            internal set { shardValueDropRange.BoxedValue = value; }
+        { 
+            get => (IntRange)shardValueDropRange.BoxedValue; 
+            internal set => shardValueDropRange.BoxedValue = value;
         }
         private static ConfigEntry<IntRange> shardValueDropRange;
         /// <summary>
