@@ -372,9 +372,6 @@ namespace Cute_Randomizer.Randomizers
         {
             if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is RandomizerEnemyTypeFlags ehr && !ehr.Equals(currentSizeRandomizerSetting))
             {
-                bool x = ehr.HasFlag(RandomizerEnemyTypeFlags.None);
-                bool y = currentSizeRandomizerSetting.HasFlag(RandomizerEnemyTypeFlags.None);
-
                 if (ehr.Equals(RandomizerEnemyTypeFlags.None) && !currentSizeRandomizerSetting.Equals(RandomizerEnemyTypeFlags.None))
                 {
                     Cute_Rando_Core.UnregisterRandomizer(randomizerActiveEnemy);

@@ -314,6 +314,9 @@ namespace Cute_Randomizer.Randomizers
                     }));
 
             Settings.Settings.enableRandomizer.SettingChanged += RandoCoreSetting;
+            currentBossHealthPercentage = bossHealthPercentRange.Value;
+            currentEnemyHealthPercentage = bossHealthPercentRange.Value;
+            currentHealthRandomizerSetting = enemyHealthRandomizerSetting.Value;
 
             randomizerConsistency.SettingChanged += OnRandoConsistancyUpdated;
             enemyHealthRandomizerSetting.SettingChanged += OnHealthRandoSettingUpdated;

@@ -328,6 +328,10 @@ namespace Cute_Randomizer.Randomizers
                     }));
 
             Settings.Settings.enableRandomizer.SettingChanged += RandoCoreSetting;
+            currentDamageModifierType = damageModifierType.Value;
+            currentDamageRange = damageRange.Value;
+            currentDamageShift = damageShift.Value;
+
             randomizerConsistency.SettingChanged += OnRandoConsistancyUpdated;
             damageModifierType.SettingChanged += OnDamageSettingsUpdated;
             damageShift.SettingChanged += OnDamageSettingsUpdated;

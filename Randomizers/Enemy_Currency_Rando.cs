@@ -498,6 +498,15 @@ namespace Cute_Randomizer.Randomizers
                     }));
 
             Settings.Settings.enableRandomizer.SettingChanged += RandoCoreSetting;
+            
+            currentRosarySetting = rosaryRandomizerType.Value;
+            currentRosaryFloatRange = rosaryPercentDropRange.Value;
+            currentRosaryIntRange = rosaryValueDropRange.Value;
+
+            currentShardSetting = shardRandomizerType.Value;
+            currentShardFloatRange = shardPercentDropRange.Value;
+            currentShardIntRange = shardValueDropRange.Value;
+
             randomizerConsistency.SettingChanged += OnRandoConsistancyUpdated;
 
             rosaryRandomizerType.SettingChanged += OnRosarySettingsUpdated;

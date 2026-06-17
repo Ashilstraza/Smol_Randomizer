@@ -288,6 +288,8 @@ namespace Cute_Randomizer.Randomizers
                     }));
 
             Settings.Settings.enableRandomizer.SettingChanged += RandoCoreSetting;
+            currentArchitectCrestSetting = architectCrestMultiplier.Value;
+            currentShardChanceSetting = shardChanceMultiplier.Value;
 
             consistencySetting.SettingChanged += OnRandoConsistancyUpdated;
             shardChanceMultiplier.SettingChanged += OnShardChanceMultiplierUpdated;
