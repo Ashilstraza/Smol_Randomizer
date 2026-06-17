@@ -1,11 +1,8 @@
 ﻿using BepInEx.Configuration;
 using Cute_Randomizer.Settings;
 using HarmonyLib;
-using HutongGames.PlayMaker;
-using HutongGames.PlayMaker.Actions;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Cute_Randomizer.Randomizers
 {
@@ -27,10 +24,6 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         private static readonly HashSet<HealthManager> currentEnemyHealthManagers = [];
 
-        /// <summary>
-        /// Current scene
-        /// </summary>
-        private static string operatingScene = "";
         /// <summary>
         /// If the core of the randomizer is enabled
         /// </summary>
@@ -91,7 +84,7 @@ namespace Cute_Randomizer.Randomizers
         private static void GameStartup()
         {
             Cute_Rando_Core.harmony.Patch(
-                AccessTools.Method(typeof(HealthManager), "OnEnable"), 
+                AccessTools.Method(typeof(HealthManager), "OnEnable"),
                 postfix: new HarmonyMethod(typeof(Enemy_Health_Rando), nameof(HealthManagerOnEnablePostfix)));
         }
 
@@ -101,7 +94,6 @@ namespace Cute_Randomizer.Randomizers
         private static void OnFirstSceneFrame()
         {
             CleanCurrentHealthManagerList();
-            operatingScene = GameManager.instance.sceneName;
         }
 
         /// <summary>
@@ -109,8 +101,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         /// <param name="__instance">The HealthManager that we want to adjust</param>
         internal static void HealthManagerOnEnablePostfix(
-            ref HealthManager __instance, 
-            ref int ___initHp, 
+            ref HealthManager __instance,
+            ref int ___initHp,
             ref int ___hp)
         {
             if (!coreEnableRandomization || EnemyHealthRandomizerSetting == RandomizerEnemyTypeFlags.None) return;
@@ -129,7 +121,9 @@ namespace Cute_Randomizer.Randomizers
             bool boss = Cute_Rando_Core.IsBoss(thing);
 
             if (boss && !EnemyHealthRandomizerSetting.HasFlag(RandomizerEnemyTypeFlags.Boss)) return;
-            
+
+            string operatingScene = thing.gameObject.scene.name;
+
             int tempHp;
             string name = thing.name;
 
@@ -216,9 +210,9 @@ namespace Cute_Randomizer.Randomizers
         /// Setting for how consistant the enemy health should be
         /// </summary>
         public static RandomizerConsistency4 RandomizerConsistency
-        { 
-            get => (RandomizerConsistency4)randomizerConsistency.BoxedValue; 
-            internal set => randomizerConsistency.BoxedValue = value;
+        {
+            get => randomizerConsistency.Value;
+            internal set => randomizerConsistency.Value = value;
         }
         private static ConfigEntry<RandomizerConsistency4> randomizerConsistency;
         /// <summary>
@@ -229,9 +223,9 @@ namespace Cute_Randomizer.Randomizers
         /// Randomize the health of enemies
         /// </summary>
         public static RandomizerEnemyTypeFlags EnemyHealthRandomizerSetting
-        { 
-            get => (RandomizerEnemyTypeFlags)enemyHealthRandomizerSetting.BoxedValue; 
-            internal set => enemyHealthRandomizerSetting.BoxedValue = value;
+        {
+            get => enemyHealthRandomizerSetting.Value;
+            internal set => enemyHealthRandomizerSetting.Value = value;
         }
         private static ConfigEntry<RandomizerEnemyTypeFlags> enemyHealthRandomizerSetting;
         /// <summary>
@@ -242,9 +236,9 @@ namespace Cute_Randomizer.Randomizers
         /// Randomize the health of normal enemies
         /// </summary>
         public static FloatRange EnemyHealthPercentRange
-        { 
-            get => (FloatRange)enemyHealthPercentRange.BoxedValue; 
-            internal set => enemyHealthPercentRange.BoxedValue = value;
+        {
+            get => enemyHealthPercentRange.Value;
+            internal set => enemyHealthPercentRange.Value = value;
         }
         private static ConfigEntry<FloatRange> enemyHealthPercentRange;
         /// <summary>
@@ -255,16 +249,16 @@ namespace Cute_Randomizer.Randomizers
         /// Randomize the health of boss enemies
         /// </summary>
         public static FloatRange BossHealthPercentRange
-        { 
-            get => (FloatRange)bossHealthPercentRange.BoxedValue; 
-            internal set => bossHealthPercentRange.BoxedValue = value;
+        {
+            get => bossHealthPercentRange.Value;
+            internal set => bossHealthPercentRange.Value = value;
         }
         private static ConfigEntry<FloatRange> bossHealthPercentRange;
         /// <summary>
         /// Default choice for boss health randomizer
         /// </summary>
         public static readonly FloatRange defaultBossHealthPercentRange = new(0.75f, 1.25f);
-        
+
         /// <summary>
         /// Config Section Name
         /// </summary>

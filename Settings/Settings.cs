@@ -16,8 +16,8 @@ namespace Cute_Randomizer.Settings
         /// </summary>
         public static bool TestNewThings
         {
-            get => (bool)testNewThings.BoxedValue;
-            internal set => testNewThings.BoxedValue = value;
+            get => testNewThings.Value;
+            internal set => testNewThings.Value = value;
         }
         private static ConfigEntry<bool> testNewThings;
         /// <summary>
@@ -30,15 +30,15 @@ namespace Cute_Randomizer.Settings
         /// </summary>
         public static bool EnableRandomizer
         {
-            get => (bool)enableRandomizer.BoxedValue;
-            internal set => enableRandomizer.BoxedValue = value;
+            get => enableRandomizer.Value;
+            internal set => enableRandomizer.Value = value;
         }
         internal static ConfigEntry<bool> enableRandomizer;
         /// <summary>
         /// Default if we want to randomize the various things
         /// </summary>
         public static readonly bool defaultEnableRandomizer = true;
-#endregion
+        #endregion
 
         /// <summary>
         /// Our config file
@@ -99,7 +99,7 @@ namespace Cute_Randomizer.Settings
         /// <param name="entry">The entry to draw.</param>
         public static void RangeDrawer(ConfigEntryBase entry)
         {
-            Type entryType = entry.BoxedValue.GetType();
+            Type entryType = entry.SettingType;
             if (entryType == typeof(FloatRange))
             {
                 FloatRange value = (FloatRange)entry.BoxedValue;

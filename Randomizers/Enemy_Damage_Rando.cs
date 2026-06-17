@@ -25,10 +25,6 @@ namespace Cute_Randomizer.Randomizers
         private static readonly HashSet<DamageHero> currentHeroDamagers = [];
 
         /// <summary>
-        /// The scene we are currently in
-        /// </summary>
-        private static string operatingScene = "";
-        /// <summary>
         /// If the core of the randomizer is enabled
         /// </summary>
         private static bool coreEnableRandomization = false;
@@ -99,7 +95,6 @@ namespace Cute_Randomizer.Randomizers
         private static void OnFirstSceneFrame()
         {
             CleanCurrentHeroDamagers();
-            operatingScene = GameManager.instance.sceneName;
         }
 
         /// <summary>
@@ -123,6 +118,8 @@ namespace Cute_Randomizer.Randomizers
         private static void SetDamage(DamageHero damager)
         {
             if (damager == null || damager.hazardType != GlobalEnums.HazardType.ENEMY) return;
+
+            string operatingScene = damager.gameObject.scene.name;
 
             int damageValue = 0;
             string name = damager.name;
@@ -204,9 +201,9 @@ namespace Cute_Randomizer.Randomizers
         /// Setting for how consistant the enemy damage should be
         /// </summary>
         public static RandomizerConsistency4 RandomizerConsistency
-        { 
-            get => (RandomizerConsistency4)randomizerConsistency.BoxedValue; 
-            internal set => randomizerConsistency.BoxedValue = value;
+        {
+            get => randomizerConsistency.Value;
+            internal set => randomizerConsistency.Value = value;
         }
         private static ConfigEntry<RandomizerConsistency4> randomizerConsistency;
         /// <summary>
@@ -217,9 +214,9 @@ namespace Cute_Randomizer.Randomizers
         /// Randomize the damage of enemies
         /// </summary>
         public static RandomizeByFlatAmount DamageModifierType
-        { 
-            get => (RandomizeByFlatAmount)damageModifierType.BoxedValue; 
-            internal set => damageModifierType.BoxedValue = value;
+        {
+            get => damageModifierType.Value;
+            internal set => damageModifierType.Value = value;
         }
         private static ConfigEntry<RandomizeByFlatAmount> damageModifierType;
         /// <summary>
@@ -230,9 +227,9 @@ namespace Cute_Randomizer.Randomizers
         /// Shift the damage that enemies do by +X or -X
         /// </summary>
         public static int DamageShift
-        { 
-            get => (int)damageShift.BoxedValue; 
-            internal set => damageShift.BoxedValue = value;
+        {
+            get => damageShift.Value;
+            internal set => damageShift.Value = value;
         }
         private static ConfigEntry<int> damageShift;
         /// <summary>
@@ -243,9 +240,9 @@ namespace Cute_Randomizer.Randomizers
         /// Randomizes the damage between a range of values
         /// </summary>
         public static IntRange DamageRange
-        { 
-            get => (IntRange)damageRange.BoxedValue; 
-            internal set => damageRange.BoxedValue = value;
+        {
+            get => damageRange.Value;
+            internal set => damageRange.Value = value;
         }
         private static ConfigEntry<IntRange> damageRange;
         /// <summary>
@@ -256,16 +253,16 @@ namespace Cute_Randomizer.Randomizers
         /// Locks minimum damage for an enemy to 1
         /// </summary>
         public static bool EnemyDamageMinimum
-        { 
-            get => (bool)enemyDamageMinimum.BoxedValue; 
-            internal set => enemyDamageMinimum.BoxedValue = value;
+        {
+            get => enemyDamageMinimum.Value;
+            internal set => enemyDamageMinimum.Value = value;
         }
         private static ConfigEntry<bool> enemyDamageMinimum;
         /// <summary>
         /// Default setting if minimum damage should be enabled
         /// </summary>
         public static readonly bool defaultEnemyDamageMinimum = false;
-        
+
         /// <summary>
         /// Config Section Name
         /// </summary>

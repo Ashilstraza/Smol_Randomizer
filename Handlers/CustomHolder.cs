@@ -8,7 +8,8 @@ namespace Cute_Randomizer.Handlers
     {
         private GameObject _heldGameObject;
         public GameObject GameObject
-        { get => _heldGameObject; set => _heldGameObject = _heldGameObject != null ? _heldGameObject : value;
+        {
+            get => _heldGameObject; set => _heldGameObject = _heldGameObject != null ? _heldGameObject : value;
         }
 
         public override bool CanGetMore()

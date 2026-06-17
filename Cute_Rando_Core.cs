@@ -212,7 +212,7 @@ namespace Cute_Randomizer
         internal static void ImportJsonFile(string fileName, out string importTarget)
         {
             if (!File.Exists(dataLocation + "\\\\" + fileName + ".json"))
-                {
+            {
                 importTarget = "";
                 return;
             }
@@ -304,7 +304,7 @@ namespace Cute_Randomizer
                     activeGameStartup.Add(randomizer.Name, (Action)Delegate.CreateDelegate(type: typeof(Action), method: randomizer.Method));
                     break;
                 case RandomizerEventType.GameShutdown:
-                    activeGameShutdown.Add(randomizer.Name, (Action)Delegate.CreateDelegate(type: typeof (Action), method: randomizer.Method));
+                    activeGameShutdown.Add(randomizer.Name, (Action)Delegate.CreateDelegate(type: typeof(Action), method: randomizer.Method));
                     break;
                 default:
                     Console.Error.WriteLine("Unimplimented entryType");

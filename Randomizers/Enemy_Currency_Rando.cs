@@ -47,10 +47,6 @@ namespace Cute_Randomizer.Randomizers
         internal static int largeGeoValue = 0; // 15
 
         /// <summary>
-        /// Current scene
-        /// </summary>
-        private static string operatingScene = "";
-        /// <summary>
         /// If the core of the randomizer is enabled
         /// </summary>
         private static bool coreEnableRandomization = false;
@@ -68,25 +64,25 @@ namespace Cute_Randomizer.Randomizers
         /// Used for registering this randomizer in the core for when enemies activate
         /// </summary>
         private static readonly Randomizer_Info randomizerCurrency = new(
-            "Enemy Currency Randomizer", 
-            RandomizerEventType.ActiveEnemy, 
-            AccessTools.Method(typeof(Enemy_Currency_Rando), 
+            "Enemy Currency Randomizer",
+            RandomizerEventType.ActiveEnemy,
+            AccessTools.Method(typeof(Enemy_Currency_Rando),
                 nameof(SetCurrency)));
         /// <summary>
         /// Used for registering this randomizer in the core for first frame after a scene loads
         /// </summary>
         private static readonly Randomizer_Info randomizerOnFirstSceneFrame = new(
-            "Enemy Currency Randomizer", 
-            RandomizerEventType.OnFirstSceneFrame, 
-            AccessTools.Method(typeof(Enemy_Currency_Rando), 
+            "Enemy Currency Randomizer",
+            RandomizerEventType.OnFirstSceneFrame,
+            AccessTools.Method(typeof(Enemy_Currency_Rando),
                 nameof(OnFirstSceneFrame)));
         /// <summary>
         /// Used for registering this randomizer in the core for when the game starts up
         /// </summary>
         private static readonly Randomizer_Info randomizerGameStartup = new(
-            "Enemy Currency Randomizer", 
-            RandomizerEventType.GameStartup, 
-            AccessTools.Method(typeof(Enemy_Currency_Rando), 
+            "Enemy Currency Randomizer",
+            RandomizerEventType.GameStartup,
+            AccessTools.Method(typeof(Enemy_Currency_Rando),
                 nameof(GameStartup)));
         #endregion
 
@@ -120,7 +116,7 @@ namespace Cute_Randomizer.Randomizers
         private static void GameStartup()
         {
             Cute_Rando_Core.harmony.Patch(
-                AccessTools.Method(typeof(HealthManager), "OnEnable"), 
+                AccessTools.Method(typeof(HealthManager), "OnEnable"),
                 postfix: new HarmonyMethod(typeof(Enemy_Currency_Rando), nameof(HealthManagerOnEnablePostfix)));
         }
 
@@ -130,7 +126,6 @@ namespace Cute_Randomizer.Randomizers
         private static void OnFirstSceneFrame()
         {
             CleanCurrentHealthManagerList();
-            operatingScene = GameManager.instance.sceneName;
         }
 
         /// <summary>
@@ -138,19 +133,19 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         /// <param name="__instance">The HealthManager that we want to adjust</param>
         private static void HealthManagerOnEnablePostfix(
-            ref HealthManager __instance, 
-            ref int ___smallGeoDrops, 
-            ref int ___mediumGeoDrops, 
-            ref int ___largeGeoDrops, 
+            ref HealthManager __instance,
+            ref int ___smallGeoDrops,
+            ref int ___mediumGeoDrops,
+            ref int ___largeGeoDrops,
             ref int ___shellShardDrops)
         {
             if (!coreEnableRandomization) return;
             if (currentEnemyHealthManagers.Add(__instance))
             {
-                SetCurrency(__instance, 
-                    ref ___smallGeoDrops, 
-                    ref ___mediumGeoDrops, 
-                    ref ___largeGeoDrops, 
+                SetCurrency(__instance,
+                    ref ___smallGeoDrops,
+                    ref ___mediumGeoDrops,
+                    ref ___largeGeoDrops,
                     ref ___shellShardDrops);
             }
         }
@@ -161,15 +156,15 @@ namespace Cute_Randomizer.Randomizers
         /// <param name="thing">the HealthManager to adjust values in</param>
         /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
         private static void SetCurrency(
-            HealthManager thing, 
-            ref int smallGeoDrops, 
-            ref int mediumGeoDrops, 
-            ref int largeGeoDrops, 
+            HealthManager thing,
+            ref int smallGeoDrops,
+            ref int mediumGeoDrops,
+            ref int largeGeoDrops,
             ref int shellShardDrops)
         {
             if (thing == null) return;
-            
-            if(RosaryRandomizerType != RandomizeByRangeTypes.Disabled)
+
+            if (RosaryRandomizerType != RandomizeByRangeTypes.Disabled)
             {
                 RandomizeRosary(thing, out RandomizedGeoSet geoSet);
 
@@ -177,8 +172,8 @@ namespace Cute_Randomizer.Randomizers
                 mediumGeoDrops = geoSet.MediumGeo;
                 largeGeoDrops = geoSet.LargeGeo;
             }
-            
-            if(ShardRandomizerType != RandomizeByRangeTypes.Disabled)
+
+            if (ShardRandomizerType != RandomizeByRangeTypes.Disabled)
                 shellShardDrops = RandomizeShards(thing, ref shellShardDrops);
         }
 
@@ -190,6 +185,8 @@ namespace Cute_Randomizer.Randomizers
         /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
         private static int RandomizeShards(HealthManager thing, ref int shellShardDrops)
         {
+            string operatingScene = thing.gameObject.scene.name;
+
             int shards;
             string name = thing.name;
 
@@ -325,8 +322,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static RandomizerConsistency4 RandomizerConsistency
         {
-            get => (RandomizerConsistency4)randomizerConsistency.BoxedValue;
-            internal set => randomizerConsistency.BoxedValue = value;
+            get => randomizerConsistency.Value;
+            internal set => randomizerConsistency.Value = value;
         }
         private static ConfigEntry<RandomizerConsistency4> randomizerConsistency;
         /// <summary>
@@ -338,8 +335,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static RandomizeByRangeTypes RosaryRandomizerType
         {
-            get => (RandomizeByRangeTypes)rosaryRandomizerType.BoxedValue;
-            internal set => rosaryRandomizerType.BoxedValue = value;
+            get => rosaryRandomizerType.Value;
+            internal set => rosaryRandomizerType.Value = value;
         }
         private static ConfigEntry<RandomizeByRangeTypes> rosaryRandomizerType;
         /// <summary>
@@ -351,8 +348,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static FloatRange RosaryPercentDropRange
         {
-            get => (FloatRange)rosaryPercentDropRange.BoxedValue;
-            internal set => rosaryPercentDropRange.BoxedValue = value;
+            get => rosaryPercentDropRange.Value;
+            internal set => rosaryPercentDropRange.Value = value;
         }
         private static ConfigEntry<FloatRange> rosaryPercentDropRange;
         /// <summary>
@@ -364,8 +361,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static IntRange RosaryValueDropRange
         {
-            get => (IntRange)rosaryValueDropRange.BoxedValue; 
-            internal set => rosaryValueDropRange.BoxedValue = value;
+            get => rosaryValueDropRange.Value;
+            internal set => rosaryValueDropRange.Value = value;
         }
         private static ConfigEntry<IntRange> rosaryValueDropRange;
         /// <summary>
@@ -376,9 +373,9 @@ namespace Cute_Randomizer.Randomizers
         /// Randomize quantity of shards dropped
         /// </summary>
         public static RandomizeByRangeTypes ShardRandomizerType
-        { 
-            get => (RandomizeByRangeTypes)shardRandomizerType.BoxedValue; 
-            internal set => shardRandomizerType.BoxedValue = value;
+        {
+            get => shardRandomizerType.Value;
+            internal set => shardRandomizerType.Value = value;
         }
         private static ConfigEntry<RandomizeByRangeTypes> shardRandomizerType;
         /// <summary>
@@ -389,9 +386,9 @@ namespace Cute_Randomizer.Randomizers
         /// Percent range for shard drops
         /// </summary>
         public static FloatRange ShardPercentDropRange
-        { 
-            get => (FloatRange)shardPercentDropRange.BoxedValue; 
-            internal set => shardPercentDropRange.BoxedValue = value;
+        {
+            get => shardPercentDropRange.Value;
+            internal set => shardPercentDropRange.Value = value;
         }
         private static ConfigEntry<FloatRange> shardPercentDropRange;
         /// <summary>
@@ -402,16 +399,16 @@ namespace Cute_Randomizer.Randomizers
         /// Value range for shard drops
         /// </summary>
         public static IntRange ShardValueDropRange
-        { 
-            get => (IntRange)shardValueDropRange.BoxedValue; 
-            internal set => shardValueDropRange.BoxedValue = value;
+        {
+            get => shardValueDropRange.Value;
+            internal set => shardValueDropRange.Value = value;
         }
         private static ConfigEntry<IntRange> shardValueDropRange;
         /// <summary>
         /// Default value range for shard drops
         /// </summary>
         public static readonly IntRange defaultShardValueDropRange = new(0, 15);
-        
+
         /// <summary>
         /// Config Section Name
         /// </summary>
@@ -423,7 +420,7 @@ namespace Cute_Randomizer.Randomizers
         private static void InitSettings()
         {
             var config = Settings.Settings.ConfigFile;
-            
+
             rosaryRandomizerType = config.Bind(
                 section: configSection,
                 key: "Rosary Quantity Randomizer",

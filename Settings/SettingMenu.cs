@@ -1,5 +1,4 @@
-﻿using BepInEx;
-using BepInEx.Configuration;
+﻿using BepInEx.Configuration;
 using Cute_Randomizer.Randomizers;
 using Silksong.ModMenu.Elements;
 using Silksong.ModMenu.Models;
@@ -7,7 +6,6 @@ using Silksong.ModMenu.Plugin;
 using Silksong.ModMenu.Screens;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
@@ -43,17 +41,17 @@ namespace Cute_Randomizer.Settings
             {
                 if (!settingList.TryGetValue(item.Key.Section, out Dictionary<string, ConfigEntryBase>? value))
                 {
-                    settingList[item.Key.Section] = new() { {item.Key.Key, item.Value } };
+                    settingList[item.Key.Section] = new() { { item.Key.Key, item.Value } };
                 }
                 else
                 {
                     value.Add(item.Key.Key, item.Value);
                 }
             }
-            
+
             foreach (var settingGroup in settingList)
             {
-                if(settingGroup.Value.Count == 1)
+                if (settingGroup.Value.Count == 1)
                 {
                     var setting = settingGroup.Value.First();
                     Label(settingGroup.Key, FontSizes.Medium);
@@ -138,7 +136,7 @@ namespace Cute_Randomizer.Settings
             return buttonLabeled;
         }
 
-        public ChoiceElement<bool> ToggleElement(string label,  ConfigEntryBase configEntry, string description = "", FontSizes fontSizes = FontSizes.Medium)
+        public ChoiceElement<bool> ToggleElement(string label, ConfigEntryBase configEntry, string description = "", FontSizes fontSizes = FontSizes.Medium)
         {
             ChoiceElement<bool> element = new(label, ChoiceModels.ForBool(), description);
             element.SynchronizeRawWith(configEntry);
@@ -162,7 +160,7 @@ namespace Cute_Randomizer.Settings
             RectTransform y = x.GetComponent<RectTransform>();
             y.SetParent(slider.Slider.gameObject.transform, false);
             y.anchoredPosition = new Vector2(0f, -60f);*/
-            
+
             Add(slider);
             return slider;
         }
@@ -217,17 +215,17 @@ namespace Cute_Randomizer.Settings
         private Slider slider2;
         public Slider Slider2 => slider2;
         private Text labelText2;
-        public Text LabelText2 
+        public Text LabelText2
         {
             get => labelText2;
-            set => labelText2 = value; 
+            set => labelText2 = value;
         }
         private Text valueText2;
 
         public DoubleSliderElement(LocalizedText label, SliderModel<T> model) : base(label, model)
         {
             slider2 = UnityEngine.Object.Instantiate(Slider.gameObject).GetComponent<Slider>();
-            slider2.name= "Slider 2";
+            slider2.name = "Slider 2";
 
             RectTransform slider2Transform = slider2.gameObject.GetComponent<RectTransform>();
             slider2Transform.SetParent(Slider.transform, false);

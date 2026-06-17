@@ -1,8 +1,6 @@
 ﻿using BepInEx.Configuration;
 using Cute_Randomizer.Settings;
 using HarmonyLib;
-using HutongGames.PlayMaker;
-using HutongGames.PlayMaker.Actions;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -27,10 +25,6 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         private static readonly HashSet<HealthManager> currentEnemyHealthManagers = [];
 
-        /// <summary>
-        /// Current scene
-        /// </summary>
-        private static string operatingScene = "";
         /// <summary>
         /// If the core of the randomizer is enabled
         /// </summary>
@@ -90,9 +84,9 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         private static void GameStartup()
         {
-            
+
             Cute_Rando_Core.harmony.Patch(AccessTools.Method(
-                typeof(HealthManager), "OnEnable"), 
+                typeof(HealthManager), "OnEnable"),
                 postfix: new HarmonyMethod(typeof(Enemy_Size_Rando), nameof(HealthManagerOnEnablePostfix)));
             return;
         }
@@ -103,7 +97,6 @@ namespace Cute_Randomizer.Randomizers
         private static void OnFirstSceneFrame()
         {
             CleanCurrentHealthManagerList();
-            operatingScene = GameManager.instance.sceneName;
         }
 
         /// <summary>
@@ -129,6 +122,8 @@ namespace Cute_Randomizer.Randomizers
 
             if (boss && !EnemySizeRandomizerSetting.HasFlag(RandomizerEnemyTypeFlags.Boss)) return;
 
+            string operatingScene = thing.gameObject.scene.name;
+
             Walker walker = thing.gameObject.GetComponent<Walker>();
             Transform thingTransform = thing.transform;
             float tempMultiplier;
@@ -150,9 +145,9 @@ namespace Cute_Randomizer.Randomizers
                     }
                     break;
                 case RandomizerConsistency4.Scene:
-                    if(sceneEnemySizes.TryGetValue(name, out Dictionary<string, float> enemySizeSet))
+                    if (sceneEnemySizes.TryGetValue(name, out Dictionary<string, float> enemySizeSet))
                     {
-                        if(enemySizeSet.TryGetValue(name,out tempMultiplier))
+                        if (enemySizeSet.TryGetValue(name, out tempMultiplier))
                         {
                             ApplySize(thingTransform, tempMultiplier, walker);
                         }
@@ -165,14 +160,14 @@ namespace Cute_Randomizer.Randomizers
                     {
                         sceneEnemySizes[operatingScene] = new() { { name, RandomizeSize(boss, thingTransform, walker) } };
                     }
-                        break;
+                    break;
                 case RandomizerConsistency4.None:
                     RandomizeSize(boss, thingTransform, walker);
                     break;
                 default:
                     throw new NotImplementedException();
             }
-            
+
             static float RandomizeSize(bool boss, Transform transform, Walker walker)
             {
                 float multiplier = Cute_Rando_Core.TupleRandoHelper(boss ? BossSizePercentRange.AsTuple() : EnemySizePercentRange.AsTuple());
@@ -188,7 +183,7 @@ namespace Cute_Randomizer.Randomizers
                 {
                     Traverse rightScale = Cute_Rando_Core.TraverseHelper(walker, "rightScale");
                     int direction = (float)rightScale.GetValue() < 0 ? -1 : 1;
-                    rightScale.SetValue(transform.localScale * direction);
+                    rightScale.SetValue(transform.localScale.x * direction);
                 }
             }
         }
@@ -217,8 +212,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static RandomizerConsistency4 RandomizerConsistency
         {
-            get => (RandomizerConsistency4)randomizerConsistency.BoxedValue;
-            internal set => randomizerConsistency.BoxedValue = value;
+            get => randomizerConsistency.Value;
+            internal set => randomizerConsistency.Value = value;
         }
         private static ConfigEntry<RandomizerConsistency4> randomizerConsistency;
         /// <summary>
@@ -230,8 +225,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static RandomizerEnemyTypeFlags EnemySizeRandomizerSetting
         {
-            get => (RandomizerEnemyTypeFlags)enemySizeRandomizerSetting.BoxedValue;
-            internal set => enemySizeRandomizerSetting.BoxedValue = value;
+            get => enemySizeRandomizerSetting.Value;
+            internal set => enemySizeRandomizerSetting.Value = value;
         }
         private static ConfigEntry<RandomizerEnemyTypeFlags> enemySizeRandomizerSetting;
         /// <summary>
@@ -243,8 +238,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static FloatRange EnemySizePercentRange
         {
-            get => (FloatRange)enemySizePercentRange.BoxedValue;
-            internal set => enemySizePercentRange.BoxedValue = value;
+            get => enemySizePercentRange.Value;
+            internal set => enemySizePercentRange.Value = value;
         }
         private static ConfigEntry<FloatRange> enemySizePercentRange;
         /// <summary>
@@ -256,8 +251,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static FloatRange BossSizePercentRange
         {
-            get => (FloatRange)bossSizePercentRange.BoxedValue;
-            internal set => bossSizePercentRange.BoxedValue = value;
+            get => bossSizePercentRange.Value;
+            internal set => bossSizePercentRange.Value = value;
         }
         private static ConfigEntry<FloatRange> bossSizePercentRange;
         /// <summary>
@@ -320,12 +315,15 @@ namespace Cute_Randomizer.Randomizers
                     }));
 
             Settings.Settings.enableRandomizer.SettingChanged += RandoCoreSetting;
+            currentBossSizePercentage = bossSizePercentRange.Value;
+            currentEnemySizePercentage = enemySizePercentRange.Value;
+            currentSizeRandomizerSetting = enemySizeRandomizerSetting.Value;
 
             randomizerConsistency.SettingChanged += OnRandoConsistancyUpdated;
             enemySizeRandomizerSetting.SettingChanged += OnSizeRandoSettingUpdated;
             enemySizePercentRange.SettingChanged += OnEnemySizeSettingUpdated;
             bossSizePercentRange.SettingChanged += OnBossSizeSettingUpdated;
-            
+
         }
         /// <summary>
         /// Event hook for when the core enable setting for the randomizer is changed
@@ -374,6 +372,20 @@ namespace Cute_Randomizer.Randomizers
         {
             if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is RandomizerEnemyTypeFlags ehr && !ehr.Equals(currentSizeRandomizerSetting))
             {
+                bool x = ehr.HasFlag(RandomizerEnemyTypeFlags.None);
+                bool y = currentSizeRandomizerSetting.HasFlag(RandomizerEnemyTypeFlags.None);
+
+                if (ehr.Equals(RandomizerEnemyTypeFlags.None) && !currentSizeRandomizerSetting.Equals(RandomizerEnemyTypeFlags.None))
+                {
+                    Cute_Rando_Core.UnregisterRandomizer(randomizerActiveEnemy);
+                    Cute_Rando_Core.UnregisterRandomizer(randomizerOnSceneLoad);
+                }
+                if (currentSizeRandomizerSetting.Equals(RandomizerEnemyTypeFlags.None) && !ehr.Equals(RandomizerEnemyTypeFlags.None))
+                {
+                    Cute_Rando_Core.RegisterRandomizer(randomizerActiveEnemy);
+                    Cute_Rando_Core.RegisterRandomizer(randomizerOnSceneLoad);
+                }
+
                 currentSizeRandomizerSetting = ehr;
                 ResetAllLists();
             }

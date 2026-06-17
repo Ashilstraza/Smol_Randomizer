@@ -161,8 +161,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static RandomizerConsistency3 ConsistencySetting
         {
-            get => (RandomizerConsistency3)consistencySetting.BoxedValue;
-            internal set => consistencySetting.BoxedValue = value;
+            get => consistencySetting.Value;
+            internal set => consistencySetting.Value = value;
         }
         private static ConfigEntry<RandomizerConsistency3> consistencySetting;
         /// <summary>
@@ -174,8 +174,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static bool ShardChanceEnable
         {
-            get => (bool)shardChanceEnable.BoxedValue;
-            internal set => shardChanceEnable.BoxedValue = value;
+            get => shardChanceEnable.Value;
+            internal set => shardChanceEnable.Value = value;
         }
         private static ConfigEntry<bool> shardChanceEnable;
         /// <summary>
@@ -187,8 +187,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static FloatRange ShardChanceMultiplier
         {
-            get => (FloatRange)shardChanceMultiplier.BoxedValue;
-            internal set => shardChanceMultiplier.BoxedValue = value;
+            get => shardChanceMultiplier.Value;
+            internal set => shardChanceMultiplier.Value = value;
         }
         private static ConfigEntry<FloatRange> shardChanceMultiplier;
         /// <summary>
@@ -200,8 +200,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static bool ArchitectChanceEnable
         {
-            get => (bool)architectChanceEnable.BoxedValue;
-            internal set => architectChanceEnable.BoxedValue = value;
+            get => architectChanceEnable.Value;
+            internal set => architectChanceEnable.Value = value;
         }
         private static ConfigEntry<bool> architectChanceEnable;
         /// <summary>
@@ -213,8 +213,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static FloatRange ArchitectCrestMultiplier
         {
-            get => (FloatRange)architectCrestMultiplier.BoxedValue;
-            internal set => architectCrestMultiplier.BoxedValue = value;
+            get => architectCrestMultiplier.Value;
+            internal set => architectCrestMultiplier.Value = value;
         }
         private static ConfigEntry<FloatRange> architectCrestMultiplier;
         /// <summary>
@@ -350,7 +350,7 @@ namespace Cute_Randomizer.Randomizers
         /// <param name="sender">?</param>
         /// <param name="args">The setting that was changed</param>
         private static void OnRandoConsistancyUpdated(object sender, EventArgs args)
-        {                        
+        {
             shardChanceChanging = true;
             architectCrestChanging = true;
             UpdateConsistantMultipliers();

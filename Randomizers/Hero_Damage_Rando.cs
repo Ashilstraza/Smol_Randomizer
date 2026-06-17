@@ -1,7 +1,6 @@
 ﻿using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
-using Cute_Randomizer.Settings;
 using HarmonyLib;
 using System;
 using System.Collections.Generic;
@@ -88,7 +87,7 @@ namespace Cute_Randomizer.Randomizers
         private static void PlayerDataGetNailDamagePostfix(ref int __result)
         {
             if (!coreEnableRandomization || __result == 0 || !PlayerNailDamageRando) return;
-            
+
             __result = NailDamage(__result);
             if (__result <= 0 && PlayerNailDamageMinimum) __result = 1;
         }
@@ -104,7 +103,7 @@ namespace Cute_Randomizer.Randomizers
             switch (ConsistancySetting)
             {
                 case PlayerNailDamageConsistancy.NailUpgrade:
-                    if(!nailUpgradeDamages.TryGetValue(nailDamage, out int tempDamage))
+                    if (!nailUpgradeDamages.TryGetValue(nailDamage, out int tempDamage))
                     {
                         tempDamage = RollDamage();
                         nailUpgradeDamages.Add(nailDamage, tempDamage);
@@ -140,8 +139,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static PlayerNailDamageConsistancy ConsistancySetting
         {
-            get => (PlayerNailDamageConsistancy)consistancySetting.BoxedValue;
-            internal set => consistancySetting.BoxedValue = value;
+            get => consistancySetting.Value;
+            internal set => consistancySetting.Value = value;
         }
         private static ConfigEntry<PlayerNailDamageConsistancy> consistancySetting;
         /// <summary>
@@ -153,8 +152,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static bool PlayerNailDamageRando
         {
-            get => (bool)playerNailDamageRando.BoxedValue;
-            internal set => playerNailDamageRando.BoxedValue = value;
+            get => playerNailDamageRando.Value;
+            internal set => playerNailDamageRando.Value = value;
         }
         private static ConfigEntry<bool> playerNailDamageRando;
         /// <summary>
@@ -166,8 +165,8 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static bool PlayerNailDamageMinimum
         {
-            get => (bool)playerNailDamageMinimum.BoxedValue;
-            internal set => playerNailDamageMinimum.BoxedValue = value;
+            get => playerNailDamageMinimum.Value;
+            internal set => playerNailDamageMinimum.Value = value;
         }
         private static ConfigEntry<bool> playerNailDamageMinimum;
         /// <summary>
@@ -179,15 +178,15 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         public static int PlayerNailDamageShift
         {
-            get => (int)playerNailDamageShift.BoxedValue;
-            internal set => playerNailDamageShift.BoxedValue = value;
+            get => playerNailDamageShift.Value;
+            internal set => playerNailDamageShift.Value = value;
         }
         private static ConfigEntry<int> playerNailDamageShift;
         /// <summary>
         /// Default choice for the nail damage shift
         /// </summary>
         public static readonly int defaultPlayerNailDamageShift = 3;
-        
+
         /// <summary>
         /// Config Section Name
         /// </summary>
