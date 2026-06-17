@@ -37,7 +37,7 @@ namespace Cute_Randomizer.Randomizers
         private static bool coreEnableRandomization = false;
 
         // Used for determining if we need to update and clear the dictionaries
-        private static EnemyHealthRandomizer currentHealthRandomizerSetting;
+        private static RandomizerEnemyTypeFlags currentHealthRandomizerSetting;
         private static FloatRange currentEnemyHealthPercentage;
         private static FloatRange currentBossHealthPercentage;
 
@@ -90,7 +90,9 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         private static void GameStartup()
         {
-            Cute_Rando_Core.harmony.Patch(AccessTools.Method(typeof(HealthManager), "OnEnable"), postfix: new HarmonyMethod(typeof(Enemy_Health_Rando), nameof(HealthManagerOnEnablePostfix)));
+            Cute_Rando_Core.harmony.Patch(
+                AccessTools.Method(typeof(HealthManager), "OnEnable"), 
+                postfix: new HarmonyMethod(typeof(Enemy_Health_Rando), nameof(HealthManagerOnEnablePostfix)));
         }
 
         /// <summary>
@@ -106,27 +108,28 @@ namespace Cute_Randomizer.Randomizers
         /// Patch that hooks the end of OnEnable of objects that have a HealthManager to adjust their HP
         /// </summary>
         /// <param name="__instance">The HealthManager that we want to adjust</param>
-        internal static void HealthManagerOnEnablePostfix(ref HealthManager __instance)
+        internal static void HealthManagerOnEnablePostfix(
+            ref HealthManager __instance, 
+            ref int ___initHp, 
+            ref int ___hp)
         {
-            if (!coreEnableRandomization || EnemyHealthRandomizerSetting == EnemyHealthRandomizer.None) return;
-            if (currentEnemyHealthManagers.Add(__instance)) SetHealth(__instance);
+            if (!coreEnableRandomization || EnemyHealthRandomizerSetting == RandomizerEnemyTypeFlags.None) return;
+            if (currentEnemyHealthManagers.Add(__instance)) SetHealth(__instance, ref ___initHp, ref ___hp);
         }
 
         /// <summary>
         /// Updates an enemy with a new health value
         /// </summary>
         /// <param name="thing">the HealthManager to adjust hp within</param>
-        /// /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
-        private static void SetHealth(HealthManager thing)
+        /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
+        private static void SetHealth(HealthManager thing, ref int initHp, ref int hp)
         {
             if (thing == null) return;
 
-            bool boss = IsBoss(thing);
+            bool boss = Cute_Rando_Core.IsBoss(thing);
 
-            if (boss && !EnemyHealthRandomizerSetting.HasFlag(EnemyHealthRandomizer.Boss)) return;
-
-            Traverse initHp = Cute_Rando_Core.TraverseHelper(thing, "initHp");
-            Traverse hp = Cute_Rando_Core.TraverseHelper(thing, "hp"); // unneeded, but still doing it for future proofing if it becomes private
+            if (boss && !EnemyHealthRandomizerSetting.HasFlag(RandomizerEnemyTypeFlags.Boss)) return;
+            
             int tempHp;
             string name = thing.name;
 
@@ -138,11 +141,11 @@ namespace Cute_Randomizer.Randomizers
                 case RandomizerConsistency4.EnemyType:
                     if (enemyHealthNumbers.TryGetValue(name, out tempHp))
                     {
-                        SetHp(tempHp, initHp, hp);
+                        hp = initHp = tempHp;
                     }
                     else
                     {
-                        enemyHealthNumbers.Add(name, RandomizeHp(boss, initHp, hp));
+                        enemyHealthNumbers.Add(name, RandomizeHp(boss, ref initHp, ref hp));
                     }
                     break;
                 case RandomizerConsistency4.Scene:
@@ -150,98 +153,44 @@ namespace Cute_Randomizer.Randomizers
                     {
                         if (healthManagerSet.TryGetValue(name, out tempHp))
                         {
-                            SetHp(tempHp, initHp, hp);
+                            hp = initHp = tempHp;
                         }
                         else
                         {
-                            healthManagerSet[name] = RandomizeHp(boss, initHp, hp);
+                            healthManagerSet[name] = RandomizeHp(boss, ref initHp, ref hp);
                         }
                     }
                     else
                     {
-                        sceneHealthNumbers[operatingScene] = new() { { name, RandomizeHp(boss, initHp, hp) } };
+                        sceneHealthNumbers[operatingScene] = new() { { name, RandomizeHp(boss, ref initHp, ref hp) } };
                     }
                     break;
                 case RandomizerConsistency4.None:
-                    RandomizeHp(boss, initHp, hp);
+                    RandomizeHp(boss, ref initHp, ref hp);
                     break;
                 default:
                     throw new NotImplementedException();
             }
 
             // Helper to randomize hp
-            static int RandomizeHp(bool boss, Traverse initHp, Traverse hp)
+            static int RandomizeHp(bool boss, ref int initHp, ref int hp)
             {
                 float randFloat = Cute_Rando_Core.TupleRandoHelper(boss ? BossHealthPercentRange.AsTuple() : EnemyHealthPercentRange.AsTuple());
                 int tempHp;
 
-                if ((int)initHp.GetValue() <= 0)
+                if (initHp <= 0)
                 {
-                    tempHp = (int)Math.Round((int)hp.GetValue() * randFloat);
-                    SetHp(tempHp, initHp, hp);
+                    tempHp = (int)Math.Round(hp * randFloat);
+                    hp = initHp = tempHp;
                 }
                 else
                 {
-                    tempHp = (int)Math.Round((int)initHp.GetValue() * randFloat);
-                    SetHp(tempHp, initHp, hp);
+                    tempHp = (int)Math.Round(initHp * randFloat);
+                    hp = initHp = tempHp;
                 }
 
                 return tempHp;
             }
-
-            // Helper to set hp
-            static void SetHp(int hpIn, Traverse initHp, Traverse hp)
-            {
-                hp.SetValue(hpIn);
-                initHp.SetValue(hpIn);
-            }
-        }
-
-        /// <summary>
-        /// Array of bosses that we want to look for
-        /// </summary>
-        public static readonly string[] bossFilter =
-        [
-            "Lace",
-            "Phantom",
-            "Silk Boss",
-            "Bone Beast",
-            "Trobbio",
-            "Shakra",
-            "Mapper",
-            "Forebrother",
-            "Garmond",
-            "SG_head"
-        ];
-
-        /// <summary>
-        /// Checks to see if a given HealthManager is attached to a boss
-        /// 
-        /// <para>Logic borrowed from SimpleEnemyRando</para>
-        /// </summary>
-        /// <param name="thing">HealthManager we want to check</param>
-        /// <returns>Returns true if it is a boss, otherwise false</returns>
-        public static bool IsBoss(HealthManager thing)
-        {
-            // Test if thing is somehow null or it has no death effect (moss mother arena eggs for example)
-            if (thing == null || thing.GetComponent<EnemyDeathEffects>() is EnemyDeathEffectsNoEffect) return false;
-
-            // Test by boss name
-            foreach (string bossName in bossFilter)
-            {
-                if (thing.name.Contains(bossName)) return true;
-            }
-
-            // Test by boss title card
-            foreach (PlayMakerFSM fsm in thing.GetComponents<PlayMakerFSM>())
-            {
-                foreach (FsmState state in fsm.FsmStates)
-                {
-                    if (state?.Actions.Any(action => action is DisplayBossTitle) == true) return true;
-                }
-            }
-
-            return false;
         }
 
         /// <summary>
@@ -255,7 +204,7 @@ namespace Cute_Randomizer.Randomizers
         /// <summary>
         /// Reset all tracked lists
         /// </summary>
-        private static void ResetAllHealthLists()
+        private static void ResetAllLists()
         {
             currentEnemyHealthManagers.Clear();
             enemyHealthNumbers.Clear();
@@ -267,9 +216,9 @@ namespace Cute_Randomizer.Randomizers
         /// Setting for how consistant the enemy health should be
         /// </summary>
         public static RandomizerConsistency4 RandomizerConsistency
-        {
-            get { return (RandomizerConsistency4)randomizerConsistency.BoxedValue; }
-            internal set { randomizerConsistency.BoxedValue = value; }
+        { 
+            get => (RandomizerConsistency4)randomizerConsistency.BoxedValue; 
+            internal set => randomizerConsistency.BoxedValue = value;
         }
         private static ConfigEntry<RandomizerConsistency4> randomizerConsistency;
         /// <summary>
@@ -279,23 +228,23 @@ namespace Cute_Randomizer.Randomizers
         /// <summary>
         /// Randomize the health of enemies
         /// </summary>
-        public static EnemyHealthRandomizer EnemyHealthRandomizerSetting
-        {
-            get { return (EnemyHealthRandomizer)enemyHealthRandomizerSetting.BoxedValue; }
-            internal set { enemyHealthRandomizerSetting.BoxedValue = value; }
+        public static RandomizerEnemyTypeFlags EnemyHealthRandomizerSetting
+        { 
+            get => (RandomizerEnemyTypeFlags)enemyHealthRandomizerSetting.BoxedValue; 
+            internal set => enemyHealthRandomizerSetting.BoxedValue = value;
         }
-        private static ConfigEntry<EnemyHealthRandomizer> enemyHealthRandomizerSetting;
+        private static ConfigEntry<RandomizerEnemyTypeFlags> enemyHealthRandomizerSetting;
         /// <summary>
         /// Default choice for the health randomizer
         /// </summary>
-        public static readonly EnemyHealthRandomizer defaultEnemyHealthRandomizerSetting = EnemyHealthRandomizer.None;
+        public static readonly RandomizerEnemyTypeFlags defaultEnemyHealthRandomizerSetting = RandomizerEnemyTypeFlags.None;
         /// <summary>
         /// Randomize the health of normal enemies
         /// </summary>
         public static FloatRange EnemyHealthPercentRange
-        {
-            get { return (FloatRange)enemyHealthPercentRange.BoxedValue; }
-            internal set { enemyHealthPercentRange.BoxedValue = value; }
+        { 
+            get => (FloatRange)enemyHealthPercentRange.BoxedValue; 
+            internal set => enemyHealthPercentRange.BoxedValue = value;
         }
         private static ConfigEntry<FloatRange> enemyHealthPercentRange;
         /// <summary>
@@ -306,9 +255,9 @@ namespace Cute_Randomizer.Randomizers
         /// Randomize the health of boss enemies
         /// </summary>
         public static FloatRange BossHealthPercentRange
-        {
-            get { return (FloatRange)bossHealthPercentRange.BoxedValue; }
-            internal set { bossHealthPercentRange.BoxedValue = value; }
+        { 
+            get => (FloatRange)bossHealthPercentRange.BoxedValue; 
+            internal set => bossHealthPercentRange.BoxedValue = value;
         }
         private static ConfigEntry<FloatRange> bossHealthPercentRange;
         /// <summary>
@@ -371,6 +320,7 @@ namespace Cute_Randomizer.Randomizers
                     }));
 
             Settings.Settings.enableRandomizer.SettingChanged += RandoCoreSetting;
+
             randomizerConsistency.SettingChanged += OnRandoConsistancyUpdated;
             enemyHealthRandomizerSetting.SettingChanged += OnHealthRandoSettingUpdated;
             enemyHealthPercentRange.SettingChanged += OnEnemyHealthSettingUpdated;
@@ -397,7 +347,7 @@ namespace Cute_Randomizer.Randomizers
             if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is FloatRange fr && !fr.Equals(currentBossHealthPercentage))
             {
                 currentBossHealthPercentage = fr;
-                ResetAllHealthLists();
+                ResetAllLists();
             }
         }
 
@@ -411,7 +361,7 @@ namespace Cute_Randomizer.Randomizers
             if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is FloatRange fr && !fr.Equals(currentEnemyHealthPercentage))
             {
                 currentEnemyHealthPercentage = fr;
-                ResetAllHealthLists();
+                ResetAllLists();
             }
         }
 
@@ -422,10 +372,10 @@ namespace Cute_Randomizer.Randomizers
         /// <param name="args">The setting that was changed</param>
         private static void OnHealthRandoSettingUpdated(object sender, EventArgs args)
         {
-            if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is EnemyHealthRandomizer ehr && !ehr.Equals(currentHealthRandomizerSetting))
+            if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is RandomizerEnemyTypeFlags ehr && !ehr.Equals(currentHealthRandomizerSetting))
             {
                 currentHealthRandomizerSetting = ehr;
-                ResetAllHealthLists();
+                ResetAllLists();
             }
         }
 
@@ -436,17 +386,8 @@ namespace Cute_Randomizer.Randomizers
         /// <param name="args">The setting that was changed</param>
         private static void OnRandoConsistancyUpdated(object sender, EventArgs args)
         {
-            ResetAllHealthLists();
+            ResetAllLists();
         }
         #endregion
-    }
-
-    [Flags]
-    internal enum EnemyHealthRandomizer
-    {
-        None,
-        Enemy,
-        Boss,
-        Both
     }
 }
