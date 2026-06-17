@@ -20,7 +20,7 @@ namespace Cute_Randomizer.Settings
         /// </exception>
         public int Min
         {
-            get { return min; }
+            get => min;
             set
             {
                 int x = value.CompareTo(max);
@@ -43,7 +43,7 @@ namespace Cute_Randomizer.Settings
         /// </exception>
         public int Max
         {
-            get { return max; }
+            get => max;
             set
             {
                 int x = value.CompareTo(max);

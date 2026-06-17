@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if DEBUG
+using System;
 using System.Collections.Generic;
 
 namespace Cute_Randomizer.Handlers
@@ -35,10 +36,7 @@ namespace Cute_Randomizer.Handlers
         }
         public int Count
         {
-            get
-            {
-                return _count;
-            }
+            get => _count;
             set
             {
                 if (value < 1) throw new ArgumentOutOfRangeException(nameof(value), "count is less than 1");
@@ -84,3 +82,4 @@ namespace Cute_Randomizer.Handlers
         public string HolderName => _holderName;
     }
 }
+#endif

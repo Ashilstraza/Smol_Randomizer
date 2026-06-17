@@ -1,4 +1,5 @@
-﻿using Cute_Randomizer.Handlers;
+﻿#if DEBUG
+using Cute_Randomizer.Handlers;
 using HarmonyLib;
 using Newtonsoft.Json;
 using System;
@@ -366,10 +367,9 @@ namespace Cute_Randomizer.Randomizers
         /// </summary>
         internal static void ImportWorldObjectsFile()
         {
-
             Cute_Rando_Core.ImportJsonFile("World_Objects", out string tempWorldObjects);
-            
-            worldObjects = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, HashSet<string>>>>(File.ReadAllText(tempWorldObjects));
+
+            worldObjects = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, HashSet<string>>>>(File.ReadAllText(tempWorldObjects)) ?? [];
         }
 
         /// <summary>
@@ -381,3 +381,4 @@ namespace Cute_Randomizer.Randomizers
         }
     }
 }
+#endif
