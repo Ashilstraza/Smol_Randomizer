@@ -31,7 +31,7 @@
     <DebugType>none</DebugType>
   </PropertyGroup>
   <PropertyGroup>
-	<RootNamespace>Cute_Randomizer</RootNamespace>
+	<RootNamespace>Smol_Randomizer</RootNamespace>
     <OutputType>Library</OutputType>
     <ProjectGuid>{EFDFDB26-27F7-4D32-A2F9-B62969CFF794}</ProjectGuid>
 	 <TargetFramework>netstandard2.1</TargetFramework>

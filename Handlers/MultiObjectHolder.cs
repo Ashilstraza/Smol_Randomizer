@@ -2,84 +2,84 @@
 using System;
 using System.Collections.Generic;
 
-namespace Cute_Randomizer.Handlers
+namespace Smol_Randomizer.Handlers;
+
+internal class MultiObjectHolder
 {
-    internal class MultiObjectHolder
+    private int _count;
+
+    public MultiObjectHolder(SavedItem item, HashSet<Location> locations, int count)
     {
-        private readonly SavedItem _item;
-        private HashSet<Location> _locations;
-        private HashSet<Location> oldLocations;
-        private int _count;
+        Count = count;
+        Item = item;
+        Locations = locations;
+    }
 
-        public MultiObjectHolder(SavedItem item, HashSet<Location> locations, int count)
+    public SavedItem Item { get; }
+    public HashSet<Location> Locations { get; private set; }
+    public HashSet<Location> OldLocations { get; private set; }
+    private HashSet<string> holders = [];
+    public HashSet<string> Holders
+    {
+        get
         {
-            Count = count;
-            _item = item;
-            _locations = locations;
-        }
-
-        public SavedItem Item => _item;
-        public HashSet<Location> Locations => _locations;
-        public HashSet<Location> OldLocations => oldLocations;
-        private HashSet<string> holders = [];
-        public HashSet<string> Holders
-        {
-            get
+            if (holders.Count != Locations.Count)
             {
-                if (holders.Count != _locations.Count)
-                {
-                    RefreshHolders();
-                }
-
-                return holders;
+                RefreshHolders();
             }
+
+            return holders;
         }
-        public int Count
+    }
+    public int Count
+    {
+        get => _count;
+        set
         {
-            get => _count;
-            set
+            if (value < 1)
             {
-                if (value < 1) throw new ArgumentOutOfRangeException(nameof(value), "count is less than 1");
-                _count = value;
+                throw new ArgumentOutOfRangeException(nameof(value), "count is less than 1");
             }
-        }
 
-        public bool IsDuplicate(string scene, string holderName)
-        {
-            foreach (var location in _locations)
-            {
-                if (location.Scene == scene && location.HolderName == holderName) return true;
-            }
-            return false;
-        }
-
-        public void SetNewLocations(HashSet<Location> newLocations)
-        {
-            oldLocations = _locations;
-            _locations = newLocations;
-
-        }
-
-        private void RefreshHolders()
-        {
-            holders = [];
-
-            foreach (var location in _locations)
-            {
-                holders.Add(location.HolderName);
-            }
+            _count = value;
         }
     }
 
-    internal class Location(string scene, string holderType, string holderName)
+    public bool IsDuplicate(string scene, string holderName)
     {
-        private readonly string _scene = scene;
-        private readonly string _holderType = holderType;
-        private readonly string _holderName = holderName;
+        foreach (Location location in Locations)
+        {
+            if (location.Scene == scene && location.HolderName == holderName)
+            {
+                return true;
+            }
+        }
 
-        public string Scene => _scene;
-        public string HolderType => _holderType;
-        public string HolderName => _holderName;
+        return false;
     }
+
+    public void SetNewLocations(HashSet<Location> newLocations)
+    {
+        OldLocations = Locations;
+        Locations = newLocations;
+
+    }
+
+    private void RefreshHolders()
+    {
+        holders = [];
+
+        foreach (Location location in Locations)
+        {
+            holders.Add(location.HolderName);
+        }
+    }
+}
+
+internal class Location(string scene, string holderType, string holderName)
+{
+    public string Scene { get; } = scene;
+    public string HolderType { get; } = holderType;
+    public string HolderName { get; } = holderName;
 }
 #endif

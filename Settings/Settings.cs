@@ -1,244 +1,242 @@
-﻿using BepInEx.Configuration;
-using System;
+﻿using System;
+
+using BepInEx.Configuration;
+
 using UnityEngine;
 
-namespace Cute_Randomizer.Settings
+namespace Smol_Randomizer.Settings;
+
+/// <summary>
+/// Handles the various settings <see href="https://github.com/BepInEx/BepInEx.ConfigurationManager/blob/master/README.md"/>
+/// </summary>
+public static class Settings
 {
+    #region Settings
+#if DEBUG
     /// <summary>
-    /// Handles the various settings <see href="https://github.com/BepInEx/BepInEx.ConfigurationManager/blob/master/README.md"/>
+    /// If we want to test new things
     /// </summary>
-    public static class Settings
+    public static bool TestNewThings
     {
-        #region Settings
-#if DEBUG
-        /// <summary>
-        /// If we want to test new things
-        /// </summary>
-        public static bool TestNewThings
-        {
-            get => testNewThings.Value;
-            internal set => testNewThings.Value = value;
-        }
-        private static ConfigEntry<bool> testNewThings;
-        /// <summary>
-        /// Default for if we want to test new things
-        /// </summary>
-        public static readonly bool defaultTestNewThings = false;
-        /// <summary>
+        get => testNewThings.Value;
+        internal set => testNewThings.Value = value;
+    }
+    private static ConfigEntry<bool> testNewThings;
+    /// <summary>
+    /// Default for if we want to test new things
+    /// </summary>
+    public static readonly bool defaultTestNewThings = false;
+    /// <summary>
 #endif
-        /// Enables the randomization of the various things
-        /// </summary>
-        public static bool EnableRandomizer
-        {
-            get => enableRandomizer.Value;
-            internal set => enableRandomizer.Value = value;
-        }
-        internal static ConfigEntry<bool> enableRandomizer;
-        /// <summary>
-        /// Default if we want to randomize the various things
-        /// </summary>
-        public static readonly bool defaultEnableRandomizer = true;
-        #endregion
+    /// Enables the randomization of the various things
+    /// </summary>
+    public static bool EnableRandomizer
+    {
+        get => enableRandomizer.Value;
+        internal set => enableRandomizer.Value = value;
+    }
+    internal static ConfigEntry<bool> enableRandomizer;
+    /// <summary>
+    /// Default if we want to randomize the various things
+    /// </summary>
+    public static readonly bool defaultEnableRandomizer = true;
+    #endregion
 
-        /// <summary>
-        /// Our config file
-        /// </summary>
-        private static ConfigFile configFile;
-        /// <summary>
-        /// Max Slider Percentage
-        /// </summary>
-        private static readonly int maxPercent = 300;
+    /// <summary>
+    /// Our config file
+    /// </summary>
+    /// <summary>
+    /// Max Slider Percentage
+    /// </summary>
+    private static readonly int maxPercent = 300;
 
-        /// <summary>
-        /// Max Slider Value
-        /// </summary>
-        private static readonly int maxValue = 100;
+    /// <summary>
+    /// Max Slider Value
+    /// </summary>
+    private static readonly int maxValue = 100;
 
-        /// <summary>
-        /// Reference to the randomizer's config file to allow adding settings.
-        /// </summary>
-        public static ConfigFile ConfigFile => configFile;
+    /// <summary>
+    /// Reference to the randomizer's config file to allow adding settings.
+    /// </summary>
+    public static ConfigFile ConfigFile { get; private set; }
 
-        /// <summary>
-        /// Initialize the various settings.
-        /// </summary>
-        /// <remarks> Order is backwards for some reason?</remarks>
-        /// <param name="config"></param>
-        public static void Init(ConfigFile config)
-        {
-            configFile = config;
-            TomlTypeConverter.AddConverter(typeof(FloatRange), FloatRangeConverter);
-            TomlTypeConverter.AddConverter(typeof(IntRange), IntRangeConverter);
+    /// <summary>
+    /// Initialize the various settings.
+    /// </summary>
+    /// <remarks> Order is backwards for some reason?</remarks>
+    /// <param name="config"></param>
+    public static void Init(ConfigFile config)
+    {
+        ConfigFile = config;
+        TomlTypeConverter.AddConverter(typeof(FloatRange), FloatRangeConverter);
+        TomlTypeConverter.AddConverter(typeof(IntRange), IntRangeConverter);
 
-            enableRandomizer = config.Bind(
-                "Main Settings",
-                "Enable Randomizer",
-                defaultEnableRandomizer,
-                new ConfigDescription(
-                    "Enable Randomization.",
-                    null,
-                    new ConfigurationManagerAttributes
-                    {
-                        Order = 1
-                    }));
+        enableRandomizer = config.Bind(
+            "Main Settings",
+            "Enable Randomizer",
+            defaultEnableRandomizer,
+            new ConfigDescription(
+                "Enable Randomization.",
+                null,
+                new ConfigurationManagerAttributes
+                {
+                    Order = 1
+                }));
 #if DEBUG
-            testNewThings = config.Bind(
-                "Testing",
-                "Test new things",
-                defaultTestNewThings,
-                new ConfigDescription(
-                    "Test new things"));
+        testNewThings = config.Bind(
+            "Testing",
+            "Test new things",
+            defaultTestNewThings,
+            new ConfigDescription(
+                "Test new things"));
 #endif
-        }
+    }
 
-        //private static 
-
-        /// <summary>
-        /// Custom Drawer for entering Ranges
-        /// </summary>
-        /// <param name="entry">The entry to draw.</param>
-        public static void RangeDrawer(ConfigEntryBase entry)
+    /// <summary>
+    /// Custom Drawer for entering Ranges
+    /// </summary>
+    /// <param name="entry">The entry to draw.</param>
+    public static void RangeDrawer(ConfigEntryBase entry)
+    {
+        Type entryType = entry.SettingType;
+        if (entryType == typeof(FloatRange))
         {
-            Type entryType = entry.SettingType;
-            if (entryType == typeof(FloatRange))
+            FloatRange value = (FloatRange)entry.BoxedValue;
+            string min = (value.Min * 100).ToString();
+            string max = (value.Max * 100).ToString();
+            TextRange(ref min, ref max, RangeType.Percent);
+            try
             {
-                FloatRange value = (FloatRange)entry.BoxedValue;
-                string min = (value.Min * 100).ToString();
-                string max = (value.Max * 100).ToString();
-                TextRange(ref min, ref max, RangeType.Percent);
-                try
-                {
-                    entry.BoxedValue = new FloatRange(float.Parse(min) / 100, float.Parse(max) / 100);
-                }
-                catch (ArgumentException e)
-                {
-                    Console.Error.WriteLine(e.Message);
-                }
+                entry.BoxedValue = new FloatRange(float.Parse(min) / 100, float.Parse(max) / 100);
             }
-            else if (entryType == typeof(IntRange))
+            catch (ArgumentException e)
             {
-                IntRange value = (IntRange)entry.BoxedValue;
-                string min = value.Min.ToString();
-                string max = value.Max.ToString();
-                TextRange(ref min, ref max, RangeType.Value);
-                try
-                {
-                    entry.BoxedValue = new IntRange((int)Math.Round(float.Parse(min)), (int)Math.Round(float.Parse(max)));
-                }
-                catch (ArgumentException e)
-                {
-                    Console.Error.WriteLine(e.Message);
-                }
-            }
-            else
-            {
-                Console.Error.WriteLine("Unimplimented entryType");
-            }
-
-        }
-
-        /// <summary>
-        /// Range UI Control
-        /// </summary>
-        /// <param name="min">Minimum Value.</param>
-        /// <param name="max">Maximum Value.</param>
-        /// <param name="rangeType">Type of range the values are.</param>
-        static void TextRange(ref string min, ref string max, RangeType rangeType)
-        {
-            using var verticalGroup = new GUILayout.VerticalScope("box");
-            using (var horizontalGroup = new GUILayout.HorizontalScope("box"))
-            {
-                GUILayout.Label($"Minimum {(rangeType.Equals(RangeType.Percent) ? "Percent" : "Value")}");
-                min = GUILayout.TextField(min, GUILayout.Width(30));
-                min = GUILayout.HorizontalSlider((float)Math.Round(float.Parse(min)), 0, (float)Math.Round(float.Parse(max)), GUILayout.Width(100)).ToString();
-
-            }
-            using (var horizontalGroup = new GUILayout.HorizontalScope("box"))
-            {
-                GUILayout.Label($"Maximum {(rangeType.Equals(RangeType.Percent) ? "Percent" : "Value")}");
-                max = GUILayout.TextField(max, GUILayout.Width(30));
-                max = GUILayout.HorizontalSlider((float)Math.Round(float.Parse(max)), (float)Math.Round(float.Parse(min)), rangeType.Equals(RangeType.Percent) ? maxPercent : maxValue, GUILayout.Width(100)).ToString();
+                Console.Error.WriteLine(e.Message);
             }
         }
-
-        /// <summary>
-        /// Converter for BepInEx to convert the FloatRange into something savable then back again
-        /// </summary>
-        static readonly TypeConverter FloatRangeConverter = new()
+        else if (entryType == typeof(IntRange))
         {
-            ConvertToString = (obj, type) => obj.ToString(),
-            ConvertToObject = (str, type) => FloatRange.Parse(str)
-        };
-
-        /// <summary>
-        /// Converter for BepInEx to convert the IntRange into something savable then back again
-        /// </summary>
-        static readonly TypeConverter IntRangeConverter = new()
+            IntRange value = (IntRange)entry.BoxedValue;
+            string min = value.Min.ToString();
+            string max = value.Max.ToString();
+            TextRange(ref min, ref max, RangeType.Value);
+            try
+            {
+                entry.BoxedValue = new IntRange((int)Math.Round(float.Parse(min)), (int)Math.Round(float.Parse(max)));
+            }
+            catch (ArgumentException e)
+            {
+                Console.Error.WriteLine(e.Message);
+            }
+        }
+        else
         {
-            ConvertToString = (obj, type) => obj.ToString(),
-            ConvertToObject = (str, type) => IntRange.Parse(str)
-        };
-
-        /// <summary>
-        /// Randomizer Range Types
-        /// </summary>
-        public enum RangeType
-        {
-            Percent,
-            Value
+            Console.Error.WriteLine("Unimplimented entryType");
         }
     }
 
     /// <summary>
-    /// Range Randomize Types
+    /// Range UI Control
     /// </summary>
-    public enum RandomizeByRangeTypes
+    /// <param name="min">Minimum Value.</param>
+    /// <param name="max">Maximum Value.</param>
+    /// <param name="rangeType">Type of range the values are.</param>
+    private static void TextRange(ref string min, ref string max, RangeType rangeType)
     {
-        Disabled,
+        using GUILayout.VerticalScope verticalGroup = new("box");
+        using (GUILayout.HorizontalScope horizontalGroup = new("box"))
+        {
+            GUILayout.Label($"Minimum {(rangeType.Equals(RangeType.Percent) ? "Percent" : "Value")}");
+            min = GUILayout.TextField(min, GUILayout.Width(30));
+            min = GUILayout.HorizontalSlider((float)Math.Round(float.Parse(min)), 0, (float)Math.Round(float.Parse(max)), GUILayout.Width(100)).ToString();
+
+        }
+
+        using (GUILayout.HorizontalScope horizontalGroup = new("box"))
+        {
+            GUILayout.Label($"Maximum {(rangeType.Equals(RangeType.Percent) ? "Percent" : "Value")}");
+            max = GUILayout.TextField(max, GUILayout.Width(30));
+            max = GUILayout.HorizontalSlider((float)Math.Round(float.Parse(max)), (float)Math.Round(float.Parse(min)), rangeType.Equals(RangeType.Percent) ? maxPercent : maxValue, GUILayout.Width(100)).ToString();
+        }
+    }
+
+    /// <summary>
+    /// Converter for BepInEx to convert the FloatRange into something savable then back again
+    /// </summary>
+    private static readonly TypeConverter FloatRangeConverter = new()
+    {
+        ConvertToString = (obj, type) => obj.ToString(),
+        ConvertToObject = (str, type) => FloatRange.Parse(str)
+    };
+
+    /// <summary>
+    /// Converter for BepInEx to convert the IntRange into something savable then back again
+    /// </summary>
+    private static readonly TypeConverter IntRangeConverter = new()
+    {
+        ConvertToString = (obj, type) => obj.ToString(),
+        ConvertToObject = (str, type) => IntRange.Parse(str)
+    };
+
+    /// <summary>
+    /// Randomizer Range Types
+    /// </summary>
+    public enum RangeType
+    {
         Percent,
         Value
     }
+}
 
-    /// <summary>
-    /// Flat Amount Randomize Types
-    /// </summary>
-    internal enum RandomizeByFlatAmount
-    {
-        Disabled,
-        Shift,
-        Range
-    }
+/// <summary>
+/// Range Randomize Types
+/// </summary>
+public enum RandomizeByRangeTypes
+{
+    Disabled,
+    Percent,
+    Value
+}
 
-    /// <summary>
-    /// Four Randomizer Consistency Types
-    /// </summary>
-    public enum RandomizerConsistency4
-    {
-        None,
-        EnemyType,
-        Scene,
-        Save
-    }
+/// <summary>
+/// Flat Amount Randomize Types
+/// </summary>
+internal enum RandomizeByFlatAmount
+{
+    Disabled,
+    Shift,
+    Range
+}
 
-    /// <summary>
-    /// Three Randomizer Consistency Types
-    /// </summary>
-    public enum RandomizerConsistency3
-    {
-        None,
-        Scene,
-        Save
-    }
+/// <summary>
+/// Four Randomizer Consistency Types
+/// </summary>
+public enum RandomizerConsistency4
+{
+    None,
+    EnemyType,
+    Scene,
+    Save
+}
 
-    /// <summary>
-    /// Enemy Type Flags
-    /// </summary>
-    [Flags]
-    public enum RandomizerEnemyTypeFlags
-    {
-        None,
-        Enemy,
-        Boss,
-        Both
-    }
+/// <summary>
+/// Three Randomizer Consistency Types
+/// </summary>
+public enum RandomizerConsistency3
+{
+    None,
+    Scene,
+    Save
+}
+
+/// <summary>
+/// Enemy Type Flags
+/// </summary>
+[Flags]
+public enum RandomizerEnemyTypeFlags
+{
+    None,
+    Enemy,
+    Boss,
+    Both
 }

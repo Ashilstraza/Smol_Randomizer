@@ -1,9 +1,9 @@
 <Project>
 	<PropertyGroup>
 		<!-- These properties will control the generated plugin info and Thunderstore manifest. -->
-		<Title>Ashen Randomizer</Title>
-		<AssemblyTitle>Ashen Randomizer</AssemblyTitle>
-		<Description>Randomizer for Miscellanious Things</Description>
+		<Title>Smol Randomizer</Title>
+		<AssemblyTitle>Smol Randomizer</AssemblyTitle>
+		<Description>Randomizer for Miscellanious Smol Things</Description>
 		<PackageId>ashilstraza.randomizer.cute</PackageId>
 		<!--
     This is the version of your plugin as it would appear in-game and in a mod installer.
@@ -14,7 +14,7 @@
 		<Authors>Ashilstraza</Authors>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>icon.png</PackageIcon>
-		<RepositoryUrl>https://github.com/Ashilstraza/Cute_Randomizer</RepositoryUrl>
-		<PackageProjectUrl>https://github.com/Ashilstraza/Cute_Randomizer</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/Ashilstraza/Smol_Randomizer</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/Ashilstraza/Smol_Randomizer</PackageProjectUrl>
 	</PropertyGroup>
 </Project>
