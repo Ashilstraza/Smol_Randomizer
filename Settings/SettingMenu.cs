@@ -16,11 +16,19 @@ using UnityEngine.UI;
 
 namespace Smol_Randomizer.Settings;
 
+/// <summary>
+/// Creates a custom scroll based menu for the randomizer
+/// </summary>
 internal class SettingMenu : Cute_Randomizer_MenuBuilder
 {
+    /// <summary>
+    /// Main randomizer menu
+    /// </summary>
+    /// <param name="title">Title of the menu (The mod's name)</param>
     internal SettingMenu(LocalizedText title) : base(title)
     {
-        Work();
+        Content.VerticalSpacing = 85f;
+        GenerateMainPage();
 #if DEBUG
         Label("World Objects", FontSizes.Medium);
         Button("Export World Objects", 
@@ -40,21 +48,20 @@ internal class SettingMenu : Cute_Randomizer_MenuBuilder
 #endif
     }
 
-    private Dictionary<string, Dictionary<string, ConfigEntryBase>> settingList = [];
-
-    private void Work()
+    /// <summary>
+    /// Generates the various menus and options on the main page
+    /// </summary>
+    private void GenerateMainPage()
     {
         ConfigFile config = Settings.ConfigFile;
+        Dictionary<string, Dictionary<string, ConfigEntryBase>> settingList = [];
+
         foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> item in config)
         {
             if (!settingList.TryGetValue(item.Key.Section, out Dictionary<string, ConfigEntryBase>? value))
-            {
                 settingList[item.Key.Section] = new() { { item.Key.Key, item.Value } };
-            }
             else
-            {
                 value.Add(item.Key.Key, item.Value);
-            }
         }
 
         foreach (KeyValuePair<string, Dictionary<string, ConfigEntryBase>> settingGroup in settingList)
@@ -64,31 +71,58 @@ internal class SettingMenu : Cute_Randomizer_MenuBuilder
                 KeyValuePair<string, ConfigEntryBase> setting = settingGroup.Value.First();
                 Label(settingGroup.Key, FontSizes.Medium);
                 ElementBuilder(setting.Value);
+                //BlankSpace();
             }
             else
             {
-                SubMenuButton(BuildSubMenu(settingGroup.Key, settingGroup.Value));
+                SubMenuButton(BuildPagedSubMenu(settingGroup.Key, settingGroup.Value));
             }
+
         }
     }
 }
 
-public class Cute_Randomizer_MenuBuilder : PaginatedMenuScreenBuilder
+/// <summary>
+/// Customized set of menu elements for easy building
+/// </summary>
+/// <param name="title">Title of the menu</param>
+public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScreen(title)
 {
-    internal GameObject descriptionDummy;
+    /// <summary>
+    /// Light Gray Color
+    /// </summary>
+    public static Color LightGray => new(0.75f, 0.75f, 0.75f);
 
-    public Cute_Randomizer_MenuBuilder(LocalizedText title, int pageSize = 8) : base(title, pageSize)
+    /// <summary>
+    /// A blank space for spacing reasons
+    /// </summary>
+    /// <returns></returns>
+    public TextLabel BlankSpace()
     {
-        TextButton button = new("dummy", "description");
-        descriptionDummy = UnityEngine.Object.Instantiate<GameObject>(button.MenuButton.gameObject.transform.Find("Description").gameObject);
-        UnityEngine.Object.DontDestroyOnLoad(descriptionDummy);
+        TextLabel blank = new("");
+        blank.Text.fontSize = 15;
+        Add(blank);
+        return blank;
     }
 
+    /// <summary>
+    /// A basic text label
+    /// </summary>
+    /// <param name="label">Text of the label</param>
+    /// <param name="fontSize">Font size of the label</param>
+    /// <returns>The added label</returns>
     public TextLabel Label(string label, FontSizes fontSize = FontSizes.Medium)
     {
         return Label(label, Color.white, fontSize);
     }
 
+    /// <summary>
+    /// A text label
+    /// </summary>
+    /// <param name="label">Text of the label</param>
+    /// <param name="color">Color of the text</param>
+    /// <param name="fontSize">Font size of the label</param>
+    /// <returns>The added label</returns>
     public TextLabel Label(string label, Color color, FontSizes fontSize = FontSizes.Medium)
     {
         TextLabel textLabel = new(label);
@@ -98,6 +132,14 @@ public class Cute_Randomizer_MenuBuilder : PaginatedMenuScreenBuilder
         return textLabel;
     }
 
+    /// <summary>
+    /// A clickable button with a given action to activate when clicked
+    /// </summary>
+    /// <param name="label">The button's text</param>
+    /// <param name="onClick">The action to be performed when clicked</param>
+    /// <param name="description">Description of the button</param>
+    /// <param name="fontSize">Font size of the button</param>
+    /// <returns>The added button</returns>
     public TextButton Button(string label, Action onClick, string description = "", FontSizes fontSize = FontSizes.Medium)
     {
         TextButton button = new(label, description);
@@ -107,72 +149,161 @@ public class Cute_Randomizer_MenuBuilder : PaginatedMenuScreenBuilder
         return button;
     }
 
-    public TextButton SubMenuButton(AbstractMenuScreen subMenu, string description = "", FontSizes fontSize = FontSizes.Medium)
+    /// <summary>
+    /// A button leading to a sub menu
+    /// </summary>
+    /// <param name="subMenu">The given menu to navagate to when clicked</param>
+    /// <param name="fontSize">Font size of the button</param>
+    /// <returns>The added button</returns>
+    public TextButton SubMenuButton(AbstractMenuScreen subMenu, FontSizes fontSize = FontSizes.Medium)
     {
         TextButton button = new(subMenu);
+        
         button.SetFontSizes(fontSize);
         Add(button);
         return button;
     }
 
-    internal GameObject ButtonLabeled(string label, string buttonText, Action onClick, string description = "", FontSizes fontSize = FontSizes.Medium)
-    {
-
-        GameObject buttonLabeled = new("Labeled Button");
-        GameObject button = DefaultControls.CreateButton(new DefaultControls.Resources());
-        button.transform.SetParent(buttonLabeled.transform, false);
-        /*buttonLabeled.layer = 5;
-        buttonLabeled.SetActive(false);
-        UnityEngine.Object.DontDestroyOnLoad(buttonLabeled);
-        HorizontalLayoutGroup layoutGroup = buttonLabeled.AddComponent<HorizontalLayoutGroup>();
-        TextLabel textLabel = Label(label, fontSize, false);
-        textLabel.UpdateLayout(new(-300,0));
-        textLabel.SetGameObjectParent(layoutGroup.gameObject);
-        TextButton buttonLabel = Button(buttonText, onClick, description, fontSize, false);
-        buttonLabel.SetGameObjectParent(layoutGroup.gameObject);
-        layoutGroup.spacing = 30;
-        layoutGroup.SetLayoutHorizontal();
-        layoutGroup.childForceExpandWidth = true;
-        layoutGroup.childAlignment = TextAnchor.MiddleCenter;
-        layoutGroup.childControlWidth = true;
-        layoutGroup.childScaleWidth = true;
-        layoutGroup.CalculateLayoutInputHorizontal();
-        layoutGroup.SetAssetDirty();
-        LayoutRebuilder.MarkLayoutForRebuild(layoutGroup.GetComponent<RectTransform>());
-        MenuWideElement x = new(buttonLabeled);
-        this.Add(x);*/
-        return buttonLabeled;
-    }
-
+    /// <summary>
+    /// A togglable element
+    /// </summary>
+    /// <param name="label">Label of the toggle</param>
+    /// <param name="configEntry">The setting the toggle is attached to</param>
+    /// <param name="description">Description of the toggle</param>
+    /// <param name="fontSizes">Font size of the toggle</param>
+    /// <returns>The Added toggle</returns>
     public ChoiceElement<bool> ToggleElement(string label, ConfigEntryBase configEntry, string description = "", FontSizes fontSizes = FontSizes.Medium)
     {
         ChoiceElement<bool> element = new(label, ChoiceModels.ForBool(), description);
         element.SynchronizeRawWith(configEntry);
         element.SetFontSizes(fontSizes);
+
         Add(element);
         return element;
     }
 
-    public DoubleSliderElement<float> FloatSlider(string label, ConfigEntryBase configEntry, string description = "", FontSizes fontSize = FontSizes.Small)
+    /// <summary>
+    /// A chooser of enums
+    /// <para>Probably can be improved upon...</para>
+    /// </summary>
+    /// <param name="label">Label of the chooser</param>
+    /// <param name="configEntry">The setting of the chooser</param>
+    /// <param name="description">Description of the chooser</param>
+    /// <param name="fontSizes">Font size of the chooser</param>
+    /// <returns>The added object of the chooser, may be null if enum was not implemented</returns>
+    public object? EnumList(string label, ConfigEntryBase configEntry, string description = "", FontSizes fontSizes = FontSizes.Medium)
     {
-        Label(label, fontSize: FontSizes.Medium);
-        (float min, float max) = configEntry.Description.AcceptableValues is AcceptableValueRange<float> range ? Tuple.Create(range.MinValue, range.MaxValue) : Tuple.Create(0f, 100f);
-        int ticks = (int)Math.Round(max - min) + 3;
-        LinearFloatSliderModel model = SliderModels.ForFloats(min, max, ticks);
-        DoubleSliderElement<float> slider = new("Minimum Percent", model);
-        slider.SetFontSizes(fontSize);
-        slider.SynchronizeRawWith(configEntry);
-        /*GameObject x = UnityEngine.Object.Instantiate(descriptionDummy);
-        x.name = "Description";
-        x.GetComponent<Text>().text = description;
-        RectTransform y = x.GetComponent<RectTransform>();
-        y.SetParent(slider.Slider.gameObject.transform, false);
-        y.anchoredPosition = new Vector2(0f, -60f);*/
-
-        Add(slider);
-        return slider;
+        Type enumType = configEntry.SettingType;
+        switch (enumType.Name)
+        {
+            case "RandomizerConsistency4":
+                ChoiceElement<RandomizerConsistency4> RC4 = new(label, ChoiceModels.ForEnum<RandomizerConsistency4>(), description);
+                RC4.SynchronizeRawWith(configEntry);
+                RC4.SetFontSizes(fontSizes);
+                Add(RC4);
+                return RC4;
+            case "RandomizerConsistency3":
+                ChoiceElement<RandomizerConsistency3> RC3 = new(label, ChoiceModels.ForEnum<RandomizerConsistency3>(), description);
+                RC3.SynchronizeRawWith(configEntry);
+                RC3.SetFontSizes(fontSizes);
+                Add(RC3);
+                return RC3;
+            case "RandomizeByFlatAmount":
+                ChoiceElement<RandomizeByFlatAmount> RFA = new(label, ChoiceModels.ForEnum<RandomizeByFlatAmount>(), description);
+                RFA.SynchronizeRawWith(configEntry);
+                RFA.SetFontSizes(fontSizes);
+                Add(RFA);
+                return RFA;
+            case "RandomizeByRangeTypes":
+                ChoiceElement<RandomizeByRangeTypes> RRT = new(label, ChoiceModels.ForEnum<RandomizeByRangeTypes>(), description);
+                RRT.SynchronizeRawWith(configEntry);
+                RRT.SetFontSizes(fontSizes);
+                Add(RRT);
+                return RRT;
+            case "RandomizerEnemyTypeFlags":
+                ChoiceElement<RandomizerEnemyTypeFlags> RETF = new(label, ChoiceModels.ForEnum<RandomizerEnemyTypeFlags>(), description);
+                RETF.SynchronizeRawWith(configEntry);
+                RETF.SetFontSizes(fontSizes);
+                Add(RETF);
+                return RETF;
+            default:
+                Label("(Unimplemented)" + label, Color.magenta);
+                Label("(Unimplemented Enum)" + enumType.Name, Color.magenta, fontSize: FontSizes.Small);
+                break;
+        }
+        return null;
     }
 
+    /// <summary>
+    /// A slider for a float range
+    /// </summary>
+    /// <param name="label">Label of the slider</param>
+    /// <param name="configEntry">The setting of the slider</param>
+    /// <param name="description">Description of the slider</param>
+    /// <returns>The two added sliders in an array</returns>
+    public SliderElement<float>[] SliderRangeFloat(string label, ConfigEntryBase configEntry, string description = "")
+    {
+        Label(label, fontSize: FontSizes.Medium);
+        if(description != "") Label(description, LightGray, fontSize: FontSizes.Small);
+
+        (float min, float max) = configEntry.Description.AcceptableValues is AcceptableValueRange<float> range ? Tuple.Create(range.MinValue, range.MaxValue) : Tuple.Create(0f, (float)Settings.maxSliderPercent);
+        int ticks = (int)Math.Round(max - min);
+        LinearFloatSliderModel minModel = SliderModels.ForFloats(min, max, ticks);
+        LinearFloatSliderModel maxModel = SliderModels.ForFloats(min, max, ticks);
+
+        SliderElement<float> minSlider = new("Minimum Percent", minModel);
+        minSlider.SetFontSizes(FontSizes.Small);
+        minSlider.SynchronizeWithFloatRangeMin((ConfigEntry<FloatRange>)configEntry);
+        minSlider.ValueText.horizontalOverflow = HorizontalWrapMode.Overflow;        
+        Add(minSlider);
+        
+        SliderElement<float> maxSlider = new("Maximum Percent", maxModel);
+        maxSlider.SetFontSizes(FontSizes.Small);
+        maxSlider.SynchronizeWithFloatRangeMax((ConfigEntry<FloatRange>)configEntry);
+        maxSlider.ValueText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        Add(maxSlider);
+
+        return [minSlider,maxSlider];
+    }
+
+    /// <summary>
+    /// A slider for a int range
+    /// </summary>
+    /// <param name="label">Label of the slider</param>
+    /// <param name="configEntry">The setting of the slider</param>
+    /// <param name="description">Description of the slider</param>
+    /// <returns>The two added sliders in an array</returns>
+    public SliderElement<int>[] SliderRangeInt(string label, ConfigEntryBase configEntry, string description = "")
+    {
+        Label(label, fontSize: FontSizes.Medium);
+        if (description != "") Label(description, LightGray, fontSize: FontSizes.Small);
+
+        (int min, int max) = configEntry.Description.AcceptableValues is AcceptableValueRange<int> range ? Tuple.Create(range.MinValue, range.MaxValue) : Tuple.Create(0, Settings.maxSliderPercent);
+        IntSliderModel minModel = SliderModels.ForInts(min, max);
+        IntSliderModel maxModel = SliderModels.ForInts(min, max);
+
+        SliderElement<int> minSlider = new("Minimum Value", minModel);
+        minSlider.SetFontSizes(FontSizes.Small);
+        minSlider.SynchronizeWithIntRangeMin((ConfigEntry<IntRange>)configEntry);
+        minSlider.ValueText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        Add(minSlider);
+
+        SliderElement<int> maxSlider = new("Maximum Value", maxModel);
+        maxSlider.SetFontSizes(FontSizes.Small);
+        maxSlider.SynchronizeWithIntRangeMax((ConfigEntry<IntRange>)configEntry);
+        maxSlider.ValueText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        Add(maxSlider);
+
+        return [minSlider, maxSlider];
+    }
+
+    /// <summary>
+    /// Imput for an int value
+    /// </summary>
+    /// <param name="label">Label of the input</param>
+    /// <param name="configEntry">The setting of the input</param>
+    /// <param name="description">Description of the input</param>
+    /// <returns>The added input</returns>
     public TextInput<int> IntInput(string label, ConfigEntryBase configEntry, string description = "")
     {
         ParserTextModel<int> model = configEntry.Description.AcceptableValues is AcceptableValueRange<int> range ? TextModels.ForIntegers(range.MinValue, range.MaxValue) : TextModels.ForIntegers();
@@ -183,18 +314,29 @@ public class Cute_Randomizer_MenuBuilder : PaginatedMenuScreenBuilder
         return intInput;
     }
 
-    public static AbstractMenuScreen BuildSubMenu(string title, Dictionary<string, ConfigEntryBase> settings)
+    /// <summary>
+    /// Sub menu builder for the sub menu button
+    /// </summary>
+    /// <param name="title">Title of the sub menu</param>
+    /// <param name="settings">The list of settings for the sub menu</param>
+    /// <returns>The new sub menu screen</returns>
+    public static ScrollingMenuScreen BuildPagedSubMenu(string title, Dictionary<string, ConfigEntryBase> settings)
     {
         Cute_Randomizer_MenuBuilder screenBuilder = new(title);
-
+        screenBuilder.Content.VerticalSpacing = 85f;
+            
         foreach (ConfigEntryBase setting in settings.Values)
         {
             screenBuilder.ElementBuilder(setting);
         }
 
-        return screenBuilder.Build();
+        return screenBuilder;
     }
 
+    /// <summary>
+    /// Adds an element to the menu depending on the type of setting that was given
+    /// </summary>
+    /// <param name="entry">The setting to have an element added for</param>
     public void ElementBuilder(ConfigEntryBase entry)
     {
         string type = entry.SettingType.IsEnum ? "Enum" : entry.SettingType.Name;
@@ -202,96 +344,171 @@ public class Cute_Randomizer_MenuBuilder : PaginatedMenuScreenBuilder
         {
             case nameof(Boolean):
                 ToggleElement(entry.LabelName(), entry, entry.Description.Description);
+                if(entry.Description.Description != "") BlankSpace();
                 break;
             case nameof(Int32):
                 IntInput(entry.LabelName(), entry, entry.Description.Description);
+                if (entry.Description.Description != "") BlankSpace();
                 break;
             case nameof(FloatRange):
-                FloatSlider(entry.LabelName(), entry, entry.Description.Description);
+                SliderRangeFloat(entry.LabelName(), entry, entry.Description.Description);
                 break;
             case nameof(IntRange):
+                SliderRangeInt(entry.LabelName(), entry, entry.Description.Description);
+                break;
             case "Enum":
+                EnumList(entry.LabelName(), entry, entry.Description.Description);
+                if (entry.Description.Description != "") BlankSpace();
+                break;
             default:
-                Label(entry.LabelName(), Color.magenta);
+                Label("(Unimplemented)"+entry.LabelName(), Color.magenta);
                 break;
         }
     }
 }
 
-public class DoubleSliderElement<T> : SliderElement<T>
+/// <summary>
+/// Helper Extensions for the Range Sliders
+/// </summary>
+public static class SliderCuteExtensions
 {
-    public Slider Slider2 { get; }
-
-    public Text LabelText2 { get; set; }
-    private Text valueText2;
-
-    public DoubleSliderElement(LocalizedText label, SliderModel<T> model) : base(label, model)
+    /// <summary>
+    /// Synchronize with a minimum float value
+    /// </summary>
+    /// <param name="element">The slider that we want to sync</param>
+    /// <param name="entry">The setting we are syncing with</param>
+    public static void SynchronizeWithFloatRangeMin(this SelectableValueElement<float> element, ConfigEntry<FloatRange> entry)
     {
-        Slider2 = UnityEngine.Object.Instantiate(Slider.gameObject).GetComponent<Slider>();
-        Slider2.name = "Slider 2";
+        IValueModel<float> model = element.Model;
+        model.SetValue(entry.Value.Min*100);
 
-        RectTransform slider2Transform = Slider2.gameObject.GetComponent<RectTransform>();
-        slider2Transform.SetParent(Slider.transform, false);
-        slider2Transform.anchoredPosition = new Vector2(0f, -80f);
+        model.OnValueChanged += delegate (float v) 
+        {
+            v = (float)Math.Round(v);
+            v /= 100;
+            if (v > entry.Value.Max)
+            {
+                v = entry.Value.Max;
+                model.SetValue(v * 100);
+            }
+            entry.Value.Min = v;
+        };
 
-        LabelText2 = Slider2.transform.Find("Menu Option Label").GetComponent<Text>();
-        valueText2 = Slider2.transform.Find("Value").GetComponent<Text>();
+        entry.SettingChanged += handler;
+
+        element.OnVisibilityChanged += delegate (bool visible)
+        {
+            if(visible) model.SetValue(entry.Value.Min * 100);
+        };
+
+        element.OnDispose += delegate
+        { 
+            entry.SettingChanged -= handler;
+        };
+
+        void handler(object _, EventArgs args)
+        {
+            model.SetValue((float)Math.Round(((FloatRange)((SettingChangedEventArgs)args).ChangedSetting.BoxedValue).Min) / 100);
+        }
     }
 
-    public override void SetFontSizes(FontSizes fontSizes)
+    /// <summary>
+    /// Synchronize with a maximum float value
+    /// </summary>
+    /// <param name="element">The slider that we want to sync</param>
+    /// <param name="entry">The setting we are syncing with</param>
+    public static void SynchronizeWithFloatRangeMax(this SelectableValueElement<float> element, ConfigEntry<FloatRange> entry)
     {
-        base.SetFontSizes(fontSizes);
-        valueText2.fontSize = fontSizes.SliderSize();
-        LabelText2.fontSize = fontSizes.LabelSize();
+        IValueModel<float> model = element.Model;
+        model.SetValue(entry.Value.Max * 100);
+
+        model.OnValueChanged += delegate (float v)
+        {
+            v = (float)Math.Round(v);
+            v /= 100;
+            if (v < entry.Value.Min)
+            { 
+                v = entry.Value.Min;
+                model.SetValue(v * 100);
+            }
+            entry.Value.Max = v;
+        };
+
+        entry.SettingChanged += handler;
+
+        element.OnVisibilityChanged += delegate (bool visible)
+        {
+            if (visible) model.SetValue(entry.Value.Max * 100);
+        };
+
+        element.OnDispose += delegate
+        { 
+            entry.SettingChanged -= handler;
+        };
+
+        void handler(object _, EventArgs args)
+        {
+            model.SetValue((float)Math.Round(((FloatRange)((SettingChangedEventArgs)args).ChangedSetting.BoxedValue).Max) / 100);
+        }
+    }
+
+    /// <summary>
+    /// Synchronize with a minimum int value
+    /// </summary>
+    /// <param name="element">The slider that we want to sync</param>
+    /// <param name="entry">The setting we are syncing with</param>
+    public static void SynchronizeWithIntRangeMin(this SelectableValueElement<int> element, ConfigEntry<IntRange> entry)
+    {
+        IValueModel<int> model = element.Model;
+        model.SetValue(entry.Value.Min);
+        model.OnValueChanged += delegate (int v)
+        {
+            if (v > entry.Value.Max)
+            {
+                v = entry.Value.Max;
+                model.SetValue(v);
+            }
+            entry.Value.Min = v;
+        };
+        entry.SettingChanged += handler;
+        element.OnDispose += delegate
+        {
+            entry.SettingChanged -= handler;
+        };
+
+        void handler(object _, EventArgs args)
+        {
+            model.SetValue(((IntRange)((SettingChangedEventArgs)args).ChangedSetting.BoxedValue).Min);
+        }
+    }
+
+    /// <summary>
+    /// Synchronize with a maximum int value
+    /// </summary>
+    /// <param name="element">The slider that we want to sync</param>
+    /// <param name="entry">The setting we are syncing with</param>
+    public static void SynchronizeWithIntRangeMax(this SelectableValueElement<int> element, ConfigEntry<IntRange> entry)
+    {
+        IValueModel<int> model = element.Model;
+        model.SetValue(entry.Value.Max);
+        model.OnValueChanged += delegate (int v)
+        {
+            if (v < entry.Value.Min)
+            {
+                v = entry.Value.Min;
+                model.SetValue(v);
+            }
+            entry.Value.Max = v;
+        };
+        entry.SettingChanged += handler;
+        element.OnDispose += delegate
+        {
+            entry.SettingChanged -= handler;
+        };
+
+        void handler(object _, EventArgs args)
+        {
+            model.SetValue(((IntRange)((SettingChangedEventArgs)args).ChangedSetting.BoxedValue).Max);
+        }
     }
 }
-
-/*internal class WiderSliderElement<T> : SliderElement<T>
-{
-    public WiderSliderElement(LocalizedText label, SliderModel<T> model) : base(label, model)
-    {
-        Vector2
-            middleright = new(1, 0.5f),
-            middleleft = new(0, 0.5f),
-            uppercenter = new(0.5f, 1),
-            lowercenter = new(0.5f, 0),
-            center = Vector2.one * 0.5f;
-        RectTransform
-            Slider = AsRect(RectTransform.Find("Slider")),
-            MenuOptionLabel = AsRect(Slider.Find("Menu Option Label")),
-            CursorHotspot = AsRect(Slider.Find("CursorHotspot")),
-            CursorLeft = AsRect(CursorHotspot.Find("CursorLeft")),
-            CursorRight = AsRect(CursorHotspot.Find("CursorRight")),
-            FillArea = AsRect(Slider.Find("Fill Area")),
-            HandleSlideArea = AsRect(Slider.Find("Handle Slide Area")),
-            Value = AsRect(Slider.Find("Value"));
-
-        RectTransform.sizeDelta = RectTransform.sizeDelta with { x = 720 };
-        SetAnchors(RectTransform, center);
-        RectTransform.anchoredPosition = RectTransform.anchoredPosition with { x = 0 };
-
-        SetAnchors(Slider, middleright);
-        Slider.anchoredPosition = Vector2.zero;
-
-        MenuOptionLabel.anchorMin = Vector2.zero;
-        MenuOptionLabel.anchorMax = Vector2.one;
-        MenuOptionLabel.pivot = middleleft;
-        MenuOptionLabel.anchoredPosition = new Vector2(-(2 * RectTransform.offsetMax.x) - 91, 0);
-
-        CursorHotspot.anchorMax = uppercenter;
-        CursorHotspot.anchorMin = lowercenter;
-        CursorHotspot.anchoredPosition = new(RectTransform.offsetMin.x, 0);
-        CursorHotspot.sizeDelta = new Vector2(1000 + RectTransform.offsetMax.x, 0);
-
-        SetAnchors(CursorLeft, middleleft);
-        CursorLeft.anchoredPosition = Vector2.zero;
-
-        SetAnchors(CursorRight, middleright);
-        CursorRight.anchoredPosition = Vector2.zero;
-
-        ValueText.alignByGeometry = true;
-    }
-
-    internal static RectTransform AsRect(Transform t) => (RectTransform)t;
-    internal static void SetAnchors(Transform t, Vector2 anchor) => AsRect(t).anchorMax = AsRect(t).anchorMax = anchor;
-}*/

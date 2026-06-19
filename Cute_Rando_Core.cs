@@ -202,7 +202,7 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     public AbstractMenuScreen BuildCustomMenu()
     {
         cuteRandomizerSettingWindow = new(MODNAME);
-        return cuteRandomizerSettingWindow.Build();
+        return cuteRandomizerSettingWindow;
     }
 
     /// <summary>
