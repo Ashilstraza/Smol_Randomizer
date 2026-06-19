@@ -39,8 +39,8 @@ public class FloatRange
         get => max;
         set
         {
-            int x = value.CompareTo(max);
-            max = x >= 0 ? value : throw new ArgumentException($"{value} is less than the maximum value ({max})");
+            int x = value.CompareTo(min);
+            max = x >= 0 ? value : throw new ArgumentException($"{value} is less than the minimum value ({min})");
         }
     }
 
