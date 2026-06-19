@@ -274,7 +274,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         ConfigFile config = Settings.Settings.ConfigFile;
         enemySizeRandomizerSetting = config.Bind(
             section: RandomizerName,
-            key: "Enemy Size Randomizer",
+            key: "Randomize Enemy Size",
             defaultValue: defaultEnemySizeRandomizerSetting,
             configDescription: new ConfigDescription(
                 description: "Allow randomization of enemy and/or boss size.",
@@ -282,37 +282,37 @@ internal sealed class Enemy_Size_Rando : Rando_Base
                 {
                     Order = 3
                 }));
-        enemySizePercentRange = config.Bind(
-            section: RandomizerName,
-            key: "Enemy Randomizer",
-            defaultValue: defaultEnemySizePercentRange,
-            configDescription: new ConfigDescription(
-                description: "Randomize regular enemy size.",
-                tags: new ConfigurationManagerAttributes
-                {
-                    Order = 2,
-                    CustomDrawer = Settings.Settings.RangeDrawer
-                }));
-        bossSizePercentRange = config.Bind(
-            section: RandomizerName,
-            key: "Boss Randomizer",
-            defaultValue: defaultBossSizePercentRange,
-            configDescription: new ConfigDescription(
-                description: "Randomize boss size.",
-                tags: new ConfigurationManagerAttributes
-                {
-                    Order = 1,
-                    CustomDrawer = Settings.Settings.RangeDrawer
-                }));
         randomizerConsistency = config.Bind(
             section: RandomizerName,
-            key: "Enemy Size Randomizer Consistency",
+            key: "Size Consistency",
             defaultValue: defaultRandomizerConsistency,
             configDescription: new ConfigDescription(
                 description: "Setting for if the enemy size should be consistent per enemy type or room.",
                 tags: new ConfigurationManagerAttributes
                 {
-                    Order = 0
+                    Order = 2
+                }));
+        enemySizePercentRange = config.Bind(
+            section: RandomizerName,
+            key: "Enemy Size Range",
+            defaultValue: defaultEnemySizePercentRange,
+            configDescription: new ConfigDescription(
+                description: "Randomize regular enemy size.",
+                tags: new ConfigurationManagerAttributes
+                {
+                    Order = 1,
+                    CustomDrawer = Settings.Settings.RangeDrawer
+                }));
+        bossSizePercentRange = config.Bind(
+            section: RandomizerName,
+            key: "Boss Size Range",
+            defaultValue: defaultBossSizePercentRange,
+            configDescription: new ConfigDescription(
+                description: "Randomize boss size.",
+                tags: new ConfigurationManagerAttributes
+                {
+                    Order = 0,
+                    CustomDrawer = Settings.Settings.RangeDrawer
                 }));
 
         currentBossSizePercentage = bossSizePercentRange.Value;

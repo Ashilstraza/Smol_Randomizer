@@ -198,7 +198,7 @@ internal class Hero_Damage_Rando : Rando_Base
         ConfigFile config = Settings.Settings.ConfigFile;
         playerNailDamageRando = config.Bind(
             section: RandomizerName,
-            key: "Hornet Damage Randomizer",
+            key: "Randomizer Hornet Damage",
             defaultValue: defaultPlayerNailDamageRando,
             configDescription: new ConfigDescription(
                 description: "Enable/Disable Randomization of Hornet's Damage.",
@@ -206,16 +206,26 @@ internal class Hero_Damage_Rando : Rando_Base
                 {
                     Order = 3
                 }));
+        consistancySetting = config.Bind(
+             section: RandomizerName,
+            key: "Damage Consistancy",
+            defaultValue: defaultConsistancySetting,
+            configDescription: new ConfigDescription(
+                description: "Randomize Hornet's damage in a consistant way.",
+                tags: new ConfigurationManagerAttributes
+                {
+                    Order = 2
+                }));
         playerNailDamageShift = config.Bind(
             section: RandomizerName,
-            key: "Hornet Damage Shift",
+            key: "Damage Shift",
             defaultValue: defaultPlayerNailDamageShift,
             configDescription: new ConfigDescription(
                 description: "Shifts Hornet's damage up or down within a set value around her normal needle upgrade value. Acceptable values range from 0 to 20.",
                 acceptableValues: new AcceptableValueRange<int>(0, 20),
                 tags: new ConfigurationManagerAttributes
                 {
-                    Order = 2
+                    Order = 1
                 }));
         playerNailDamageMinimum = config.Bind(
             section: RandomizerName,
@@ -223,16 +233,6 @@ internal class Hero_Damage_Rando : Rando_Base
             defaultValue: defaultPlayerNailDamageMinimum,
             configDescription: new ConfigDescription(
                 description: "Sets the minimum damage that Hornet can to to 1.",
-                tags: new ConfigurationManagerAttributes
-                {
-                    Order = 1
-                }));
-        consistancySetting = config.Bind(
-             section: RandomizerName,
-            key: "Hornet Damage Randomizer Consistancy",
-            defaultValue: defaultConsistancySetting,
-            configDescription: new ConfigDescription(
-                description: "Randomize Hornet's damage in a consistant way.",
                 tags: new ConfigurationManagerAttributes
                 {
                     Order = 0

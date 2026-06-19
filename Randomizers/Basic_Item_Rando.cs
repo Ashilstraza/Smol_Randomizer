@@ -19,7 +19,7 @@ internal class Basic_Item_Rando
 {
     private static Scene currentScene;
 
-    private static readonly Randomizer_Info randomizerItem;
+    // private static readonly Randomizer_Info randomizerItem;
     private static readonly Randomizer_Info randomizerOnSceneLoad = new("Basic Item Randomizer", RandomizerEventType.OnSceneLoad, AccessTools.Method(typeof(Basic_Item_Rando), nameof(OnSceneLoad)));
     private static readonly Randomizer_Info randomizerGameShutdown = new("Basic Item Randomizer", RandomizerEventType.GameShutdown, AccessTools.Method(typeof(Basic_Item_Rando), nameof(GameShutdown)));
 
@@ -38,7 +38,7 @@ internal class Basic_Item_Rando
         ImportWorldObjectsFile();
     }
 
-    private static void OnSceneLoad(Scene scene, LoadSceneMode mode)
+    private static void OnSceneLoad(Scene scene, LoadSceneMode _)
     {
         currentScene = scene;
 

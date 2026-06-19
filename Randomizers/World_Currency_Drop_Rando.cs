@@ -257,57 +257,57 @@ internal class World_Currency_Drop_Rando : Rando_Base
     {
         ConfigFile config = Settings.Settings.ConfigFile;
 
-        shardChanceEnable = config.Bind(
-            section: RandomizerName,
-            key: "Wall Shard Drop Chance Randomizer",
-            defaultValue: defaultShardChanceEnable,
-            configDescription: new ConfigDescription(
-                description: "Enable wall shard drop chance multiplier.",
-                tags: new ConfigurationManagerAttributes
-                {
-                    Order = 4
-                }));
-        shardChanceMultiplier = config.Bind(
-            section: RandomizerName,
-            key: "Wall Shard Drop Chance Multiplier",
-            defaultValue: defaultShardChanceMultiplier,
-            configDescription: new ConfigDescription(
-                description: "Wall shard drop chance multiplier.",
-                tags: new ConfigurationManagerAttributes
-                {
-                    Order = 3,
-                    CustomDrawer = Settings.Settings.RangeDrawer
-                }));
-        architectChanceEnable = config.Bind(
-            section: RandomizerName,
-            key: "Wall Shard Architect Crest Randomizer",
-            defaultValue: defaultArchitectChanceEnable,
-            configDescription: new ConfigDescription(
-                description: "Enable Architect Crest wall shard drop chance multiplier.",
-                tags: new ConfigurationManagerAttributes
-                {
-                    Order = 2
-                }));
-        architectCrestMultiplier = config.Bind(
-            section: RandomizerName,
-            key: "Wall Shard Architect Crest Multiplier",
-            defaultValue: defaultArchitectCrestMultiplier,
-            configDescription: new ConfigDescription(
-                description: "Architect Crest wall shard multiplier.",
-                tags: new ConfigurationManagerAttributes
-                {
-                    Order = 1,
-                    CustomDrawer = Settings.Settings.RangeDrawer
-                }));
         consistencySetting = config.Bind(
             section: RandomizerName,
-            key: "Chance Consistancy",
+            key: "Drop Chance Consistancy",
             defaultValue: defaultConsistencySetting,
             configDescription: new ConfigDescription(
                 description: "Sets how consistant the chance for world drops are.",
                 tags: new ConfigurationManagerAttributes
                 {
-                    Order = 0
+                    Order = 4
+                }));
+        shardChanceEnable = config.Bind(
+            section: RandomizerName,
+            key: "Randomize Wall Shard Drop Chance",
+            defaultValue: defaultShardChanceEnable,
+            configDescription: new ConfigDescription(
+                description: "Enable wall shard drop chance multiplier.",
+                tags: new ConfigurationManagerAttributes
+                {
+                    Order = 3
+                }));
+        shardChanceMultiplier = config.Bind(
+            section: RandomizerName,
+            key: "Drop Chance Multiplier",
+            defaultValue: defaultShardChanceMultiplier,
+            configDescription: new ConfigDescription(
+                description: "Wall shard drop chance multiplier.",
+                tags: new ConfigurationManagerAttributes
+                {
+                    Order = 2,
+                    CustomDrawer = Settings.Settings.RangeDrawer
+                }));
+        architectChanceEnable = config.Bind(
+            section: RandomizerName,
+            key: "Randomize Architect Shard Drop Chance",
+            defaultValue: defaultArchitectChanceEnable,
+            configDescription: new ConfigDescription(
+                description: "Enable Architect Crest wall shard drop chance multiplier.",
+                tags: new ConfigurationManagerAttributes
+                {
+                    Order = 1
+                }));
+        architectCrestMultiplier = config.Bind(
+            section: RandomizerName,
+            key: "Architect Crest Multiplier",
+            defaultValue: defaultArchitectCrestMultiplier,
+            configDescription: new ConfigDescription(
+                description: "Architect Crest wall shard multiplier.",
+                tags: new ConfigurationManagerAttributes
+                {
+                    Order = 0,
+                    CustomDrawer = Settings.Settings.RangeDrawer
                 }));
 
         currentArchitectCrestSetting = ArchitectCrestMultiplier;

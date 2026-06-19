@@ -278,7 +278,7 @@ internal class Enemy_Health_Rando : Rando_Base
         ConfigFile config = Settings.Settings.ConfigFile;
         enemyHealthRandomizerSetting = config.Bind(
             section: RandomizerName,
-            key: "Enemy Health Randomizer",
+            key: "Randomize Health",
             defaultValue: defaultEnemyHealthRandomizerSetting,
             configDescription: new ConfigDescription(
                 description: "Allow randomization of enemy and/or boss health.",
@@ -286,37 +286,37 @@ internal class Enemy_Health_Rando : Rando_Base
                 {
                     Order = 3
                 }));
-        enemyHealthPercentRange = config.Bind(
-            section: RandomizerName,
-            key: "Enemy Randomizer",
-            defaultValue: defaultEnemyHealthPercentRange,
-            configDescription: new ConfigDescription(
-                description: "Randomize regular enemy health.",
-                tags: new ConfigurationManagerAttributes
-                {
-                    Order = 2,
-                    CustomDrawer = Settings.Settings.RangeDrawer
-                }));
-        bossHealthPercentRange = config.Bind(
-            section: RandomizerName,
-            key: "Boss Randomizer",
-            defaultValue: defaultBossHealthPercentRange,
-            configDescription: new ConfigDescription(
-                description: "Randomize boss health.",
-                tags: new ConfigurationManagerAttributes
-                {
-                    Order = 1,
-                    CustomDrawer = Settings.Settings.RangeDrawer
-                }));
         randomizerConsistency = config.Bind(
             section: RandomizerName,
-            key: "Enemy Health Randomizer Consistency",
+            key: "Health Consistency",
             defaultValue: defaultRandomizerConsistency,
             configDescription: new ConfigDescription(
                 description: "Setting for if the enemy health should be consistent per enemy type or room.",
                 tags: new ConfigurationManagerAttributes
                 {
-                    Order = 0
+                    Order = 2
+                }));
+        enemyHealthPercentRange = config.Bind(
+            section: RandomizerName,
+            key: "Enemy Health Range",
+            defaultValue: defaultEnemyHealthPercentRange,
+            configDescription: new ConfigDescription(
+                description: "Randomize regular enemy health.",
+                tags: new ConfigurationManagerAttributes
+                {
+                    Order = 1,
+                    CustomDrawer = Settings.Settings.RangeDrawer
+                }));
+        bossHealthPercentRange = config.Bind(
+            section: RandomizerName,
+            key: "Boss Health Range",
+            defaultValue: defaultBossHealthPercentRange,
+            configDescription: new ConfigDescription(
+                description: "Randomize boss health.",
+                tags: new ConfigurationManagerAttributes
+                {
+                    Order = 0,
+                    CustomDrawer = Settings.Settings.RangeDrawer
                 }));
 
         currentBossHealthPercentage = bossHealthPercentRange.Value;

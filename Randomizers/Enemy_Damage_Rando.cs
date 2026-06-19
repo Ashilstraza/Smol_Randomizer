@@ -277,34 +277,44 @@ internal class Enemy_Damage_Rando : Rando_Base
         ConfigFile config = Settings.Settings.ConfigFile;
         damageModifierType = config.Bind(
             section: RandomizerName,
-            key: "Enemy Damage Modifier Type",
+            key: "Enemy Damage Randomizer Type",
             defaultValue: defaultDamageModifierType,
             configDescription: new ConfigDescription(
-                description: "Set damage modifier type.",
+                description: "Set damage modifier type. Shift adjusts damage up or down by a randomized amount. Range randomizes within a given range.",
                 tags: new ConfigurationManagerAttributes
                 {
                     Order = 4
                 }));
+        randomizerConsistency = config.Bind(
+            section: RandomizerName,
+            key: "Damage Consistancy",
+            defaultValue: defaultRandomizerConsistency,
+            configDescription: new ConfigDescription(
+                description: "Setting for if the enemy damage should be consistent per enemy type or room.",
+                tags: new ConfigurationManagerAttributes
+                {
+                    Order = 3
+                }));
         damageShift = config.Bind(
             section: RandomizerName,
-            key: "Enemy Damage Shift",
+            key: "Damage Shift",
             defaultValue: defaultDamageShift,
             configDescription: new ConfigDescription(
                 description: "Set damage shift amount. Acceptable values range from 0 to 10.",
                 acceptableValues: new AcceptableValueRange<int>(0, 10),
                 tags: new ConfigurationManagerAttributes
                 {
-                    Order = 3
+                    Order = 2
                 }));
         damageRange = config.Bind(
             section: RandomizerName,
-            key: "Enemy Damage Range",
+            key: "Damage Range",
             defaultValue: defaultDamageRange,
             configDescription: new ConfigDescription(
                 description: "Set damage range.",
                 tags: new ConfigurationManagerAttributes
                 {
-                    Order = 2,
+                    Order = 1,
                     CustomDrawer = Settings.Settings.RangeDrawer
                 }));
         enemyDamageMinimum = config.Bind(
@@ -313,16 +323,6 @@ internal class Enemy_Damage_Rando : Rando_Base
             defaultValue: defaultEnemyDamageMinimum,
             configDescription: new ConfigDescription(
                 description: "Enforces a minimum damage for enemies to be 1. Overrides set values.",
-                tags: new ConfigurationManagerAttributes
-                {
-                    Order = 1
-                }));
-        randomizerConsistency = config.Bind(
-            section: RandomizerName,
-            key: "Enemy Damage Randomizer Consistancy",
-            defaultValue: defaultRandomizerConsistency,
-            configDescription: new ConfigDescription(
-                description: "Setting for if the enemy damage should be consistent per enemy type or room.",
                 tags: new ConfigurationManagerAttributes
                 {
                     Order = 0

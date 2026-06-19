@@ -48,12 +48,12 @@ public static class Settings
     /// <summary>
     /// Max Slider Percentage
     /// </summary>
-    private static readonly int maxPercent = 300;
+    public static readonly int maxSliderPercent = 300;
 
     /// <summary>
     /// Max Slider Value
     /// </summary>
-    private static readonly int maxValue = 100;
+    public static readonly int maxSliderValue = 100;
 
     /// <summary>
     /// Reference to the randomizer's config file to allow adding settings.
@@ -156,7 +156,7 @@ public static class Settings
         {
             GUILayout.Label($"Maximum {(rangeType.Equals(RangeType.Percent) ? "Percent" : "Value")}");
             max = GUILayout.TextField(max, GUILayout.Width(30));
-            max = GUILayout.HorizontalSlider((float)Math.Round(float.Parse(max)), (float)Math.Round(float.Parse(min)), rangeType.Equals(RangeType.Percent) ? maxPercent : maxValue, GUILayout.Width(100)).ToString();
+            max = GUILayout.HorizontalSlider((float)Math.Round(float.Parse(max)), (float)Math.Round(float.Parse(min)), rangeType.Equals(RangeType.Percent) ? maxSliderPercent : maxSliderValue, GUILayout.Width(100)).ToString();
         }
     }
 
