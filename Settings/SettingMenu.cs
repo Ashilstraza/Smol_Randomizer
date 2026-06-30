@@ -4,15 +4,14 @@ using System.Linq;
 
 using BepInEx.Configuration;
 
-using Smol_Randomizer.Randomizers;
-
 using Silksong.ModMenu.Elements;
 using Silksong.ModMenu.Models;
 using Silksong.ModMenu.Plugin;
 using Silksong.ModMenu.Screens;
 
+using Smol_Randomizer.Randomizers;
+
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace Smol_Randomizer.Settings;
 
@@ -22,16 +21,30 @@ namespace Smol_Randomizer.Settings;
 internal class SettingMenu : Cute_Randomizer_MenuBuilder
 {
     /// <summary>
+    /// Set of all the randomizer menu buttons
+    /// </summary>
+    private static readonly HashSet<TextButton> randoMenuButtons = [];
+    /// <summary>
+    /// Dictionary for the initial randomizer menu button enabled/disabled setting
+    /// </summary>
+    private static readonly Dictionary<string, bool> preInitSetting = [];
+    /// <summary>
+    /// If the setting menu has been initialized
+    /// </summary>
+    private static bool init = false;
+
+    /// <summary>
     /// Main randomizer menu
     /// </summary>
     /// <param name="title">Title of the menu (The mod's name)</param>
     internal SettingMenu(LocalizedText title) : base(title)
     {
-        Content.VerticalSpacing = 85f;
+        Content.VerticalSpacing = VSPACE_TIGHT;
         GenerateMainPage();
 #if DEBUG
+        BlankSpace();
         Label("World Objects", FontSizes.Medium);
-        Button("Export World Objects", 
+        Button("Export World Objects",
             delegate
             {
                 Console.WriteLine("Exporting World Objects");
@@ -46,6 +59,8 @@ internal class SettingMenu : Cute_Randomizer_MenuBuilder
             },
             fontSize: FontSizes.Small);
 #endif
+        init = true;
+        UpdateSubMenuColors();
     }
 
     /// <summary>
@@ -71,14 +86,102 @@ internal class SettingMenu : Cute_Randomizer_MenuBuilder
                 KeyValuePair<string, ConfigEntryBase> setting = settingGroup.Value.First();
                 Label(settingGroup.Key, FontSizes.Medium);
                 ElementBuilder(setting.Value);
-                //BlankSpace();
             }
             else
             {
-                SubMenuButton(BuildPagedSubMenu(settingGroup.Key, settingGroup.Value));
+                TextButton randoMenuButton = SubMenuButton(BuildPagedSubMenu(settingGroup.Key, settingGroup.Value), Cute_Rando_Core.GetRandoDescription(settingGroup.Key));
+                randoMenuButtons.Add(randoMenuButton);
             }
-
         }
+    }
+
+    /// <summary>
+    /// Event hook to listen for updates on a specific setting
+    /// </summary>
+    /// <param name="sender">?</param>
+    /// <param name="args">The setting that was changed</param>
+    internal static void OnRandomizerEnable(object sender, EventArgs args)
+    {
+        UpdateSubMenuColor(((SettingChangedEventArgs)args).ChangedSetting);
+    }
+
+    /// <summary>
+    /// Updates the button color if it was enabled or disabled
+    /// </summary>
+    /// <param name="entry">The setting we are using to check if the button is enabled or not</param>
+    internal static void UpdateSubMenuColor(ConfigEntryBase entry)
+    {
+        bool enabled = entry.BoxedValue.ToString().ToLower() is "none" or "disabled" or "false";
+
+        preInitSetting[entry.Definition.Section] = enabled;
+
+        if (!init)
+            return;
+
+        UpdateSubMenuColor(entry.Definition.Section, enabled);
+    }
+
+    private static void UpdateSubMenuColors()
+    {
+        foreach (KeyValuePair<string, bool> setting in preInitSetting)
+            UpdateSubMenuColor(setting.Key, setting.Value);
+    }
+
+    /// <summary>
+    /// Updates the button colors via string entry
+    /// </summary>
+    /// <param name="entry">The string of the button to update</param>
+    /// <param name="enabled">If the randomizer is enabled</param>
+    private static void UpdateSubMenuColor(string entry, bool enabled)
+    {
+        foreach (TextButton button in randoMenuButtons)
+        {
+            if (button.ButtonText.text.TrimEnd() == entry)
+            {
+                if (enabled)
+                {
+                    button.SetMainColor(DisabledColor);
+                }
+                else
+                {
+                    button.SetMainColor(EnabledColor);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Event hook to update the enabled/disabled colors
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    internal static void OnEnabledRandomizerColorChanged(object sender, EventArgs args)
+    {
+        ChangeColors((RandomizerColors)((SettingChangedEventArgs)args).ChangedSetting.BoxedValue);
+    }
+
+    /// <summary>
+    /// Changes the enabled/disabled colors
+    /// </summary>
+    /// <param name="newColor">The new color set</param>
+    /// <exception cref="NotImplementedException">Thrown if the color set has not been implemented</exception>
+    internal static void ChangeColors(RandomizerColors newColor)
+    {
+        switch (newColor)
+        {
+            case RandomizerColors.GreenRed:
+                EnabledColor = Color.green;
+                DisabledColor = Color.red;
+                break;
+            case RandomizerColors.BlueYellow:
+                EnabledColor = new(0.05f, 0.48f, 0.86f);
+                DisabledColor = new(1f, 0.76f, 0.04f);
+                break;
+            default:
+                throw new NotImplementedException();
+        }
+
+        UpdateSubMenuColors();
     }
 }
 
@@ -88,19 +191,24 @@ internal class SettingMenu : Cute_Randomizer_MenuBuilder
 /// <param name="title">Title of the menu</param>
 public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScreen(title)
 {
-    /// <summary>
-    /// Light Gray Color
-    /// </summary>
+    // Additional Colors
     public static Color LightGray => new(0.75f, 0.75f, 0.75f);
+    public static Color EnabledColor { get; internal set; }
+
+    public static Color DisabledColor { get; internal set; }
 
     /// <summary>
-    /// A blank space for spacing reasons
+    /// Tight spacing for vertical
+    /// </summary>
+    public const float VSPACE_TIGHT = 60f;
+
+    /// <summary>
+    /// A blank space for spacing reasons, good for giving room to descriptions
     /// </summary>
     /// <returns></returns>
     public TextLabel BlankSpace()
     {
         TextLabel blank = new("");
-        blank.Text.fontSize = 15;
         Add(blank);
         return blank;
     }
@@ -152,15 +260,19 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
     /// <summary>
     /// A button leading to a sub menu
     /// </summary>
-    /// <param name="subMenu">The given menu to navagate to when clicked</param>
+    /// <param name="subMenu">The given menu to navigate to when clicked</param>
     /// <param name="fontSize">Font size of the button</param>
     /// <returns>The added button</returns>
-    public TextButton SubMenuButton(AbstractMenuScreen subMenu, FontSizes fontSize = FontSizes.Medium)
+    public TextButton SubMenuButton(AbstractMenuScreen subMenu, string description = "", FontSizes fontSize = FontSizes.Medium)
     {
         TextButton button = new(subMenu);
-        
+
         button.SetFontSizes(fontSize);
+        LocalizedTextExtensions.set_LocalizedText(button.DescriptionText, description);
+
         Add(button);
+        BlankSpace();
+
         return button;
     }
 
@@ -184,54 +296,27 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
 
     /// <summary>
     /// A chooser of enums
-    /// <para>Probably can be improved upon...</para>
     /// </summary>
-    /// <param name="label">Label of the chooser</param>
     /// <param name="configEntry">The setting of the chooser</param>
-    /// <param name="description">Description of the chooser</param>
     /// <param name="fontSizes">Font size of the chooser</param>
     /// <returns>The added object of the chooser, may be null if enum was not implemented</returns>
-    public object? EnumList(string label, ConfigEntryBase configEntry, string description = "", FontSizes fontSizes = FontSizes.Medium)
+    public object? EnumList(ConfigEntryBase configEntry, FontSizes fontSizes = FontSizes.Medium)
     {
-        Type enumType = configEntry.SettingType;
-        switch (enumType.Name)
+        bool success = ConfigEntryFactory.GenerateEnumChoiceElement(configEntry, out MenuElement? element);
+
+        if (!success || element == null)
         {
-            case "RandomizerConsistency4":
-                ChoiceElement<RandomizerConsistency4> RC4 = new(label, ChoiceModels.ForEnum<RandomizerConsistency4>(), description);
-                RC4.SynchronizeRawWith(configEntry);
-                RC4.SetFontSizes(fontSizes);
-                Add(RC4);
-                return RC4;
-            case "RandomizerConsistency3":
-                ChoiceElement<RandomizerConsistency3> RC3 = new(label, ChoiceModels.ForEnum<RandomizerConsistency3>(), description);
-                RC3.SynchronizeRawWith(configEntry);
-                RC3.SetFontSizes(fontSizes);
-                Add(RC3);
-                return RC3;
-            case "RandomizeByFlatAmount":
-                ChoiceElement<RandomizeByFlatAmount> RFA = new(label, ChoiceModels.ForEnum<RandomizeByFlatAmount>(), description);
-                RFA.SynchronizeRawWith(configEntry);
-                RFA.SetFontSizes(fontSizes);
-                Add(RFA);
-                return RFA;
-            case "RandomizeByRangeTypes":
-                ChoiceElement<RandomizeByRangeTypes> RRT = new(label, ChoiceModels.ForEnum<RandomizeByRangeTypes>(), description);
-                RRT.SynchronizeRawWith(configEntry);
-                RRT.SetFontSizes(fontSizes);
-                Add(RRT);
-                return RRT;
-            case "RandomizerEnemyTypeFlags":
-                ChoiceElement<RandomizerEnemyTypeFlags> RETF = new(label, ChoiceModels.ForEnum<RandomizerEnemyTypeFlags>(), description);
-                RETF.SynchronizeRawWith(configEntry);
-                RETF.SetFontSizes(fontSizes);
-                Add(RETF);
-                return RETF;
-            default:
-                Label("(Unimplemented)" + label, Color.magenta);
-                Label("(Unimplemented Enum)" + enumType.Name, Color.magenta, fontSize: FontSizes.Small);
-                break;
+            string error = "Failed Generation";
+
+            if (element == null) error = "Null Element";
+
+            Label($"({error})" + configEntry.LabelName(), Color.magenta);
+            return null;
         }
-        return null;
+
+        element.SetFontSizes(fontSizes);
+        Add(element);
+        return element;
     }
 
     /// <summary>
@@ -244,7 +329,7 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
     public SliderElement<float>[] SliderRangeFloat(string label, ConfigEntryBase configEntry, string description = "")
     {
         Label(label, fontSize: FontSizes.Medium);
-        if(description != "") Label(description, LightGray, fontSize: FontSizes.Small);
+        if (description != "") Label(description, LightGray, fontSize: FontSizes.Small);
 
         (float min, float max) = configEntry.Description.AcceptableValues is AcceptableValueRange<float> range ? Tuple.Create(range.MinValue, range.MaxValue) : Tuple.Create(0f, (float)Settings.maxSliderPercent);
         int ticks = (int)Math.Round(max - min);
@@ -254,16 +339,16 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
         SliderElement<float> minSlider = new("Minimum Percent", minModel);
         minSlider.SetFontSizes(FontSizes.Small);
         minSlider.SynchronizeWithFloatRangeMin((ConfigEntry<FloatRange>)configEntry);
-        minSlider.ValueText.horizontalOverflow = HorizontalWrapMode.Overflow;        
+        minSlider.ValueText.horizontalOverflow = HorizontalWrapMode.Overflow;
         Add(minSlider);
-        
+
         SliderElement<float> maxSlider = new("Maximum Percent", maxModel);
         maxSlider.SetFontSizes(FontSizes.Small);
         maxSlider.SynchronizeWithFloatRangeMax((ConfigEntry<FloatRange>)configEntry);
         maxSlider.ValueText.horizontalOverflow = HorizontalWrapMode.Overflow;
         Add(maxSlider);
 
-        return [minSlider,maxSlider];
+        return [minSlider, maxSlider];
     }
 
     /// <summary>
@@ -298,7 +383,7 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
     }
 
     /// <summary>
-    /// Imput for an int value
+    /// Input for an int value
     /// </summary>
     /// <param name="label">Label of the input</param>
     /// <param name="configEntry">The setting of the input</param>
@@ -323,8 +408,8 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
     public static ScrollingMenuScreen BuildPagedSubMenu(string title, Dictionary<string, ConfigEntryBase> settings)
     {
         Cute_Randomizer_MenuBuilder screenBuilder = new(title);
-        screenBuilder.Content.VerticalSpacing = 85f;
-            
+        screenBuilder.Content.VerticalSpacing = VSPACE_TIGHT;
+
         foreach (ConfigEntryBase setting in settings.Values)
         {
             screenBuilder.ElementBuilder(setting);
@@ -344,7 +429,7 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
         {
             case nameof(Boolean):
                 ToggleElement(entry.LabelName(), entry, entry.Description.Description);
-                if(entry.Description.Description != "") BlankSpace();
+                if (entry.Description.Description != "") BlankSpace();
                 break;
             case nameof(Int32):
                 IntInput(entry.LabelName(), entry, entry.Description.Description);
@@ -357,11 +442,11 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
                 SliderRangeInt(entry.LabelName(), entry, entry.Description.Description);
                 break;
             case "Enum":
-                EnumList(entry.LabelName(), entry, entry.Description.Description);
+                EnumList(entry);
                 if (entry.Description.Description != "") BlankSpace();
                 break;
             default:
-                Label("(Unimplemented)"+entry.LabelName(), Color.magenta);
+                Label("(Unimplemented)" + entry.LabelName(), Color.magenta);
                 break;
         }
     }
@@ -380,9 +465,9 @@ public static class SliderCuteExtensions
     public static void SynchronizeWithFloatRangeMin(this SelectableValueElement<float> element, ConfigEntry<FloatRange> entry)
     {
         IValueModel<float> model = element.Model;
-        model.SetValue(entry.Value.Min*100);
+        model.SetValue(entry.Value.Min * 100);
 
-        model.OnValueChanged += delegate (float v) 
+        model.OnValueChanged += delegate (float v)
         {
             v = (float)Math.Round(v);
             v /= 100;
@@ -391,6 +476,7 @@ public static class SliderCuteExtensions
                 v = entry.Value.Max;
                 model.SetValue(v * 100);
             }
+
             entry.Value.Min = v;
         };
 
@@ -398,11 +484,11 @@ public static class SliderCuteExtensions
 
         element.OnVisibilityChanged += delegate (bool visible)
         {
-            if(visible) model.SetValue(entry.Value.Min * 100);
+            if (visible) model.SetValue(entry.Value.Min * 100);
         };
 
         element.OnDispose += delegate
-        { 
+        {
             entry.SettingChanged -= handler;
         };
 
@@ -427,10 +513,11 @@ public static class SliderCuteExtensions
             v = (float)Math.Round(v);
             v /= 100;
             if (v < entry.Value.Min)
-            { 
+            {
                 v = entry.Value.Min;
                 model.SetValue(v * 100);
             }
+
             entry.Value.Max = v;
         };
 
@@ -442,7 +529,7 @@ public static class SliderCuteExtensions
         };
 
         element.OnDispose += delegate
-        { 
+        {
             entry.SettingChanged -= handler;
         };
 
@@ -468,6 +555,7 @@ public static class SliderCuteExtensions
                 v = entry.Value.Max;
                 model.SetValue(v);
             }
+
             entry.Value.Min = v;
         };
         entry.SettingChanged += handler;
@@ -498,6 +586,7 @@ public static class SliderCuteExtensions
                 v = entry.Value.Min;
                 model.SetValue(v);
             }
+
             entry.Value.Max = v;
         };
         entry.SettingChanged += handler;
