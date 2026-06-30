@@ -5,7 +5,10 @@ using BepInEx.Configuration;
 
 using Newtonsoft.Json;
 
+using Smol_Randomizer.Randomizers;
+
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Smol_Randomizer.Settings;
 
@@ -219,19 +222,52 @@ public static class Settings
     }
     #endregion
 
-    internal static RandoPerSaveData saveData;
-
-    internal static RandoPerSaveData GetData()
+    #region Silksong.DataManager_Stuff
+    /// <summary>
+    /// Contains references to all the various data that we want to save per-save slot
+    /// </summary>
+    public static RandoPerSaveData SaveData
     {
-        return saveData ??= new();
+        get
+        {
+            saveData ??= new();
+            RandoPerSaveData.Saving();
+            return saveData;
+        }
+        set
+        {
+            saveData = value;
+            saveData.Load();
+        }
+    }
+    private static RandoPerSaveData saveData;
+    #endregion
+}
+
+/// <summary>
+/// Used for referencing save data
+/// </summary>
+public class RandoPerSaveData
+{
+    /// <summary>
+    /// Dictionary containing references to all the data we want to save per-save slot
+    /// </summary>
+    [JsonProperty]
+    public Dictionary<string, Dictionary<string, object>> SmolSaveDictionary
+    // <Randomizer, <Randomizer Dictionary Name, Dictionary>>
+    {
+        get;
+        internal set;
     }
 
-    internal static void Load(RandoPerSaveData data)
+    /// <summary>
+    /// Loads the saved data into the various randomizers that are listening for the load.
+    /// </summary>
+    internal void Load()
     {
-        saveData = data;
         try
         {
-            OnSettingsLoaded?.Invoke(!saveData.Equals(null));
+            OnSettingsLoaded?.Invoke(!SmolSaveDictionary.Equals(null));
         }
         catch (Exception ex)
         {
@@ -239,38 +275,50 @@ public static class Settings
         }
     }
 
-    internal static Dictionary<string, object> GetSavedData(string randomizer)
+    /// <summary>
+    /// Called when saving is occuring
+    /// </summary>
+    internal static void Saving()
     {
-        saveData.SmolSaveDictionary ??= [];
-        if (!saveData.SmolSaveDictionary.TryGetValue(randomizer, out Dictionary<string, object> dictionary))
+        OnSettingsSaved?.Invoke(true);
+    }
+
+    /// <summary>
+    /// Returns a dictionary containing all the saved data for the given randomizer. If it does not exists, just returns an empty dictionary.
+    /// </summary>
+    /// <param name="randomizer">The randomizer we are requesting</param>
+    /// <returns>The saved data for the given randomizer</returns>
+    internal Dictionary<string, object> GetSavedData(string randomizer)
+    {
+        SmolSaveDictionary ??= [];
+        if (!SmolSaveDictionary.TryGetValue(randomizer, out Dictionary<string, object> dictionary))
         {
             dictionary = [];
-            saveData.SmolSaveDictionary[randomizer] = dictionary;
+            SmolSaveDictionary[randomizer] = dictionary;
         }
 
         return dictionary;
     }
 
-    internal static void SetSavedData(string randomizer, Dictionary<string, object> dictionary)
+    /// <summary>
+    /// Sets the saved data of the given randomizer
+    /// </summary>
+    /// <param name="randomizer">The randomizer to set the data of</param>
+    /// <param name="dictionary">Dictionary containing the data to set</param>
+    internal void SetSavedData(string randomizer, Dictionary<string, object> dictionary)
     {
-        saveData ??= new();
-        saveData.SmolSaveDictionary ??= [];
-        saveData.SmolSaveDictionary[randomizer] = dictionary;
+        SmolSaveDictionary ??= [];
+        SmolSaveDictionary[randomizer] = dictionary;
     }
 
+    /// <summary>
+    /// Called on the data being loaded
+    /// </summary>
     internal static event Action<bool> OnSettingsLoaded;
-}
-
-public class RandoPerSaveData
-{
-    // <Randomizer, <Randomizer Dictionary Name, Dictionary>>
-
-    [JsonProperty]
-    public Dictionary<string, Dictionary<string, object>> SmolSaveDictionary
-    {
-        get;
-        internal set;
-    }
+    /// <summary>
+    /// Called on the data being saved
+    /// </summary>
+    internal static event Action<bool> OnSettingsSaved;
 }
 
 /// <summary>

@@ -68,16 +68,8 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     /// <summary>
     /// If the mod has save data.
     /// </summary>
-    public bool HasSaveData => SaveData != null;
+    public bool HasSaveData => Settings.Settings.SaveData != null;
 
-    /// <summary>
-    /// Per save settings
-    /// </summary>
-    [AllowNull]
-    public static RandoPerSaveData SaveData
-    {
-        get => Settings.Settings.GetData(); set => Settings.Settings.Load(value ?? new RandoPerSaveData());
-    }
     /// <summary>
     /// If we are testing new things
     /// </summary>
@@ -253,7 +245,7 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     /// <param name="saveFile">The stream for the save file.</param>
     public void WriteSaveData(Stream saveFile)
     {
-        string json = JsonConvert.SerializeObject(SaveData, Formatting.Indented);
+        string json = JsonConvert.SerializeObject(Settings.Settings.SaveData, Formatting.Indented);
         using StreamWriter sw = new(saveFile);
 
         try
@@ -274,7 +266,7 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     {
         if (saveFile == null)
         {
-            SaveData = null;
+            Settings.Settings.SaveData = new();
             return;
         }
 
@@ -282,7 +274,7 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
 
         try
         {
-            SaveData = JsonConvert.DeserializeObject<RandoPerSaveData>(sr.ReadToEnd());
+            Settings.Settings.SaveData = JsonConvert.DeserializeObject<RandoPerSaveData>(sr.ReadToEnd()) ?? new();
         }
         catch (Exception ex)
         {

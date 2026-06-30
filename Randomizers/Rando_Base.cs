@@ -30,8 +30,8 @@ internal abstract class Rando_Base
         AddRandoDescription();
         InitSettings();
         Settings.Settings.enableRandomizer.SettingChanged += RandoCoreSetting;
-        Settings.Settings.OnSettingsLoaded += OnSettingsLoaded;
-        Settings.SettingMenu.OnResetClicked += OnResetClicked;
+        Settings.RandoPerSaveData.OnSettingsLoaded += OnSettingsLoaded;
+        Settings.Cute_Randomizer_MenuBuilder.OnResetClicked += OnResetClicked;
     }
     /// <summary>
     /// Registers the various events we want to watch for
@@ -51,7 +51,7 @@ internal abstract class Rando_Base
     {
         ResetAllLists();
 
-        Dictionary<string, object> savedData = Settings.Settings.GetSavedData(RandomizerName);
+        Dictionary<string, object> savedData = Settings.Settings.SaveData.GetSavedData(RandomizerName);
 
         if (hasSaveData)
         {

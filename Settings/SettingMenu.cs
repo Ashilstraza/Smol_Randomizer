@@ -41,7 +41,9 @@ internal class SettingMenu : Cute_Randomizer_MenuBuilder
     /// <param name="title">Title of the menu (The mod's name)</param>
     internal SettingMenu(LocalizedText title) : base(title)
     {
-        Settings.OnSettingsLoaded += OnSettingsLoaded;
+        RandoPerSaveData.OnSettingsLoaded += SaveSlotHandler;
+        RandoPerSaveData.OnSettingsSaved += SaveSlotHandler;
+
         Content.VerticalSpacing = VSPACE_TIGHT;
         GenerateMainPage();
 #if DEBUG
@@ -486,9 +488,15 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
                     Console.WriteLine($"Reset Saved All Saved Values for Current Slot");
                     try
                     {
+                        HashSet<string> resetRandos = [];
                         foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> item in Settings.ConfigFile)
                         {
-                            OnResetClicked?.Invoke(item.Key.Section);
+                            string section = item.Key.Section;
+                            if(!resetRandos.Contains(item.Key.Section))
+                            {
+                                OnResetClicked?.Invoke(section);
+                                resetRandos.Add(section);
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -537,11 +545,6 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
                 Label("(Unimplemented)" + entry.LabelName(), Color.magenta);
                 break;
         }
-    }
-
-    private protected static void OnSettingsLoaded(bool hasSaveData)
-    {
-        SaveSlotHandler(hasSaveData);
     }
 
     public static void SaveSlotHandler(bool hasSaveData)
