@@ -25,7 +25,7 @@ internal class SettingMenu : Cute_Randomizer_MenuBuilder
     /// <summary>
     /// Set of all the randomizer menu buttons
     /// </summary>
-    private static readonly HashSet<TextButton> randoMenuButtons = [];
+    private readonly HashSet<TextButton> randoMenuButtons = [];
     /// <summary>
     /// Dictionary for the initial randomizer menu button enabled/disabled setting
     /// </summary>
@@ -33,7 +33,7 @@ internal class SettingMenu : Cute_Randomizer_MenuBuilder
     /// <summary>
     /// If the setting menu has been initialized
     /// </summary>
-    private static bool init = false;
+    private static SettingMenu thisSettingMenu;
 
     /// <summary>
     /// Main randomizer menu
@@ -64,7 +64,7 @@ internal class SettingMenu : Cute_Randomizer_MenuBuilder
             },
             fontSize: FontSizes.Small);
 #endif
-        init = true;
+        thisSettingMenu = this;
         UpdateAllSubMenuColors();
     }
 
@@ -120,16 +120,16 @@ internal class SettingMenu : Cute_Randomizer_MenuBuilder
 
         preInitSetting[entry.Definition.Section] = enabled;
 
-        if (!init)
+        if (thisSettingMenu == null)
             return;
 
-        UpdateSubMenuColor(entry.Definition.Section, enabled);
+        thisSettingMenu?.UpdateSubMenuColor(entry.Definition.Section, enabled);
     }
 
     /// <summary>
     /// Updates all the menu colors at once.
     /// </summary>
-    private static void UpdateAllSubMenuColors()
+    private void UpdateAllSubMenuColors()
     {
         foreach (KeyValuePair<string, bool> setting in preInitSetting)
             UpdateSubMenuColor(setting.Key, setting.Value);
@@ -140,7 +140,7 @@ internal class SettingMenu : Cute_Randomizer_MenuBuilder
     /// </summary>
     /// <param name="entry">The string of the button to update</param>
     /// <param name="enabled">If the randomizer is enabled</param>
-    private static void UpdateSubMenuColor(string entry, bool enabled)
+    private void UpdateSubMenuColor(string entry, bool enabled)
     {
         foreach (TextButton button in randoMenuButtons)
         {
@@ -189,7 +189,7 @@ internal class SettingMenu : Cute_Randomizer_MenuBuilder
                 throw new NotImplementedException();
         }
 
-        UpdateAllSubMenuColors();
+        thisSettingMenu?.UpdateAllSubMenuColors();
     }
 }
 
@@ -208,7 +208,7 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
     /// <summary>
     /// Set of all the reset buttons
     /// </summary>
-    private static readonly HashSet<TextButton> randoResetButtons = [];
+    private readonly HashSet<TextButton> randoResetButtons = [];
 
     /// <summary>
     /// Tight spacing for vertical
@@ -438,7 +438,7 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
     /// <param name="title">Title of the sub menu</param>
     /// <param name="settings">The list of settings for the sub menu</param>
     /// <returns>The new sub menu screen</returns>
-    public static ScrollingMenuScreen BuildPagedSubMenu(string title, Dictionary<string, ConfigEntryBase> settings)
+    public ScrollingMenuScreen BuildPagedSubMenu(string title, Dictionary<string, ConfigEntryBase> settings)
     {
         Cute_Randomizer_MenuBuilder screenBuilder = new(title);
         screenBuilder.Content.VerticalSpacing = VSPACE_TIGHT;
@@ -547,7 +547,7 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
         }
     }
 
-    public static void SaveSlotHandler(bool hasSaveData)
+    public void SaveSlotHandler(bool hasSaveData)
     {
         foreach(TextButton button in randoResetButtons)
         {

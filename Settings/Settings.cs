@@ -267,7 +267,7 @@ public class RandoPerSaveData
     {
         try
         {
-            OnSettingsLoaded?.Invoke(!SmolSaveDictionary.Equals(null));
+            OnSettingsLoaded?.Invoke(!(SmolSaveDictionary == null));
         }
         catch (Exception ex)
         {
