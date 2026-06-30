@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 
 using BepInEx;
-
-using Smol_Randomizer.Randomizers;
-using Smol_Randomizer.Settings;
 
 using GlobalEnums;
 
@@ -18,16 +16,21 @@ using HutongGames.PlayMaker.Actions;
 
 using Newtonsoft.Json;
 
+using Silksong.DataManager;
 using Silksong.ModMenu.Plugin;
 using Silksong.ModMenu.Screens;
+
+using Smol_Randomizer.Randomizers;
+using Smol_Randomizer.Settings;
 
 using UnityEngine.SceneManagement;
 
 namespace Smol_Randomizer;
 
 [BepInDependency("org.silksong-modding.modmenu")]
+[BepInDependency(DataManagerPlugin.Id)]
 [BepInPlugin(GUID, MODNAME, VERSION)]
-public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCustomMenu
+public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCustomMenu, /*ISaveDataMod<RandoPerSaveData>*/ IRawSaveDataMod
 {
     /// <summary>
     /// Mod ID
@@ -62,7 +65,19 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     /// Mod's directory
     /// </summary>
     public static string DataLocation { get; private set; } = "";
+    /// <summary>
+    /// If the mod has save data.
+    /// </summary>
+    public bool HasSaveData => SaveData != null;
 
+    /// <summary>
+    /// Per save settings
+    /// </summary>
+    [AllowNull]
+    public static RandoPerSaveData SaveData
+    {
+        get => Settings.Settings.GetData(); set => Settings.Settings.Load(value ?? new RandoPerSaveData());
+    }
     /// <summary>
     /// If we are testing new things
     /// </summary>
@@ -75,7 +90,9 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     /// Our reference for harmony
     /// </summary>
     internal static readonly Harmony harmony = new(GUID);
-
+    /// <summary>
+    /// The ModMenu settings menu window 
+    /// </summary>
     internal static SettingMenu cuteRandomizerSettingWindow;
 
     /// <summary>
@@ -98,6 +115,10 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     /// Dictionary containing the randomizers that want to update on first frame of a new scene
     /// </summary>
     private static readonly Dictionary<string, Action> activeOnFirstSceneFrame = [];
+    /// <summary>
+    /// Dictionary containing the descriptions of all the randomizers
+    /// </summary>
+    private static readonly Dictionary<string, string> randomizerDescriptions = [];
 
     /// <summary>
     /// On Startup (no window visible)
@@ -124,7 +145,7 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
 
-        foreach (KeyValuePair<string, Action> rando in activeGameStartup) 
+        foreach (KeyValuePair<string, Action> rando in activeGameStartup)
             rando.Value.Invoke();
     }
 
@@ -135,13 +156,13 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     {
         if (GameManager.SilentInstance == null) return;
 
-        if (!randomize|| (GameManager.instance.sm != null ? GameManager.instance.sm.sceneType : null) != SceneType.GAMEPLAY) return;
+        if (!randomize || (GameManager.instance.sm != null ? GameManager.instance.sm.sceneType : null) != SceneType.GAMEPLAY) return;
 
         if (updateActiveLimitRegions)
         {
             foreach (ICurrencyLimitRegion region in (HashSet<ICurrencyLimitRegion>)Traverse.Create<CurrencyObjectLimitRegion>().Field("_activeRegions").GetValue())
             {
-                foreach (KeyValuePair<string, Action<ICurrencyLimitRegion>> randomizer in activeLimitRegions) 
+                foreach (KeyValuePair<string, Action<ICurrencyLimitRegion>> randomizer in activeLimitRegions)
                     randomizer.Value.Invoke(region);
             }
 
@@ -203,6 +224,70 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     {
         cuteRandomizerSettingWindow = new(MODNAME);
         return cuteRandomizerSettingWindow;
+    }
+
+    /// <summary>
+    /// Retrieves the description of the given randomizer
+    /// </summary>
+    /// <param name="randoName">The name of the randomizer we want the description for</param>
+    /// <returns>The description of the given randomizer, returns an empty string if it was not found</returns>
+    public static string GetRandoDescription(string randoName)
+    {
+        randomizerDescriptions.TryGetValue(randoName, out string description);
+        return description;
+    }
+
+    /// <summary>
+    /// Sets the description of the given randomizer
+    /// </summary>
+    /// <param name="randoName">The name of the randomizer we want to add the description of</param>
+    /// <param name="randoDescription">The description of the randomizer</param>
+    internal static void AddRandoDescription(string randoName, string randoDescription)
+    {
+        randomizerDescriptions.Add(randoName, randoDescription);
+    }
+
+    /// <summary>
+    /// Writes the save data for the current save slot.
+    /// </summary>
+    /// <param name="saveFile">The stream for the save file.</param>
+    public void WriteSaveData(Stream saveFile)
+    {
+        string json = JsonConvert.SerializeObject(SaveData, Formatting.Indented);
+        using StreamWriter sw = new(saveFile);
+
+        try
+        {
+            sw.Write(json);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[{MODNAME}] Exception encountered, unable to write per-save data for current save slot.\n" + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Reads the save data for the current slave slot.
+    /// </summary>
+    /// <param name="saveFile">The stream for the save file.</param>
+    public void ReadSaveData(Stream? saveFile)
+    {
+        if (saveFile == null)
+        {
+            SaveData = null;
+            return;
+        }
+
+        using StreamReader sr = new(saveFile);
+
+        try
+        {
+            SaveData = JsonConvert.DeserializeObject<RandoPerSaveData>(sr.ReadToEnd());
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLineAsync($"[{MODNAME}] Exception encountered, unable to load per-save data for current save slot.\n" + ex.Message);
+        }
     }
 
     /// <summary>
@@ -282,79 +367,44 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
                 // Handled by Harmony Patches
                 break;
             case RandomizerEventType.ActiveLimitRegion:
-                if (randomizer.Object != null)
-                    activeLimitRegions.Add(
-                        randomizer.Name,
-                        (Action<ICurrencyLimitRegion>)Delegate.CreateDelegate(
-                            type: typeof(Action<ICurrencyLimitRegion>),
-                            method: randomizer.Method,
-                            firstArgument: randomizer.Object));
-                else
-                    activeLimitRegions.Add(
-                        randomizer.Name,
-                        (Action<ICurrencyLimitRegion>)Delegate.CreateDelegate(
-                            type: typeof(Action<ICurrencyLimitRegion>),
-                            method: randomizer.Method));
+                activeLimitRegions.Add(
+                    randomizer.Name,
+                    (Action<ICurrencyLimitRegion>)DelegateHelper(
+                        typeof(Action<ICurrencyLimitRegion>),
+                        randomizer.Method,
+                        randomizer.Object));
                 break;
             case RandomizerEventType.OnSceneLoad:
-                if (randomizer.Object != null)
-                    activeOnSceneLoad.Add(
-                                randomizer.Name,
-                                (Action<Scene, LoadSceneMode>)Delegate.CreateDelegate(
-                                    type: typeof(Action<Scene, LoadSceneMode>),
-                                    method: randomizer.Method,
-                                    firstArgument: randomizer.Object));
-                else
-                    activeOnSceneLoad.Add(
-                        randomizer.Name,
-                        (Action<Scene, LoadSceneMode>)Delegate.CreateDelegate(
-                            type: typeof(Action<Scene, LoadSceneMode>),
-                            method: randomizer.Method));
+                activeOnSceneLoad.Add(
+                    randomizer.Name,
+                    (Action<Scene, LoadSceneMode>)DelegateHelper(
+                        typeof(Action<Scene, LoadSceneMode>), 
+                        randomizer.Method, 
+                        randomizer.Object));
                 break;
             case RandomizerEventType.OnFirstSceneFrame:
-                if (randomizer.Object != null)
-                    activeOnFirstSceneFrame.Add(
-                                randomizer.Name,
-                                (Action)Delegate.CreateDelegate(
-                                    type: typeof(Action),
-                                    method: randomizer.Method,
-                                    firstArgument: randomizer.Object));
-                else
-                    activeOnFirstSceneFrame.Add(
-                        randomizer.Name,
-                        (Action)Delegate.CreateDelegate(
-                            type: typeof(Action),
-                            method: randomizer.Method));
+                activeOnFirstSceneFrame.Add(
+                    randomizer.Name,
+                    (Action)DelegateHelper(
+                        typeof(Action), 
+                        randomizer.Method, 
+                        randomizer.Object));
                 break;
             case RandomizerEventType.GameStartup:
-                if (randomizer.Object != null)
-                    activeGameStartup.Add(
-                        randomizer.Name,
-                        (Action)Delegate.CreateDelegate(
-                            type: typeof(Action),
-                            method: randomizer.Method,
-                            firstArgument: randomizer.Object));
-                else
-                    activeGameStartup.Add(
-                        randomizer.Name,
-                        (Action)Delegate.CreateDelegate(
-                            type: typeof(Action),
-                            method: randomizer.Method));
+                activeGameStartup.Add(
+                    randomizer.Name,
+                    (Action)DelegateHelper(
+                        typeof(Action), 
+                        randomizer.Method, 
+                        randomizer.Object));
                 break;
             case RandomizerEventType.GameShutdown:
-                if (randomizer.Object != null)
-                    activeGameShutdown.Add(
-                                randomizer.Name,
-                                (Action)Delegate.CreateDelegate(
-                                    type: typeof(Action),
-                                    method: randomizer.Method,
-                                    firstArgument: randomizer.Object));
-                else
-                    activeGameShutdown.Add(
-                        randomizer.Name,
-                        (Action)Delegate.CreateDelegate(
-                            type: typeof(Action),
-                            method: randomizer.Method));
+                activeGameShutdown.Add(
+                    randomizer.Name,
+                    (Action)DelegateHelper(
+                        typeof(Action), 
+                        randomizer.Method, 
+                        randomizer.Object));
                 break;
             default:
                 Console.Error.WriteLine("Unimplimented entryType");
@@ -363,6 +413,15 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
         }
 
         return true;
+
+        static Delegate DelegateHelper(Type type, MethodInfo methodInfo, object? firstArgument = null)
+        {
+            if(firstArgument != null)
+            {
+                return Delegate.CreateDelegate(type: type, method: methodInfo, firstArgument: firstArgument);
+            }
+            return Delegate.CreateDelegate(type: type, method: methodInfo);
+        }
     }
 
     /// <summary>

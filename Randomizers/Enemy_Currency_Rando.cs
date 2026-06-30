@@ -3,11 +3,15 @@ using System.Collections.Generic;
 
 using BepInEx.Configuration;
 
-using Smol_Randomizer.Settings;
-
 using GlobalSettings;
 
 using HarmonyLib;
+
+using MonoMod.Utils;
+
+using Newtonsoft.Json;
+
+using Smol_Randomizer.Settings;
 
 namespace Smol_Randomizer.Randomizers;
 
@@ -81,6 +85,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     private protected override void InitRandomizer()
     {
         RandomizerName = "Enemy Currency Randomizer";
+        RandomizerDescription = "Randomizes the quantity of Rosaries and Shards dropped by enemies.";
 
         if (!Cute_Rando_Core.RegisterRandomizer(new(
             RandomizerName,
@@ -124,6 +129,26 @@ internal class Enemy_Currency_Rando : Rando_Base
         Cute_Rando_Core.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
+    private protected override void ApplySaveData(Dictionary<string, object> savedData)
+    {
+        if (savedData.TryGetValue(nameof(enemyGeoSets), out object tempDict))
+            enemyGeoSets.AddRange(JsonConvert.DeserializeObject<Dictionary<string, RandomizedGeoSet>>(tempDict.ToString()));
+        if (savedData.TryGetValue(nameof(sceneGeoSets), out tempDict))
+            sceneGeoSets.AddRange(JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, RandomizedGeoSet>>>(tempDict.ToString()));
+        if (savedData.TryGetValue(nameof(enemyShards), out tempDict))
+            enemyShards.AddRange(JsonConvert.DeserializeObject<Dictionary<string, int>>(tempDict.ToString()));
+        if (savedData.TryGetValue(nameof(sceneShards), out tempDict))
+            sceneShards.AddRange(JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, int>>>(tempDict.ToString()));
+    }
+
+    private protected override void SetSaveData(Dictionary<string, object> savedData)
+    {
+        savedData[nameof(enemyGeoSets)] = enemyGeoSets;
+        savedData[nameof(sceneGeoSets)] = sceneGeoSets;
+        savedData[nameof(enemyShards)] = enemyShards;
+        savedData[nameof(sceneShards)] = sceneShards;
+    }
+
     /// <summary>
     /// Patch HealthManager.OnEnable on game startup
     /// </summary>
@@ -137,7 +162,10 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// <summary>
     /// On First Frame, clean the active health manager list. This is done on the first frame since some health managers get added before the scene is loaded, and some afterwards.
     /// </summary>
-    private void OnFirstSceneFrame() => CleanCurrentHealthManagerList();
+    private void OnFirstSceneFrame()
+    {
+        currentEnemyHealthManagers.RemoveWhere(x => x == null);
+    }
 
     /// <summary>
     /// Patch that hooks the end of OnEnable of objects that have a HealthManager to adjust their currency
@@ -213,7 +241,7 @@ internal class Enemy_Currency_Rando : Rando_Base
 
         switch (RandomizerConsistency)
         {
-            case RandomizerConsistency4.EnemyType:
+            case RandomizerConsistencyA.EnemyType:
                 if (!enemyShards.TryGetValue(name, out shards))
                 {
                     shards = GetRandoTypeShards(ref shellShardDrops);
@@ -221,7 +249,7 @@ internal class Enemy_Currency_Rando : Rando_Base
                 }
 
                 return shards;
-            case RandomizerConsistency4.Scene:
+            case RandomizerConsistencyA.Scene:
 
                 if (!sceneShards.TryGetValue(operatingScene, out Dictionary<string, int> shardSet))
                 {
@@ -238,7 +266,7 @@ internal class Enemy_Currency_Rando : Rando_Base
                 }
 
                 return shards;
-            case RandomizerConsistency4.None:
+            case RandomizerConsistencyA.None:
                 return GetRandoTypeShards(ref shellShardDrops);
             default:
                 throw new NotImplementedException();
@@ -270,7 +298,7 @@ internal class Enemy_Currency_Rando : Rando_Base
 
         switch (RandomizerConsistency)
         {
-            case RandomizerConsistency4.EnemyType:
+            case RandomizerConsistencyA.EnemyType:
                 if (!enemyGeoSets.TryGetValue(name, out geoSet))
                 {
                     geoSet = GetRandoTypeGeo(thing);
@@ -278,7 +306,7 @@ internal class Enemy_Currency_Rando : Rando_Base
                 }
 
                 break;
-            case RandomizerConsistency4.Scene:
+            case RandomizerConsistencyA.Scene:
                 string operatingScene = thing.gameObject.scene.name;
 
                 if (!sceneGeoSets.TryGetValue(operatingScene, out Dictionary<string, RandomizedGeoSet> geoSets))
@@ -296,7 +324,7 @@ internal class Enemy_Currency_Rando : Rando_Base
                 }
 
                 break;
-            case RandomizerConsistency4.None:
+            case RandomizerConsistencyA.None:
                 geoSet = GetRandoTypeGeo(thing);
                 break;
             default:
@@ -316,15 +344,7 @@ internal class Enemy_Currency_Rando : Rando_Base
         }
     }
 
-    /// <summary>
-    /// Cleans the current scene's HealthManager list
-    /// </summary>
-    private void CleanCurrentHealthManagerList() => currentEnemyHealthManagers.RemoveWhere(x => x == null);
-
-    /// <summary>
-    /// Reset all tracked lists
-    /// </summary>
-    private void ResetAllLists()
+    private protected override void ResetAllLists()
     {
         currentEnemyHealthManagers.Clear();
         enemyGeoSets.Clear();
@@ -337,16 +357,16 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// <summary>
     /// Setting for how consistant the currency drops should be
     /// </summary>
-    public RandomizerConsistency4 RandomizerConsistency
+    public RandomizerConsistencyA RandomizerConsistency
     {
         get => randomizerConsistency.Value;
         internal set => randomizerConsistency.Value = value;
     }
-    private ConfigEntry<RandomizerConsistency4> randomizerConsistency;
+    private ConfigEntry<RandomizerConsistencyA> randomizerConsistency;
     /// <summary>
     /// Default setting for how consistant the currency drops should be
     /// </summary>
-    public readonly RandomizerConsistency4 defaultRandomizerConsistency = RandomizerConsistency4.None;
+    public readonly RandomizerConsistencyA defaultRandomizerConsistency = RandomizerConsistencyA.None;
     /// <summary>
     /// Randomize quantity of rosaries dropped
     /// </summary>
@@ -426,13 +446,9 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// </summary>
     public readonly IntRange defaultShardValueDropRange = new(0, 15);
 
-    // Used for determining if we need to update and clear the dictionaries
+    // Used for determining if we need to update
     private RandomizeByRangeTypes currentRosarySetting;
-    private FloatRange currentRosaryFloatRange;
-    private IntRange currentRosaryIntRange;
     private RandomizeByRangeTypes currentShardSetting;
-    private FloatRange currentShardFloatRange;
-    private IntRange currentShardIntRange;
 
     private protected override void InitSettings()
     {
@@ -515,14 +531,8 @@ internal class Enemy_Currency_Rando : Rando_Base
                 }));
 
         currentRosarySetting = rosaryRandomizerType.Value;
-        currentRosaryFloatRange = rosaryPercentDropRange.Value;
-        currentRosaryIntRange = rosaryValueDropRange.Value;
 
         currentShardSetting = shardRandomizerType.Value;
-        currentShardFloatRange = shardPercentDropRange.Value;
-        currentShardIntRange = shardValueDropRange.Value;
-
-        randomizerConsistency.SettingChanged += OnRandoConsistancyUpdated;
 
         rosaryRandomizerType.SettingChanged += OnRosarySettingsUpdated;
         rosaryPercentDropRange.SettingChanged += OnRosarySettingsUpdated;
@@ -531,6 +541,16 @@ internal class Enemy_Currency_Rando : Rando_Base
         shardRandomizerType.SettingChanged += OnShardSettingsUpdated;
         shardPercentDropRange.SettingChanged += OnShardSettingsUpdated;
         shardValueDropRange.SettingChanged += OnShardSettingsUpdated;
+
+        if (rosaryRandomizerType.Value.Equals(RandomizeByRangeTypes.Disabled) && shardRandomizerType.Value.Equals(RandomizeByRangeTypes.Disabled))
+            SettingMenu.UpdateSubMenuColor(rosaryRandomizerType);
+        else
+        {
+            if (!rosaryRandomizerType.Value.Equals(RandomizeByRangeTypes.Disabled))
+                SettingMenu.UpdateSubMenuColor(rosaryRandomizerType);
+            else
+                SettingMenu.UpdateSubMenuColor(shardRandomizerType);
+        }
     }
 
     /// <summary>
@@ -545,27 +565,19 @@ internal class Enemy_Currency_Rando : Rando_Base
             if (currentShardSetting.Equals(RandomizeByRangeTypes.Disabled))
             {
                 if (rvt.Equals(RandomizeByRangeTypes.Disabled) && !currentRosarySetting.Equals(RandomizeByRangeTypes.Disabled))
+                {
                     Unregister();
+                    SettingMenu.UpdateSubMenuColor(rosaryRandomizerType);
+                }
 
                 if (currentRosarySetting.Equals(RandomizeByRangeTypes.Disabled) && !rvt.Equals(RandomizeByRangeTypes.Disabled))
+                {
                     Register();
+                    SettingMenu.UpdateSubMenuColor(rosaryRandomizerType);
+                }
             }
 
             currentRosarySetting = rvt;
-            enemyGeoSets.Clear();
-            sceneGeoSets.Clear();
-        }
-        else if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is FloatRange floatRange && !floatRange.Equals(currentRosaryFloatRange))
-        {
-            currentRosaryFloatRange = floatRange;
-            enemyGeoSets.Clear();
-            sceneGeoSets.Clear();
-        }
-        else if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is IntRange intRange && !intRange.Equals(currentRosaryIntRange))
-        {
-            currentRosaryIntRange = intRange;
-            enemyGeoSets.Clear();
-            sceneGeoSets.Clear();
         }
     }
 
@@ -581,36 +593,21 @@ internal class Enemy_Currency_Rando : Rando_Base
             if (currentRosarySetting.Equals(RandomizeByRangeTypes.Disabled))
             {
                 if (rvt.Equals(RandomizeByRangeTypes.Disabled) && !currentShardSetting.Equals(RandomizeByRangeTypes.Disabled))
+                {
                     Unregister();
+                    SettingMenu.UpdateSubMenuColor(shardRandomizerType);
+                }
 
                 if (currentShardSetting.Equals(RandomizeByRangeTypes.Disabled) && !rvt.Equals(RandomizeByRangeTypes.Disabled))
+                {
                     Register();
+                    SettingMenu.UpdateSubMenuColor(shardRandomizerType);
+                }
             }
 
             currentShardSetting = rvt;
-            enemyGeoSets.Clear();
-            sceneGeoSets.Clear();
-        }
-        else if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is FloatRange fr && !fr.Equals(currentShardFloatRange))
-        {
-            currentShardFloatRange = fr;
-            enemyGeoSets.Clear();
-            sceneGeoSets.Clear();
-        }
-        else if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is IntRange ir && !ir.Equals(currentShardIntRange))
-        {
-            currentShardIntRange = ir;
-            enemyGeoSets.Clear();
-            sceneGeoSets.Clear();
         }
     }
-
-    /// <summary>
-    /// Event hook for when the randomizer consistancy setting is updated
-    /// </summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
-    private void OnRandoConsistancyUpdated(object sender, EventArgs args) => ResetAllLists();
     #endregion
 }
 
@@ -620,30 +617,38 @@ internal class Enemy_Currency_Rando : Rando_Base
 /// <param name="SmallGeo"> Small geo to drop </param>
 /// <param name="MediumGeo"> Medium geo to drop </param>
 /// <param name="LargeGeo"> Large geo to drop </param>
-internal record RandomizedGeoSet(int SmallGeo = 0, int MediumGeo = 0, int LargeGeo = 0)
+internal record RandomizedGeoSet
 {
     /// <summary>
     /// Small geo to drop
     /// </summary>
-    public int SmallGeo { get; private set; } = SmallGeo;
+    public int SmallGeo { get; private set; }
 
     /// <summary>
     /// Medium geo to drop
     /// </summary>
-    public int MediumGeo { get; private set; } = MediumGeo;
+    public int MediumGeo { get; private set; }
 
     /// <summary>
     /// Large geo to drop
     /// </summary>
-    public int LargeGeo { get; private set; } = LargeGeo;
+    public int LargeGeo { get; private set; }
+    
+    [JsonConstructor]
+    public RandomizedGeoSet(int SmallGeo = 0, int MediumGeo = 0, int LargeGeo = 0)
+    {
+        this.SmallGeo = SmallGeo;
+        this.MediumGeo = MediumGeo;
+        this.LargeGeo = LargeGeo;
+    }
 
     /// <summary>
     /// Create a new geo set from the given HealthManager
     /// </summary>
     /// <param name="thing">HealthManager to extract the geo amounts from</param>
     public RandomizedGeoSet(HealthManager thing)
-        : this((int)Cute_Rando_Core.TraverseHelper(thing, "smallGeoDrops").GetValue(), 
-              (int)Cute_Rando_Core.TraverseHelper(thing, "mediumGeoDrops").GetValue(), 
+        : this((int)Cute_Rando_Core.TraverseHelper(thing, "smallGeoDrops").GetValue(),
+              (int)Cute_Rando_Core.TraverseHelper(thing, "mediumGeoDrops").GetValue(),
               (int)Cute_Rando_Core.TraverseHelper(thing, "largeGeoDrops").GetValue())
     {
     }

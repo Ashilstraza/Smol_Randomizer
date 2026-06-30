@@ -12,6 +12,8 @@ using Silksong.ModMenu.Screens;
 using Smol_Randomizer.Randomizers;
 
 using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.UIElements;
 
 namespace Smol_Randomizer.Settings;
 
@@ -39,6 +41,7 @@ internal class SettingMenu : Cute_Randomizer_MenuBuilder
     /// <param name="title">Title of the menu (The mod's name)</param>
     internal SettingMenu(LocalizedText title) : base(title)
     {
+        Settings.OnSettingsLoaded += OnSettingsLoaded;
         Content.VerticalSpacing = VSPACE_TIGHT;
         GenerateMainPage();
 #if DEBUG
@@ -60,7 +63,7 @@ internal class SettingMenu : Cute_Randomizer_MenuBuilder
             fontSize: FontSizes.Small);
 #endif
         init = true;
-        UpdateSubMenuColors();
+        UpdateAllSubMenuColors();
     }
 
     /// <summary>
@@ -121,7 +124,10 @@ internal class SettingMenu : Cute_Randomizer_MenuBuilder
         UpdateSubMenuColor(entry.Definition.Section, enabled);
     }
 
-    private static void UpdateSubMenuColors()
+    /// <summary>
+    /// Updates all the menu colors at once.
+    /// </summary>
+    private static void UpdateAllSubMenuColors()
     {
         foreach (KeyValuePair<string, bool> setting in preInitSetting)
             UpdateSubMenuColor(setting.Key, setting.Value);
@@ -181,7 +187,7 @@ internal class SettingMenu : Cute_Randomizer_MenuBuilder
                 throw new NotImplementedException();
         }
 
-        UpdateSubMenuColors();
+        UpdateAllSubMenuColors();
     }
 }
 
@@ -196,6 +202,11 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
     public static Color EnabledColor { get; internal set; }
 
     public static Color DisabledColor { get; internal set; }
+
+    /// <summary>
+    /// Set of all the reset buttons
+    /// </summary>
+    private static readonly HashSet<TextButton> randoResetButtons = [];
 
     /// <summary>
     /// Tight spacing for vertical
@@ -236,6 +247,7 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
         TextLabel textLabel = new(label);
         textLabel.SetFontSizes(fontSize);
         textLabel.SetMainColor(color);
+        textLabel.Text.horizontalOverflow = HorizontalWrapMode.Overflow;
         Add(textLabel);
         return textLabel;
     }
@@ -253,6 +265,7 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
         TextButton button = new(label, description);
         button.SetFontSizes(fontSize);
         button.OnSubmit = (Action)Delegate.Combine(button.OnSubmit, onClick);
+        button.DescriptionText.horizontalOverflow = HorizontalWrapMode.Overflow;
         Add(button);
         return button;
     }
@@ -269,6 +282,7 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
 
         button.SetFontSizes(fontSize);
         LocalizedTextExtensions.set_LocalizedText(button.DescriptionText, description);
+        button.DescriptionText.horizontalOverflow = HorizontalWrapMode.Overflow;
 
         Add(button);
         BlankSpace();
@@ -289,6 +303,7 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
         ChoiceElement<bool> element = new(label, ChoiceModels.ForBool(), description);
         element.SynchronizeRawWith(configEntry);
         element.SetFontSizes(fontSizes);
+        element.DescriptionText.horizontalOverflow = HorizontalWrapMode.Overflow;
 
         Add(element);
         return element;
@@ -315,6 +330,8 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
         }
 
         element.SetFontSizes(fontSizes);
+        ((ChoiceElement<object>)element).DescriptionText.horizontalOverflow = HorizontalWrapMode.Overflow;
+
         Add(element);
         return element;
     }
@@ -329,7 +346,13 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
     public SliderElement<float>[] SliderRangeFloat(string label, ConfigEntryBase configEntry, string description = "")
     {
         Label(label, fontSize: FontSizes.Medium);
-        if (description != "") Label(description, LightGray, fontSize: FontSizes.Small);
+        TextLabel descriptionLabel;
+
+        if (description != "")
+        {
+            descriptionLabel = Label(description, LightGray, fontSize: FontSizes.Small);
+            descriptionLabel.Text.horizontalOverflow = HorizontalWrapMode.Overflow;
+        }
 
         (float min, float max) = configEntry.Description.AcceptableValues is AcceptableValueRange<float> range ? Tuple.Create(range.MinValue, range.MaxValue) : Tuple.Create(0f, (float)Settings.maxSliderPercent);
         int ticks = (int)Math.Round(max - min);
@@ -361,7 +384,13 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
     public SliderElement<int>[] SliderRangeInt(string label, ConfigEntryBase configEntry, string description = "")
     {
         Label(label, fontSize: FontSizes.Medium);
-        if (description != "") Label(description, LightGray, fontSize: FontSizes.Small);
+        TextLabel descriptionLabel;
+
+        if (description != "")
+        {
+            descriptionLabel = Label(description, LightGray, fontSize: FontSizes.Small);
+            descriptionLabel.Text.horizontalOverflow = HorizontalWrapMode.Overflow;
+        }
 
         (int min, int max) = configEntry.Description.AcceptableValues is AcceptableValueRange<int> range ? Tuple.Create(range.MinValue, range.MaxValue) : Tuple.Create(0, Settings.maxSliderPercent);
         IntSliderModel minModel = SliderModels.ForInts(min, max);
@@ -395,6 +424,8 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
         TextInput<int> intInput = new(label, model, description);
         intInput.SynchronizeRawWith(configEntry);
         intInput.Model.SetValue((int)configEntry.BoxedValue);
+        intInput.DescriptionText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        
         Add(intInput);
         return intInput;
     }
@@ -415,7 +446,64 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
             screenBuilder.ElementBuilder(setting);
         }
 
-        return screenBuilder;
+        if (!title.Equals("Main Settings"))
+        {
+            screenBuilder.Button("Defaults",
+            delegate
+            {
+                foreach (ConfigEntryBase setting in settings.Values)
+                {
+                    setting.BoxedValue = setting.DefaultValue;
+                }
+            },
+            "Resets the settings to their default values.");
+            screenBuilder.BlankSpace();
+
+            TextButton resetButton = screenBuilder.Button("Reset Saved Values for Current Slot",
+                delegate
+                {
+                    string sectionName = settings.First().Value.Definition.Section;
+                    Console.WriteLine($"Reset Saved {sectionName} Values for Current Slot");
+                    try
+                    {
+                        OnResetClicked?.Invoke(settings.First().Value.Definition.Section);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLineAsync($"[{Cute_Rando_Core.MODNAME}] Exception encountered when invoking OnResetClicked()\n" + ex.Message);
+                    }
+                },
+                "Resets the saved values for the current slot.");
+            resetButton.SetMainColor(Color.gray);
+            randoResetButtons.Add(resetButton);
+        }
+        else
+        {
+            TextButton resetButton = screenBuilder.Button("Reset All Saved Values for Current Slot",
+                delegate
+                {
+                    string sectionName = settings.First().Value.Definition.Section;
+                    Console.WriteLine($"Reset Saved All Saved Values for Current Slot");
+                    try
+                    {
+                        foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> item in Settings.ConfigFile)
+                        {
+                            OnResetClicked?.Invoke(item.Key.Section);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLineAsync($"[{Cute_Rando_Core.MODNAME}] Exception encountered when invoking OnResetClicked()\n" + ex.Message);
+                    }
+                },
+                "Resets the saved values for the current slot.");
+            resetButton.SetMainColor(Color.gray);
+            randoResetButtons.Add(resetButton);
+        }
+
+
+
+            return screenBuilder;
     }
 
     /// <summary>
@@ -450,6 +538,21 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
                 break;
         }
     }
+
+    private protected static void OnSettingsLoaded(bool hasSaveData)
+    {
+        SaveSlotHandler(hasSaveData);
+    }
+
+    public static void SaveSlotHandler(bool hasSaveData)
+    {
+        foreach(TextButton button in randoResetButtons)
+        {
+            button.SetMainColor(hasSaveData ? Color.white : Color.gray);
+        }
+    }
+
+    public static event Action<string> OnResetClicked;
 }
 
 /// <summary>

@@ -3,9 +3,13 @@ using System.Collections.Generic;
 
 using BepInEx.Configuration;
 
-using Smol_Randomizer.Settings;
-
 using HarmonyLib;
+
+using MonoMod.Utils;
+
+using Newtonsoft.Json;
+
+using Smol_Randomizer.Settings;
 
 namespace Smol_Randomizer.Randomizers;
 
@@ -50,11 +54,15 @@ internal class Enemy_Health_Rando : Rando_Base
     /// <summary>
     /// Constructor for this singleton
     /// </summary>
-    private Enemy_Health_Rando() => InitRandomizer();
+    private Enemy_Health_Rando()
+    {
+        InitRandomizer();
+    }
 
     private protected override void InitRandomizer()
     {
         RandomizerName = "Enemy Health Randomizer";
+        RandomizerDescription = "Randomizes the health of enemies and bosses.";
 
         if (!Cute_Rando_Core.RegisterRandomizer(new(
             RandomizerName,
@@ -94,6 +102,20 @@ internal class Enemy_Health_Rando : Rando_Base
         Cute_Rando_Core.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
+    private protected override void ApplySaveData(Dictionary<string, object> savedData)
+    {
+        if (savedData.TryGetValue(nameof(enemyHealthNumbers), out object tempDict))
+            enemyHealthNumbers.AddRange(JsonConvert.DeserializeObject<Dictionary<string, int>>(tempDict.ToString()));
+        if (savedData.TryGetValue(nameof(sceneHealthNumbers), out tempDict))
+            sceneHealthNumbers.AddRange(JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, int>>>(tempDict.ToString()));
+    }
+
+    private protected override void SetSaveData(Dictionary<string, object> savedData)
+    {
+        savedData[nameof(enemyHealthNumbers)] = enemyHealthNumbers;
+        savedData[nameof(sceneHealthNumbers)] = sceneHealthNumbers;
+    }
+
     /// <summary>
     /// Patch HealthManager.OnEnable on game startup
     /// </summary>
@@ -107,7 +129,10 @@ internal class Enemy_Health_Rando : Rando_Base
     /// <summary>
     /// On First Frame, clean the active health manager list. This is done on the first frame since some health managers get added before the scene is loaded, and some afterwards.
     /// </summary>
-    private void OnFirstSceneFrame() => CleanCurrentHealthManagerList();
+    private void OnFirstSceneFrame()
+    {
+        CleanCurrentHealthManagerList();
+    }
 
     /// <summary>
     /// Patch that hooks the end of OnEnable of objects that have a HealthManager to adjust their HP
@@ -152,14 +177,14 @@ internal class Enemy_Health_Rando : Rando_Base
 
         switch (RandomizerConsistency)
         {
-            case RandomizerConsistency4.EnemyType:
+            case RandomizerConsistencyA.EnemyType:
                 if (enemyHealthNumbers.TryGetValue(name, out tempHp))
                     hp = initHp = tempHp;
                 else
                     enemyHealthNumbers.Add(name, RandomizeHp(boss, ref initHp, ref hp));
 
                 break;
-            case RandomizerConsistency4.Scene:
+            case RandomizerConsistencyA.Scene:
                 if (sceneHealthNumbers.TryGetValue(operatingScene, out Dictionary<string, int> healthManagerSet))
                 {
                     if (healthManagerSet.TryGetValue(name, out tempHp))
@@ -171,7 +196,7 @@ internal class Enemy_Health_Rando : Rando_Base
                     sceneHealthNumbers[operatingScene] = new() { { name, RandomizeHp(boss, ref initHp, ref hp) } };
 
                 break;
-            case RandomizerConsistency4.None:
+            case RandomizerConsistencyA.None:
                 RandomizeHp(boss, ref initHp, ref hp);
                 break;
             default:
@@ -202,12 +227,12 @@ internal class Enemy_Health_Rando : Rando_Base
     /// <summary>
     /// Cleans the current scene's HealthManager list
     /// </summary>
-    private void CleanCurrentHealthManagerList() => currentEnemyHealthManagers.RemoveWhere(x => x == null);
+    private void CleanCurrentHealthManagerList()
+    {
+        currentEnemyHealthManagers.RemoveWhere(x => x == null);
+    }
 
-    /// <summary>
-    /// Reset all tracked lists
-    /// </summary>
-    private void ResetAllLists()
+    private protected override void ResetAllLists()
     {
         currentEnemyHealthManagers.Clear();
         enemyHealthNumbers.Clear();
@@ -218,16 +243,16 @@ internal class Enemy_Health_Rando : Rando_Base
     /// <summary>
     /// Setting for how consistent the enemy health should be
     /// </summary>
-    public RandomizerConsistency4 RandomizerConsistency
+    public RandomizerConsistencyA RandomizerConsistency
     {
         get => randomizerConsistency.Value;
         internal set => randomizerConsistency.Value = value;
     }
-    private ConfigEntry<RandomizerConsistency4> randomizerConsistency;
+    private ConfigEntry<RandomizerConsistencyA> randomizerConsistency;
     /// <summary>
     /// Default setting for how consistent the enemy health should be
     /// </summary>
-    public readonly RandomizerConsistency4 defaultRandomizerConsistency = RandomizerConsistency4.None;
+    public readonly RandomizerConsistencyA defaultRandomizerConsistency = RandomizerConsistencyA.None;
     /// <summary>
     /// Randomize the health of enemies
     /// </summary>
@@ -268,10 +293,8 @@ internal class Enemy_Health_Rando : Rando_Base
     /// </summary>
     public readonly FloatRange defaultBossHealthPercentRange = new(0.75f, 1.25f);
 
-    // Used for determining if we need to update and clear the dictionaries
+    // Used for determining if we need to update
     private RandomizerEnemyTypeFlags currentHealthRandomizerSetting;
-    private FloatRange currentEnemyHealthPercentage;
-    private FloatRange currentBossHealthPercentage;
 
     private protected override void InitSettings()
     {
@@ -319,42 +342,12 @@ internal class Enemy_Health_Rando : Rando_Base
                     CustomDrawer = Settings.Settings.RangeDrawer
                 }));
 
-        currentBossHealthPercentage = bossHealthPercentRange.Value;
-        currentEnemyHealthPercentage = bossHealthPercentRange.Value;
         currentHealthRandomizerSetting = enemyHealthRandomizerSetting.Value;
 
-        randomizerConsistency.SettingChanged += OnRandoConsistencyUpdated;
         enemyHealthRandomizerSetting.SettingChanged += OnHealthRandoSettingUpdated;
-        enemyHealthPercentRange.SettingChanged += OnEnemyHealthSettingUpdated;
-        bossHealthPercentRange.SettingChanged += OnBossHealthSettingUpdated;
-    }
 
-    /// <summary>
-    /// Event hook for when the boss health setting is updated
-    /// </summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
-    private void OnBossHealthSettingUpdated(object sender, EventArgs args)
-    {
-        if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is FloatRange fr && !fr.Equals(currentBossHealthPercentage))
-        {
-            currentBossHealthPercentage = fr;
-            ResetAllLists();
-        }
-    }
-
-    /// <summary>
-    /// Event hook for when the enemy health setting is updated
-    /// </summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
-    private void OnEnemyHealthSettingUpdated(object sender, EventArgs args)
-    {
-        if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is FloatRange fr && !fr.Equals(currentEnemyHealthPercentage))
-        {
-            currentEnemyHealthPercentage = fr;
-            ResetAllLists();
-        }
+        enemyHealthRandomizerSetting.SettingChanged += SettingMenu.OnRandomizerEnable;
+        SettingMenu.UpdateSubMenuColor(enemyHealthRandomizerSetting);
     }
 
     /// <summary>
@@ -373,15 +366,7 @@ internal class Enemy_Health_Rando : Rando_Base
                 Register();
 
             currentHealthRandomizerSetting = ehr;
-            ResetAllLists();
         }
     }
-
-    /// <summary>
-    /// Event hook for when the randomizer consistency setting is updated
-    /// </summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
-    private void OnRandoConsistencyUpdated(object sender, EventArgs args) => ResetAllLists();
     #endregion
 }

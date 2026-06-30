@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-using Smol_Randomizer.Handlers;
-
 using HarmonyLib;
 
 using Newtonsoft.Json;
+
+using Smol_Randomizer.Handlers;
 
 using UnityEngine;
 using UnityEngine.SceneManagement;

@@ -3,9 +3,13 @@ using System.Collections.Generic;
 
 using BepInEx.Configuration;
 
-using Smol_Randomizer.Settings;
-
 using HarmonyLib;
+
+using MonoMod.Utils;
+
+using Newtonsoft.Json;
+
+using Smol_Randomizer.Settings;
 
 using UnityEngine.SceneManagement;
 
@@ -57,11 +61,15 @@ internal class World_Currency_Drop_Rando : Rando_Base
     /// <summary>
     /// Constructor for this singleton
     /// </summary>
-    private World_Currency_Drop_Rando() => InitRandomizer();
+    private World_Currency_Drop_Rando()
+    {
+        InitRandomizer();
+    }
 
     private protected override void InitRandomizer()
     {
         RandomizerName = "World Currency Drop Randomizer";
+        RandomizerDescription = "Randomizes the quantity of shards dropped from certain walls.";
 
         eventActiveLimitRegion = new(
             RandomizerName,
@@ -81,7 +89,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
 
         base.InitRandomizer();
 
-        if (ConsistencySetting == RandomizerConsistency3.Scene)
+        if (ConsistencySetting == RandomizerConsistencyB.Scene)
         {
             shardChanceChanging = true;
             architectCrestChanging = true;
@@ -101,12 +109,35 @@ internal class World_Currency_Drop_Rando : Rando_Base
         Cute_Rando_Core.UnregisterRandomizer(eventOnSceneLoad);
     }
 
+    private protected override void ApplySaveData(Dictionary<string, object> savedData)
+    {
+        if (savedData.TryGetValue(nameof(sceneMultiplier), out object tempDict))
+            sceneMultiplier.AddRange(JsonConvert.DeserializeObject<Dictionary<string, float>>(tempDict.ToString()));
+        if (savedData.TryGetValue(nameof(sceneACMultiplier), out tempDict))
+            sceneACMultiplier.AddRange(JsonConvert.DeserializeObject<Dictionary<string, float>>(tempDict.ToString()));
+        if (savedData.TryGetValue(nameof(consistantMultiplier), out tempDict))
+            consistantMultiplier = JsonConvert.DeserializeObject<float>(tempDict.ToString());
+        if (savedData.TryGetValue(nameof(consistantACMultiplier), out tempDict))
+            consistantACMultiplier = JsonConvert.DeserializeObject<float>(tempDict.ToString());
+    }
+
+    private protected override void SetSaveData(Dictionary<string, object> savedData)
+    {
+        savedData[nameof(sceneMultiplier)] = sceneMultiplier;
+        savedData[nameof(sceneACMultiplier)] = sceneACMultiplier;
+        savedData[nameof(consistantMultiplier)] = consistantMultiplier;
+        savedData[nameof(consistantACMultiplier)] = consistantACMultiplier;
+    }
+
     /// <summary>
     /// On Scene Load, save current loading scene
     /// </summary>
     /// <param name="scene">The new scene that is loading</param>
     /// <param name="mode">?</param>
-    private void OnSceneLoad(Scene scene, LoadSceneMode _) => currentScene = scene.name;
+    private void OnSceneLoad(Scene scene, LoadSceneMode _)
+    {
+        currentScene = scene.name;
+    }
 
     /// <summary>
     /// Updates world currency drops with new currency values
@@ -115,7 +146,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
     /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
     private void SetCurrency(ICurrencyLimitRegion region)
     {
-        if (!coreEnableRandomization || region == null || (!ArchitectChanceEnable && !ShardChanceEnable)) 
+        if (!coreEnableRandomization || region == null || (!ArchitectChanceEnable && !ShardChanceEnable))
             return;
 
         float multiplier;
@@ -123,11 +154,11 @@ internal class World_Currency_Drop_Rando : Rando_Base
 
         switch (ConsistencySetting)
         {
-            case RandomizerConsistency3.Save:
+            case RandomizerConsistencyB.PerSave:
                 multiplier = consistantMultiplier;
                 multiplierAC = consistantACMultiplier;
                 break;
-            case RandomizerConsistency3.Scene:
+            case RandomizerConsistencyB.Scene:
                 if (!sceneMultiplier.TryGetValue(currentScene, out multiplier))
                 {
                     multiplier = Cute_Rando_Core.TupleRandoHelper(ShardChanceMultiplier.AsTuple());
@@ -141,7 +172,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
                 }
 
                 break;
-            case RandomizerConsistency3.None:
+            case RandomizerConsistencyB.None:
                 multiplier = Cute_Rando_Core.TupleRandoHelper(ShardChanceMultiplier.AsTuple());
                 multiplierAC = Cute_Rando_Core.TupleRandoHelper(ArchitectCrestMultiplier.AsTuple());
                 break;
@@ -180,20 +211,29 @@ internal class World_Currency_Drop_Rando : Rando_Base
             architectProbabilities.SetValue(newArchitectProbabilities);
     }
 
+    private protected override void ResetAllLists()
+    {
+        shardChanceChanging = true;
+        architectCrestChanging = true;
+        UpdateConsistantMultipliers();
+        sceneMultiplier.Clear();
+        sceneACMultiplier.Clear();
+    }
+
     #region Settings
     /// <summary>
     /// Setting for how consistant the drop chances are
     /// </summary>
-    public RandomizerConsistency3 ConsistencySetting
+    public RandomizerConsistencyB ConsistencySetting
     {
         get => consistencySetting.Value;
         internal set => consistencySetting.Value = value;
     }
-    private ConfigEntry<RandomizerConsistency3> consistencySetting;
+    private ConfigEntry<RandomizerConsistencyB> consistencySetting;
     /// <summary>
     /// Default setting for how consistant the drop chances are
     /// </summary>
-    public readonly RandomizerConsistency3 defaultConsistencySetting = RandomizerConsistency3.None;
+    public readonly RandomizerConsistencyB defaultConsistencySetting = RandomizerConsistencyB.None;
     /// <summary>
     /// Randomize shard drop chance from hitting specific walls
     /// </summary>
@@ -247,10 +287,8 @@ internal class World_Currency_Drop_Rando : Rando_Base
     /// </summary>
     public readonly FloatRange defaultArchitectCrestMultiplier = new(1f, 3f);
 
-    // Used for determining if we need to update and clear the dictionaries
-    private FloatRange currentArchitectCrestSetting;
+    // Used for determining if we need to update
     private bool architectCrestChanging = false;
-    private FloatRange currentShardChanceSetting;
     private bool shardChanceChanging = false;
 
     private protected override void InitSettings()
@@ -310,84 +348,42 @@ internal class World_Currency_Drop_Rando : Rando_Base
                     CustomDrawer = Settings.Settings.RangeDrawer
                 }));
 
-        currentArchitectCrestSetting = ArchitectCrestMultiplier;
-        currentShardChanceSetting = ShardChanceMultiplier;
-
-        consistencySetting.SettingChanged += OnRandoConsistancyUpdated;
-        shardChanceMultiplier.SettingChanged += OnShardChanceMultiplierUpdated;
-        architectCrestMultiplier.SettingChanged += OnArchitectCrestMultiplierUpdated;
-
         shardChanceEnable.SettingChanged += ChanceEnable;
         architectChanceEnable.SettingChanged += ChanceEnable;
-    }
 
-    /// <summary>
-    /// Event hook for when the architect crest chance multiplier changes
-    /// </summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
-    private void OnArchitectCrestMultiplierUpdated(object sender, EventArgs args)
-    {
-        FloatRange architectCrestFloat = (FloatRange)((SettingChangedEventArgs)args).ChangedSetting.BoxedValue;
-
-        if (!currentArchitectCrestSetting.Equals(architectCrestFloat))
+        // Set Setting Menu Button Color
+        if (!shardChanceEnable.Value && !architectChanceEnable.Value)
+            SettingMenu.UpdateSubMenuColor(shardChanceEnable);
+        else
         {
-            architectCrestChanging = true;
-            currentArchitectCrestSetting = architectCrestFloat;
-
-            if (ConsistencySetting == RandomizerConsistency3.Save)
-                UpdateConsistantMultipliers();
-            else if (ConsistencySetting == RandomizerConsistency3.Scene)
-                sceneACMultiplier.Clear();
+            if (shardChanceEnable.Value)
+                SettingMenu.UpdateSubMenuColor(shardChanceEnable);
+            else
+                SettingMenu.UpdateSubMenuColor(architectChanceEnable);
         }
     }
 
     /// <summary>
-    /// Event hook for when the shard chance multiplier changes
+    /// Event Hook when the chance setting is updated for either option
     /// </summary>
     /// <param name="sender">?</param>
     /// <param name="args">The setting that was changed</param>
-    private void OnShardChanceMultiplierUpdated(object sender, EventArgs args)
-    {
-        FloatRange shardChanceFloat = (FloatRange)((SettingChangedEventArgs)args).ChangedSetting.BoxedValue;
-
-        if (!currentShardChanceSetting.Equals(shardChanceFloat))
-        {
-            currentShardChanceSetting = shardChanceFloat;
-
-            if (ConsistencySetting == RandomizerConsistency3.Save)
-            {
-                shardChanceChanging = true;
-                UpdateConsistantMultipliers();
-            }
-            else if (ConsistencySetting == RandomizerConsistency3.Scene)
-                sceneMultiplier.Clear();
-        }
-    }
-
-    /// <summary>
-    /// Event hook for when the randomizer consistancy setting is updated
-    /// </summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
-    private void OnRandoConsistancyUpdated(object sender, EventArgs args)
-    {
-        shardChanceChanging = true;
-        architectCrestChanging = true;
-        UpdateConsistantMultipliers();
-        sceneMultiplier.Clear();
-        sceneACMultiplier.Clear();
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="args"></param>
     private void ChanceEnable(object sender, EventArgs args)
     {
-        if (!shardChanceEnable.Value && !architectChanceEnable.Value) Unregister();
-        if (shardChanceEnable.Value || architectChanceEnable.Value) Register();
+        if (!shardChanceEnable.Value && !architectChanceEnable.Value)
+        {
+            Unregister();
+            SettingMenu.UpdateSubMenuColor(shardChanceEnable);
+        }
+
+        if (shardChanceEnable.Value || architectChanceEnable.Value)
+        {
+            Register();
+            if (shardChanceEnable.Value)
+                SettingMenu.UpdateSubMenuColor(shardChanceEnable);
+            else
+                SettingMenu.UpdateSubMenuColor(architectChanceEnable);
+        }
     }
 
     /// <summary>

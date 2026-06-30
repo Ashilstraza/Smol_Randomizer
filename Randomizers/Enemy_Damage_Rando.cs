@@ -3,9 +3,13 @@ using System.Collections.Generic;
 
 using BepInEx.Configuration;
 
-using Smol_Randomizer.Settings;
-
 using HarmonyLib;
+
+using MonoMod.Utils;
+
+using Newtonsoft.Json;
+
+using Smol_Randomizer.Settings;
 
 namespace Smol_Randomizer.Randomizers;
 
@@ -50,11 +54,15 @@ internal class Enemy_Damage_Rando : Rando_Base
     /// <summary>
     /// Constructor for this singleton
     /// </summary>
-    private Enemy_Damage_Rando() => InitRandomizer();
+    private Enemy_Damage_Rando()
+    {
+        InitRandomizer();
+    }
 
     private protected override void InitRandomizer()
     {
         RandomizerName = "Enemy Damage Randomizer";
+        RandomizerDescription = "Randomizes the damage delt to Hornet by enemies and bosses.";
 
         if (!Cute_Rando_Core.RegisterRandomizer(new(
             RandomizerName,
@@ -94,6 +102,20 @@ internal class Enemy_Damage_Rando : Rando_Base
         Cute_Rando_Core.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
+    private protected override void ApplySaveData(Dictionary<string, object> savedData)
+    {
+        if (savedData.TryGetValue(nameof(enemyDamageNumbers), out object tempDict))
+            enemyDamageNumbers.AddRange(JsonConvert.DeserializeObject<Dictionary<string, int>>(tempDict.ToString()));
+        if (savedData.TryGetValue(nameof(sceneDamageNumbers), out tempDict))
+            sceneDamageNumbers.AddRange(JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, int>>>(tempDict.ToString()));
+    }
+
+    private protected override void SetSaveData(Dictionary<string, object> savedData)
+    {
+        savedData[nameof(enemyDamageNumbers)] = enemyDamageNumbers;
+        savedData[nameof(sceneDamageNumbers)] = sceneDamageNumbers;
+    }
+
     /// <summary>
     /// Patch DamageHero.OnEnable on game startup
     /// </summary>
@@ -107,7 +129,10 @@ internal class Enemy_Damage_Rando : Rando_Base
     /// <summary>
     /// On first frame, clean the hero damagers list. This is done the first frame because some of them activate before the scene is loaded, and some afterward
     /// </summary>
-    private void OnFirstSceneFrame() => CleanCurrentHeroDamagers();
+    private void OnFirstSceneFrame()
+    {
+        CleanCurrentHeroDamagers();
+    }
 
     /// <summary>
     /// Patch that hooks the end of OnEnable of damage hero objects to adjust how much damage they do
@@ -133,7 +158,7 @@ internal class Enemy_Damage_Rando : Rando_Base
 
         string operatingScene = damager.gameObject.scene.name;
 
-        int damageValue = 0;
+        int damageValue = damager.damageDealt;
         string name = damager.name;
 
         int cullIndex = name.IndexOf('(');
@@ -141,7 +166,7 @@ internal class Enemy_Damage_Rando : Rando_Base
 
         switch (RandomizerConsistency)
         {
-            case RandomizerConsistency4.EnemyType:
+            case RandomizerConsistencyA.EnemyType:
                 if (!enemyDamageNumbers.TryGetValue(name, out damageValue))
                 {
                     DamageSetter(ref damageValue);
@@ -150,7 +175,7 @@ internal class Enemy_Damage_Rando : Rando_Base
 
                 damager.damageDealt = damageValue;
                 break;
-            case RandomizerConsistency4.Scene:
+            case RandomizerConsistencyA.Scene:
                 if (!sceneDamageNumbers.TryGetValue(operatingScene, out Dictionary<string, int> damageNumbersSet))
                 {
                     DamageSetter(ref damageValue);
@@ -166,7 +191,7 @@ internal class Enemy_Damage_Rando : Rando_Base
                 }
 
                 break;
-            case RandomizerConsistency4.None:
+            case RandomizerConsistencyA.None:
                 DamageSetter(ref damager.damageDealt);
                 break;
             default:
@@ -188,12 +213,12 @@ internal class Enemy_Damage_Rando : Rando_Base
     /// <summary>
     /// Cleans the currentHeroDamagers
     /// </summary>
-    private void CleanCurrentHeroDamagers() => currentHeroDamagers.RemoveWhere(x => x == null);
+    private void CleanCurrentHeroDamagers()
+    {
+        currentHeroDamagers.RemoveWhere(x => x == null);
+    }
 
-    /// <summary>
-    /// Resets the various lists
-    /// </summary>
-    private void ResetHeroDamagers()
+    private protected override void ResetAllLists()
     {
         currentHeroDamagers.Clear();
         enemyDamageNumbers.Clear();
@@ -204,16 +229,16 @@ internal class Enemy_Damage_Rando : Rando_Base
     /// <summary>
     /// Setting for how consistant the enemy damage should be
     /// </summary>
-    public RandomizerConsistency4 RandomizerConsistency
+    public RandomizerConsistencyA RandomizerConsistency
     {
         get => randomizerConsistency.Value;
         internal set => randomizerConsistency.Value = value;
     }
-    private ConfigEntry<RandomizerConsistency4> randomizerConsistency;
+    private ConfigEntry<RandomizerConsistencyA> randomizerConsistency;
     /// <summary>
     /// Default setting for how consistant the enemy damage should be
     /// </summary>
-    public readonly RandomizerConsistency4 defaultRandomizerConsistency = RandomizerConsistency4.None;
+    public readonly RandomizerConsistencyA defaultRandomizerConsistency = RandomizerConsistencyA.None;
     /// <summary>
     /// Randomize the damage of enemies
     /// </summary>
@@ -269,8 +294,6 @@ internal class Enemy_Damage_Rando : Rando_Base
 
     // Used for determining if we need to update and clear the dictionaries
     private RandomizeByFlatAmount currentDamageModifierType;
-    private int currentDamageShift;
-    private IntRange currentDamageRange;
 
     private protected override void InitSettings()
     {
@@ -280,7 +303,7 @@ internal class Enemy_Damage_Rando : Rando_Base
             key: "Enemy Damage Randomizer Type",
             defaultValue: defaultDamageModifierType,
             configDescription: new ConfigDescription(
-                description: "Set damage modifier type. Shift adjusts damage up or down by a randomized amount. Range randomizes within a given range.",
+                description: "Damage modifier type. Shift adjusts by a random amount. Range randomizes within a range.",
                 tags: new ConfigurationManagerAttributes
                 {
                     Order = 4
@@ -329,21 +352,14 @@ internal class Enemy_Damage_Rando : Rando_Base
                 }));
 
         currentDamageModifierType = damageModifierType.Value;
-        currentDamageRange = damageRange.Value;
-        currentDamageShift = damageShift.Value;
 
-        randomizerConsistency.SettingChanged += OnRandoConsistancyUpdated;
         damageModifierType.SettingChanged += OnDamageSettingsUpdated;
         damageShift.SettingChanged += OnDamageSettingsUpdated;
         damageRange.SettingChanged += OnDamageSettingsUpdated;
-    }
 
-    /// <summary>
-    /// Event hook for when the randomizer consistancy setting is updated
-    /// </summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
-    private void OnRandoConsistancyUpdated(object sender, EventArgs args) => ResetHeroDamagers();
+        damageModifierType.SettingChanged += SettingMenu.OnRandomizerEnable;
+        SettingMenu.UpdateSubMenuColor(damageModifierType);
+    }
 
     /// <summary>
     /// Event hook for when the damage settings are updated
@@ -361,17 +377,6 @@ internal class Enemy_Damage_Rando : Rando_Base
                 Register();
 
             currentDamageModifierType = dm;
-            ResetHeroDamagers();
-        }
-        else if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is int i && !i.Equals(currentDamageShift))
-        {
-            currentDamageShift = i;
-            ResetHeroDamagers();
-        }
-        else if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is IntRange ir && !ir.Equals(currentDamageRange))
-        {
-            currentDamageRange = ir;
-            ResetHeroDamagers();
         }
     }
     #endregion

@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 
 using BepInEx.Configuration;
+
+using Newtonsoft.Json;
 
 using UnityEngine;
 
@@ -40,20 +43,19 @@ public static class Settings
     /// Default if we want to randomize the various things
     /// </summary>
     public static readonly bool defaultEnableRandomizer = true;
-    #endregion
-
     /// <summary>
-    /// Our config file
+    /// Changes the menu button colors of the enabled/disabled randomizers
     /// </summary>
+    public static RandomizerColors EnabledRandomizerColors
+    {
+        get => enabledRandomizerColors.Value;
+        internal set => enabledRandomizerColors.Value = value;
+    }
+    private static ConfigEntry<RandomizerColors> enabledRandomizerColors;
     /// <summary>
-    /// Max Slider Percentage
+    /// Default color of the randomizer menu buttons
     /// </summary>
-    public static readonly int maxSliderPercent = 300;
-
-    /// <summary>
-    /// Max Slider Value
-    /// </summary>
-    public static readonly int maxSliderValue = 100;
+    public static readonly RandomizerColors defaultEnabledRandomizerColors = RandomizerColors.GreenRed;
 
     /// <summary>
     /// Reference to the randomizer's config file to allow adding settings.
@@ -82,6 +84,18 @@ public static class Settings
                 {
                     Order = 1
                 }));
+
+        enabledRandomizerColors = config.Bind(
+            "Main Settings",
+            "Enabled/Disabled Colors",
+            defaultEnabledRandomizerColors,
+            new ConfigDescription(
+                "Changes the colors of the enabled/disabled randomizers.",
+                null,
+                new ConfigurationManagerAttributes
+                {
+                    Order = 3
+                }));
 #if DEBUG
         testNewThings = config.Bind(
             "Testing",
@@ -90,7 +104,24 @@ public static class Settings
             new ConfigDescription(
                 "Test new things"));
 #endif
+        enabledRandomizerColors.SettingChanged += SettingMenu.OnEnabledRandomizerColorChanged;
+        SettingMenu.ChangeColors(EnabledRandomizerColors);
     }
+    #endregion
+
+    #region BepInEx_Setting_Stuff
+    /// <summary>
+    /// Our config file
+    /// </summary>
+    /// <summary>
+    /// Max Slider Percentage
+    /// </summary>
+    public static readonly int maxSliderPercent = 300;
+
+    /// <summary>
+    /// Max Slider Value
+    /// </summary>
+    public static readonly int maxSliderValue = 100;
 
     /// <summary>
     /// Custom Drawer for entering Ranges
@@ -186,6 +217,60 @@ public static class Settings
         Percent,
         Value
     }
+    #endregion
+
+    internal static RandoPerSaveData saveData;
+
+    internal static RandoPerSaveData GetData()
+    {
+        return saveData ??= new();
+    }
+
+    internal static void Load(RandoPerSaveData data)
+    {
+        saveData = data;
+        try
+        {
+            OnSettingsLoaded?.Invoke(!saveData.Equals(null));
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLineAsync($"[{Cute_Rando_Core.MODNAME}] Exception encountered when invoking OnSettingsLoaded()\n" + ex.Message);
+        }
+    }
+
+    internal static Dictionary<string, object> GetSavedData(string randomizer)
+    {
+        saveData.SmolSaveDictionary ??= [];
+        if (!saveData.SmolSaveDictionary.TryGetValue(randomizer, out Dictionary<string, object> dictionary))
+        {
+            dictionary = [];
+            saveData.SmolSaveDictionary[randomizer] = dictionary;
+        }
+
+        return dictionary;
+    }
+
+    internal static void SetSavedData(string randomizer, Dictionary<string, object> dictionary)
+    {
+        saveData ??= new();
+        saveData.SmolSaveDictionary ??= [];
+        saveData.SmolSaveDictionary[randomizer] = dictionary;
+    }
+
+    internal static event Action<bool> OnSettingsLoaded;
+}
+
+public class RandoPerSaveData
+{
+    // <Randomizer, <Randomizer Dictionary Name, Dictionary>>
+
+    [JsonProperty]
+    public Dictionary<string, Dictionary<string, object>> SmolSaveDictionary
+    {
+        get;
+        internal set;
+    }
 }
 
 /// <summary>
@@ -209,24 +294,23 @@ internal enum RandomizeByFlatAmount
 }
 
 /// <summary>
-/// Four Randomizer Consistency Types
+/// Randomizer Consistency Types; None, EnemyType, and Scene
 /// </summary>
-public enum RandomizerConsistency4
+public enum RandomizerConsistencyA
 {
     None,
     EnemyType,
-    Scene,
-    Save
+    Scene
 }
 
 /// <summary>
-/// Three Randomizer Consistency Types
+/// Randomizer Consistency Types; None, Scene, PerSave
 /// </summary>
-public enum RandomizerConsistency3
+public enum RandomizerConsistencyB
 {
     None,
     Scene,
-    Save
+    PerSave
 }
 
 /// <summary>
@@ -239,4 +323,13 @@ public enum RandomizerEnemyTypeFlags
     Enemy,
     Boss,
     Both
+}
+
+/// <summary>
+/// Colors for Enabled/Disabled Randomizers
+/// </summary>
+public enum RandomizerColors
+{
+    GreenRed,
+    BlueYellow
 }

@@ -3,9 +3,13 @@ using System.Collections.Generic;
 
 using BepInEx.Configuration;
 
-using Smol_Randomizer.Settings;
-
 using HarmonyLib;
+
+using MonoMod.Utils;
+
+using Newtonsoft.Json;
+
+using Smol_Randomizer.Settings;
 
 using UnityEngine;
 
@@ -52,11 +56,15 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// <summary>
     /// Constructor for this singleton
     /// </summary>
-    private Enemy_Size_Rando() => InitRandomizer();
+    private Enemy_Size_Rando()
+    {
+        InitRandomizer();
+    }
 
     private protected override void InitRandomizer()
     {
         RandomizerName = "Enemy Size Randomizer";
+        RandomizerDescription = "Randomizes the sizes of enemies and bosses.";
 
         if (!Cute_Rando_Core.RegisterRandomizer(new(
             RandomizerName,
@@ -96,6 +104,20 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         Cute_Rando_Core.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
+    private protected override void ApplySaveData(Dictionary<string, object> savedData)
+    {
+        if (savedData.TryGetValue(nameof(enemySizes), out object tempDict))
+            enemySizes.AddRange(JsonConvert.DeserializeObject<Dictionary<string, float>>(tempDict.ToString()));
+        if (savedData.TryGetValue(nameof(sceneEnemySizes), out tempDict))
+            sceneEnemySizes.AddRange(JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, float>>>(tempDict.ToString()));
+    }
+
+    private protected override void SetSaveData(Dictionary<string, object> savedData)
+    {
+        savedData[nameof(enemySizes)] = enemySizes;
+        savedData[nameof(sceneEnemySizes)] = sceneEnemySizes;
+    }
+
     /// <summary>
     /// Patch HealthManager.OnEnable on game startup
     /// </summary>
@@ -110,7 +132,10 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// <summary>
     /// On First Frame, clean the active health manager list. This is done on the first frame since some health managers get added before the scene is loaded, and some afterwards.
     /// </summary>
-    private void OnFirstSceneFrame() => CleanCurrentHealthManagerList();
+    private void OnFirstSceneFrame()
+    {
+        CleanCurrentHealthManagerList();
+    }
 
     /// <summary>
     /// Patch that hooks the end of OnEnable of objects that have a HealthManager to adjust their size
@@ -132,7 +157,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
     private void SetSize(HealthManager thing)
     {
-        if (thing == null || thing.transform == null)return;
+        if (thing == null || thing.transform == null) return;
 
         bool boss = Cute_Rando_Core.IsBoss(thing);
 
@@ -151,14 +176,14 @@ internal sealed class Enemy_Size_Rando : Rando_Base
 
         switch (RandomizerConsistency)
         {
-            case RandomizerConsistency4.EnemyType:
+            case RandomizerConsistencyA.EnemyType:
                 if (enemySizes.TryGetValue(name, out tempMultiplier))
                     ApplySize(thingTransform, tempMultiplier, walker);
                 else
                     enemySizes.Add(name, RandomizeSize(boss, thingTransform, walker));
                 break;
-            case RandomizerConsistency4.Scene:
-                if (sceneEnemySizes.TryGetValue(name, out Dictionary<string, float> enemySizeSet))
+            case RandomizerConsistencyA.Scene:
+                if (sceneEnemySizes.TryGetValue(operatingScene, out Dictionary<string, float> enemySizeSet))
                 {
                     if (enemySizeSet.TryGetValue(name, out tempMultiplier))
                         ApplySize(thingTransform, tempMultiplier, walker);
@@ -168,7 +193,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
                 else
                     sceneEnemySizes[operatingScene] = new() { { name, RandomizeSize(boss, thingTransform, walker) } };
                 break;
-            case RandomizerConsistency4.None:
+            case RandomizerConsistencyA.None:
                 RandomizeSize(boss, thingTransform, walker);
                 break;
             default:
@@ -198,12 +223,13 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// <summary>
     /// Cleans the current scene's HealthManager list
     /// </summary>
-    private void CleanCurrentHealthManagerList() => currentEnemyHealthManagers.RemoveWhere(x => x == null); 
+    private void CleanCurrentHealthManagerList()
+    {
+        currentEnemyHealthManagers.RemoveWhere(x => x == null);
+    }
 
-    /// <summary>
-    /// Reset all tracked lists
-    /// </summary>
-    private void ResetAllLists()
+    
+    private protected override void ResetAllLists()
     {
         currentEnemyHealthManagers.Clear();
         enemySizes.Clear();
@@ -214,16 +240,16 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// <summary>
     /// Setting for how consistent the enemy size should be
     /// </summary>
-    public RandomizerConsistency4 RandomizerConsistency
+    public RandomizerConsistencyA RandomizerConsistency
     {
         get => randomizerConsistency.Value;
         internal set => randomizerConsistency.Value = value;
     }
-    private ConfigEntry<RandomizerConsistency4> randomizerConsistency;
+    private ConfigEntry<RandomizerConsistencyA> randomizerConsistency;
     /// <summary>
     /// Default setting for how consistent the enemy size should be
     /// </summary>
-    public readonly RandomizerConsistency4 defaultRandomizerConsistency = RandomizerConsistency4.None;
+    public readonly RandomizerConsistencyA defaultRandomizerConsistency = RandomizerConsistencyA.None;
     /// <summary>
     /// Randomize the size of enemies
     /// </summary>
@@ -264,10 +290,8 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// </summary>
     public readonly FloatRange defaultBossSizePercentRange = new(0.85f, 1.25f);
 
-    // Used for determining if we need to update and clear the dictionaries
+    // Used for determining if we need to update
     private RandomizerEnemyTypeFlags currentSizeRandomizerSetting;
-    private FloatRange currentEnemySizePercentage;
-    private FloatRange currentBossSizePercentage;
 
     private protected override void InitSettings()
     {
@@ -315,43 +339,14 @@ internal sealed class Enemy_Size_Rando : Rando_Base
                     CustomDrawer = Settings.Settings.RangeDrawer
                 }));
 
-        currentBossSizePercentage = bossSizePercentRange.Value;
-        currentEnemySizePercentage = enemySizePercentRange.Value;
         currentSizeRandomizerSetting = enemySizeRandomizerSetting.Value;
 
         randomizerConsistency.SettingChanged += OnRandoConsistencyUpdated;
 
         enemySizeRandomizerSetting.SettingChanged += OnSizeRandoSettingUpdated;
-        enemySizePercentRange.SettingChanged += OnEnemySizeSettingUpdated;
-        bossSizePercentRange.SettingChanged += OnBossSizeSettingUpdated;
-    }
 
-    /// <summary>
-    /// Event hook for when the boss size setting is updated
-    /// </summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
-    private void OnBossSizeSettingUpdated(object sender, EventArgs args)
-    {
-        if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is FloatRange fr && !fr.Equals(currentBossSizePercentage))
-        {
-            currentBossSizePercentage = fr;
-            ResetAllLists();
-        }
-    }
-
-    /// <summary>
-    /// Event hook for when the enemy health setting is updated
-    /// </summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
-    private void OnEnemySizeSettingUpdated(object sender, EventArgs args)
-    {
-        if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is FloatRange fr && !fr.Equals(currentEnemySizePercentage))
-        {
-            currentEnemySizePercentage = fr;
-            ResetAllLists();
-        }
+        enemySizeRandomizerSetting.SettingChanged += SettingMenu.OnRandomizerEnable;
+        SettingMenu.UpdateSubMenuColor(enemySizeRandomizerSetting);
     }
 
     /// <summary>
@@ -376,7 +371,6 @@ internal sealed class Enemy_Size_Rando : Rando_Base
             }
 
             currentSizeRandomizerSetting = ehr;
-            ResetAllLists();
         }
     }
 
@@ -385,6 +379,9 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// </summary>
     /// <param name="sender">?</param>
     /// <param name="args">The setting that was changed</param>
-    private void OnRandoConsistencyUpdated(object sender, EventArgs args) => ResetAllLists();
+    private void OnRandoConsistencyUpdated(object sender, EventArgs args)
+    {
+        ResetAllLists();
+    }
     #endregion
 }

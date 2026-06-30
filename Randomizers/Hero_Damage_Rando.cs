@@ -8,6 +8,12 @@ using BepInEx.Configuration;
 
 using HarmonyLib;
 
+using MonoMod.Utils;
+
+using Newtonsoft.Json;
+
+using Smol_Randomizer.Settings;
+
 namespace Smol_Randomizer.Randomizers;
 
 /// <summary>
@@ -27,13 +33,16 @@ internal class Hero_Damage_Rando : Rando_Base
     /// <summary>
     /// The nail damage if based on the game instance
     /// </summary>
-    public int gameNailDamageOffset = int.MinValue;
+    public int saveNailDamageOffset = int.MinValue;
     /// <summary>
     /// The nail damage based on upgrade level
     /// </summary>
     public Dictionary<int, int> nailUpgradeDamages = [];
 
-    private Hero_Damage_Rando() => InitRandomizer();
+    private Hero_Damage_Rando()
+    {
+        InitRandomizer();
+    }
 
     /// <summary>
     /// Initialize Hero Damage Randomizer
@@ -41,6 +50,7 @@ internal class Hero_Damage_Rando : Rando_Base
     private protected override void InitRandomizer()
     {
         RandomizerName = "Hero Damage Randomizer";
+        RandomizerDescription = "Randomizes the damage Hornet does.";
 
         if (!Cute_Rando_Core.RegisterRandomizer(new(
             RandomizerName,
@@ -53,6 +63,20 @@ internal class Hero_Damage_Rando : Rando_Base
         base.InitRandomizer();
     }
 
+    private protected override void ApplySaveData(Dictionary<string, object> savedData)
+    {
+        if (savedData.TryGetValue(nameof(nailUpgradeDamages), out object tempDict))
+            nailUpgradeDamages.AddRange(JsonConvert.DeserializeObject<Dictionary<int, int>>(tempDict.ToString()));
+        if (savedData.TryGetValue(nameof(saveNailDamageOffset), out tempDict))
+            saveNailDamageOffset = JsonConvert.DeserializeObject<int>(tempDict.ToString());
+    }
+
+    private protected override void SetSaveData(Dictionary<string, object> savedData)
+    {
+        savedData[nameof(nailUpgradeDamages)] = nailUpgradeDamages;
+        savedData[nameof(saveNailDamageOffset)] = saveNailDamageOffset;
+    }
+
     // Unused as we don't need
     private protected override void Register() { }
     private protected override void Unregister() { }
@@ -60,7 +84,7 @@ internal class Hero_Damage_Rando : Rando_Base
     /// <summary>
     /// Patch the nail damage getter for either the base game, or debug mod if that is loaded.
     /// <para>
-    /// Debug mod's patch takes precidence over any patches applied to PlayerData.get_nailDamage. We need to patch that instead to apply the damage properly.
+    /// Debug mod's patch takes precidence over any patches applied to PlayerData.get_nailDamage for some reason. We need to patch that instead to apply the damage properly.
     /// </para>
     /// </summary>
     private void GameStartup()
@@ -78,7 +102,10 @@ internal class Hero_Damage_Rando : Rando_Base
     /// Patch that hooks onto the DebugMod's Get_NailDamage postfix since for some reason Harmony isn't able to put our own version after DebugMod's
     /// </summary>
     /// <param name="__result">The to-be returned nail damage amount</param>
-    private static void DebugModGetNailDamagePostfix(ref int __result) => PlayerDataGetNailDamagePostfix(ref __result);
+    private static void DebugModGetNailDamagePostfix(ref int __result)
+    {
+        PlayerDataGetNailDamagePostfix(ref __result);
+    }
 
     /// <summary>
     /// Patch that hooks get_NailDamage to tweak the nail's damage
@@ -100,7 +127,7 @@ internal class Hero_Damage_Rando : Rando_Base
     {
         switch (ConsistancySetting)
         {
-            case PlayerNailDamageConsistancy.NailUpgrade:
+            case PlayerNailDamageConsistancy.NailUpgradeLevel:
                 if (!nailUpgradeDamages.TryGetValue(nailDamage, out int tempDamage))
                 {
                     tempDamage = RollDamage();
@@ -109,13 +136,13 @@ internal class Hero_Damage_Rando : Rando_Base
 
                 nailDamage += tempDamage;
                 break;
-            case PlayerNailDamageConsistancy.Game:
-                if (gameNailDamageOffset.Equals(int.MinValue))
+            case PlayerNailDamageConsistancy.PerSave:
+                if (saveNailDamageOffset.Equals(int.MinValue))
                 {
-                    gameNailDamageOffset = RollDamage();
+                    saveNailDamageOffset = RollDamage();
                 }
 
-                nailDamage += gameNailDamageOffset;
+                nailDamage += saveNailDamageOffset;
                 break;
             case PlayerNailDamageConsistancy.None:
                 nailDamage += RollDamage();
@@ -127,16 +154,16 @@ internal class Hero_Damage_Rando : Rando_Base
 
         if (nailDamage <= 0 && PlayerNailDamageMinimum) nailDamage = 1;
 
-        int RollDamage() => UnityEngine.Random.Range(PlayerNailDamageShift * (-1), PlayerNailDamageShift);
+        int RollDamage()
+        {
+            return UnityEngine.Random.Range(PlayerNailDamageShift * (-1), PlayerNailDamageShift);
+        }
     }
 
-    /// <summary>
-    /// Reset the saved damages
-    /// </summary>
-    private void ResetDamages()
+    private protected override void ResetAllLists()
     {
         nailUpgradeDamages.Clear();
-        gameNailDamageOffset = int.MinValue;
+        saveNailDamageOffset = int.MinValue;
     }
 
     #region Settings
@@ -221,7 +248,7 @@ internal class Hero_Damage_Rando : Rando_Base
             key: "Damage Shift",
             defaultValue: defaultPlayerNailDamageShift,
             configDescription: new ConfigDescription(
-                description: "Shifts Hornet's damage up or down within a set value around her normal needle upgrade value. Acceptable values range from 0 to 20.",
+                description: "Shifts Hornet's within a range of the set value. Acceptable values range from 0 to 20.",
                 acceptableValues: new AcceptableValueRange<int>(0, 20),
                 tags: new ConfigurationManagerAttributes
                 {
@@ -238,16 +265,9 @@ internal class Hero_Damage_Rando : Rando_Base
                     Order = 0
                 }));
 
-        consistancySetting.SettingChanged += OnNailDamageChange;
-        playerNailDamageShift.SettingChanged += OnNailDamageChange;
+        playerNailDamageRando.SettingChanged += SettingMenu.OnRandomizerEnable;
+        SettingMenu.UpdateSubMenuColor(playerNailDamageRando);
     }
-
-    /// <summary>
-    /// Reset the saved damage values when the settings changed
-    /// </summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
-    private void OnNailDamageChange(object sender, EventArgs args) => ResetDamages();
     #endregion
 }
 
@@ -257,6 +277,6 @@ internal class Hero_Damage_Rando : Rando_Base
 internal enum PlayerNailDamageConsistancy
 {
     None, // Each swing is different damage
-    NailUpgrade, // Each nail upgrade is different damage
-    Game // Each teir is adjusted by the same amount
+    NailUpgradeLevel, // Each nail upgrade is different damage
+    PerSave // Each teir is adjusted by the same amount
 }

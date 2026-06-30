@@ -64,6 +64,7 @@
     <PackageReference Include="Newtonsoft.Json">
       <Version>13.0.4</Version>
     </PackageReference>
+    <PackageReference Include="Silksong.DataManager" Version="1.2.2" />
     <PackageReference Include="UnityEngine.Modules" Version="6000.0.50" IncludeAssets="compile" />
   </ItemGroup>
   <ItemGroup>
