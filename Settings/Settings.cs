@@ -5,10 +5,7 @@ using BepInEx.Configuration;
 
 using Newtonsoft.Json;
 
-using Smol_Randomizer.Randomizers;
-
 using UnityEngine;
-using UnityEngine.UIElements;
 
 namespace Smol_Randomizer.Settings;
 

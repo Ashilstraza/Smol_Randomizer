@@ -633,7 +633,7 @@ internal record RandomizedGeoSet
     /// Large geo to drop
     /// </summary>
     public int LargeGeo { get; private set; }
-    
+
     [JsonConstructor]
     public RandomizedGeoSet(int SmallGeo = 0, int MediumGeo = 0, int LargeGeo = 0)
     {

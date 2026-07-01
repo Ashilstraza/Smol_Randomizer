@@ -12,8 +12,6 @@ using Silksong.ModMenu.Screens;
 using Smol_Randomizer.Randomizers;
 
 using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.UIElements;
 
 namespace Smol_Randomizer.Settings;
 
@@ -208,7 +206,7 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
     /// <summary>
     /// Set of all the reset buttons
     /// </summary>
-    private readonly HashSet<TextButton> randoResetButtons = [];
+    private static readonly HashSet<TextButton> randoResetButtons = [];
 
     /// <summary>
     /// Tight spacing for vertical
@@ -427,7 +425,7 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
         intInput.SynchronizeRawWith(configEntry);
         intInput.Model.SetValue((int)configEntry.BoxedValue);
         intInput.DescriptionText.horizontalOverflow = HorizontalWrapMode.Overflow;
-        
+
         Add(intInput);
         return intInput;
     }
@@ -492,7 +490,7 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
                         foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> item in Settings.ConfigFile)
                         {
                             string section = item.Key.Section;
-                            if(!resetRandos.Contains(item.Key.Section))
+                            if (!resetRandos.Contains(item.Key.Section))
                             {
                                 OnResetClicked?.Invoke(section);
                                 resetRandos.Add(section);
@@ -511,7 +509,7 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
 
 
 
-            return screenBuilder;
+        return screenBuilder;
     }
 
     /// <summary>
@@ -547,11 +545,11 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
         }
     }
 
-    public void SaveSlotHandler(bool hasSaveData)
+    public static void SaveSlotHandler(bool hasSaveData)
     {
-        foreach(TextButton button in randoResetButtons)
+        foreach (TextButton button in randoResetButtons)
         {
-            button.SetMainColor(hasSaveData ? Color.white : Color.gray);
+            button?.SetMainColor(hasSaveData ? Color.white : Color.gray);
         }
     }
 

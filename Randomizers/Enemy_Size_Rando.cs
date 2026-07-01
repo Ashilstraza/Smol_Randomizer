@@ -228,7 +228,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         currentEnemyHealthManagers.RemoveWhere(x => x == null);
     }
 
-    
+
     private protected override void ResetAllLists()
     {
         currentEnemyHealthManagers.Clear();

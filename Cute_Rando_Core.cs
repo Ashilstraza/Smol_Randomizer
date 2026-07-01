@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -370,32 +369,32 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
                 activeOnSceneLoad.Add(
                     randomizer.Name,
                     (Action<Scene, LoadSceneMode>)DelegateHelper(
-                        typeof(Action<Scene, LoadSceneMode>), 
-                        randomizer.Method, 
+                        typeof(Action<Scene, LoadSceneMode>),
+                        randomizer.Method,
                         randomizer.Object));
                 break;
             case RandomizerEventType.OnFirstSceneFrame:
                 activeOnFirstSceneFrame.Add(
                     randomizer.Name,
                     (Action)DelegateHelper(
-                        typeof(Action), 
-                        randomizer.Method, 
+                        typeof(Action),
+                        randomizer.Method,
                         randomizer.Object));
                 break;
             case RandomizerEventType.GameStartup:
                 activeGameStartup.Add(
                     randomizer.Name,
                     (Action)DelegateHelper(
-                        typeof(Action), 
-                        randomizer.Method, 
+                        typeof(Action),
+                        randomizer.Method,
                         randomizer.Object));
                 break;
             case RandomizerEventType.GameShutdown:
                 activeGameShutdown.Add(
                     randomizer.Name,
                     (Action)DelegateHelper(
-                        typeof(Action), 
-                        randomizer.Method, 
+                        typeof(Action),
+                        randomizer.Method,
                         randomizer.Object));
                 break;
             default:
@@ -408,7 +407,7 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
 
         static Delegate DelegateHelper(Type type, MethodInfo methodInfo, object? firstArgument = null)
         {
-            if(firstArgument != null)
+            if (firstArgument != null)
             {
                 return Delegate.CreateDelegate(type: type, method: methodInfo, firstArgument: firstArgument);
             }
