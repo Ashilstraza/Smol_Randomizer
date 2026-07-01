@@ -189,6 +189,7 @@ internal class Enemy_Damage_Rando : Rando_Base
                         damageNumbersSet[name] = damageValue;
                     }
                 }
+                damager.damageDealt = damageValue;
 
                 break;
             case RandomizerConsistencyA.None:
@@ -300,7 +301,7 @@ internal class Enemy_Damage_Rando : Rando_Base
         ConfigFile config = Settings.Settings.ConfigFile;
         damageModifierType = config.Bind(
             section: RandomizerName,
-            key: "Enemy Damage Randomizer Type",
+            key: "Enemy Damage Modifier Type",
             defaultValue: defaultDamageModifierType,
             configDescription: new ConfigDescription(
                 description: "Damage modifier type. Shift adjusts by a random amount. Range randomizes within a range.",
@@ -335,6 +336,7 @@ internal class Enemy_Damage_Rando : Rando_Base
             defaultValue: defaultDamageRange,
             configDescription: new ConfigDescription(
                 description: "Set damage range.",
+                acceptableValues: new AcceptableValueRange<int>(0,10),
                 tags: new ConfigurationManagerAttributes
                 {
                     Order = 1,
