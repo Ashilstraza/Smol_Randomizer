@@ -307,7 +307,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
                 }));
         shardChanceEnable = config.Bind(
             section: RandomizerName,
-            key: "Randomize Wall Shard Drop Chance",
+            key: "Wall Shard Drop Chance",
             defaultValue: defaultShardChanceEnable,
             configDescription: new ConfigDescription(
                 description: "Enable wall shard drop chance multiplier.",
@@ -328,7 +328,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
                 }));
         architectChanceEnable = config.Bind(
             section: RandomizerName,
-            key: "Randomize Architect Shard Drop Chance",
+            key: "Architect Shard Drop Chance",
             defaultValue: defaultArchitectChanceEnable,
             configDescription: new ConfigDescription(
                 description: "Enable Architect Crest wall shard drop chance multiplier.",

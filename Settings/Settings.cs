@@ -344,8 +344,8 @@ internal enum RandomizeByFlatAmount
 public enum RandomizerConsistencyA
 {
     None,
-    EnemyType,
-    Scene
+    Scene,
+    EnemyType
 }
 
 /// <summary>

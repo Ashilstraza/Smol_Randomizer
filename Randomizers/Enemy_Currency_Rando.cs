@@ -456,7 +456,7 @@ internal class Enemy_Currency_Rando : Rando_Base
 
         randomizerConsistency = config.Bind(
             section: RandomizerName,
-            key: "Currency Randomizer Consistancy",
+            key: "Currency Consistancy",
             defaultValue: defaultRandomizerConsistency,
             configDescription: new ConfigDescription(
                 description: "Setting for if the drops should be consistent per enemy or room.",
@@ -466,7 +466,7 @@ internal class Enemy_Currency_Rando : Rando_Base
                 }));
         rosaryRandomizerType = config.Bind(
             section: RandomizerName,
-            key: "Randomize Rosary Quantity",
+            key: "Rosary Quantity",
             defaultValue: defaultRosaryRandomizerType,
             configDescription: new ConfigDescription(
                 description: "Randomize rosary quantities dropped from enemies.",
@@ -499,7 +499,7 @@ internal class Enemy_Currency_Rando : Rando_Base
 
         shardRandomizerType = config.Bind(
             section: RandomizerName,
-            key: "Randomize Shard Quantity",
+            key: "Shard Quantity",
             defaultValue: defaultShardRandomizerType,
             configDescription: new ConfigDescription(
                 description: "Randomize shard quantities dropped from enemies.",

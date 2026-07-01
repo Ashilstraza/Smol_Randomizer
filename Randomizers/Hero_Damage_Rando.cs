@@ -49,7 +49,7 @@ internal class Hero_Damage_Rando : Rando_Base
     /// </summary>
     private protected override void InitRandomizer()
     {
-        RandomizerName = "Hero Damage Randomizer";
+        RandomizerName = "Hornet Damage Randomizer";
         RandomizerDescription = "Randomizes the damage Hornet does.";
 
         if (!Cute_Rando_Core.RegisterRandomizer(new(
@@ -127,7 +127,7 @@ internal class Hero_Damage_Rando : Rando_Base
     {
         switch (ConsistancySetting)
         {
-            case PlayerNailDamageConsistancy.NailUpgradeLevel:
+            case PlayerNailDamageConsistancy.NeedleUpgradeLevel:
                 if (!nailUpgradeDamages.TryGetValue(nailDamage, out int tempDamage))
                 {
                     tempDamage = RollDamage();
@@ -225,10 +225,10 @@ internal class Hero_Damage_Rando : Rando_Base
         ConfigFile config = Settings.Settings.ConfigFile;
         playerNailDamageRando = config.Bind(
             section: RandomizerName,
-            key: "Randomizer Hornet Damage",
+            key: "Randomize Hornet's Damage",
             defaultValue: defaultPlayerNailDamageRando,
             configDescription: new ConfigDescription(
-                description: "Enable/Disable Randomization of Hornet's Damage.",
+                description: "Enable/Disable Randomization of Hornet's Needle Damage.",
                 tags: new ConfigurationManagerAttributes
                 {
                     Order = 3
@@ -238,7 +238,7 @@ internal class Hero_Damage_Rando : Rando_Base
             key: "Damage Consistancy",
             defaultValue: defaultConsistancySetting,
             configDescription: new ConfigDescription(
-                description: "Randomize Hornet's damage in a consistant way.",
+                description: "Randomize Hornet's needle damage in a consistant way.",
                 tags: new ConfigurationManagerAttributes
                 {
                     Order = 2
@@ -248,7 +248,7 @@ internal class Hero_Damage_Rando : Rando_Base
             key: "Damage Shift",
             defaultValue: defaultPlayerNailDamageShift,
             configDescription: new ConfigDescription(
-                description: "Shifts Hornet's within a range of the set value. Acceptable values range from 0 to 20.",
+                description: "Shifts Hornet's needle damage within a range of the set value. Acceptable values range from 0 to 20.",
                 acceptableValues: new AcceptableValueRange<int>(0, 20),
                 tags: new ConfigurationManagerAttributes
                 {
@@ -259,7 +259,7 @@ internal class Hero_Damage_Rando : Rando_Base
             key: "Hornet Damage Minimum",
             defaultValue: defaultPlayerNailDamageMinimum,
             configDescription: new ConfigDescription(
-                description: "Sets the minimum damage that Hornet can to to 1.",
+                description: "Sets the minimum damage that Hornet's needle can to to 1.",
                 tags: new ConfigurationManagerAttributes
                 {
                     Order = 0
@@ -277,6 +277,6 @@ internal class Hero_Damage_Rando : Rando_Base
 internal enum PlayerNailDamageConsistancy
 {
     None, // Each swing is different damage
-    NailUpgradeLevel, // Each nail upgrade is different damage
+    NeedleUpgradeLevel, // Each nail upgrade is different damage
     PerSave // Each teir is adjusted by the same amount
 }

@@ -298,7 +298,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         ConfigFile config = Settings.Settings.ConfigFile;
         enemySizeRandomizerSetting = config.Bind(
             section: RandomizerName,
-            key: "Randomize Enemy Size",
+            key: "Randomize Size",
             defaultValue: defaultEnemySizeRandomizerSetting,
             configDescription: new ConfigDescription(
                 description: "Allow randomization of enemy and/or boss size.",
