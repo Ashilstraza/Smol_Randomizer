@@ -108,7 +108,7 @@ This randomizes the size of Enemies and Bosses.
 	* Minimum and Maximum - Enemy soze will be multiplied by a random amount between these two values.
 
 * Boss Size Range
-	* Minimum and Maximum  - Boss size will be multiplied by a random amount between these two values. Values that are too small or too large may bug out the boss encounter. The recommended minumum is 75% and maximum 125%.
+	* Minimum and Maximum  - Boss size will be multiplied by a random amount between these two values. Values that are too small or too large may bug out the boss encounter. The recommended minumum is 85% and maximum 125%.
 </details>
 
 ## Hornet's Damage

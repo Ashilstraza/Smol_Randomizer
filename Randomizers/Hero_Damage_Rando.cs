@@ -225,7 +225,7 @@ internal class Hero_Damage_Rando : Rando_Base
         ConfigFile config = Settings.Settings.ConfigFile;
         playerNailDamageRando = config.Bind(
             section: RandomizerName,
-            key: "Randomize Hornet's Damage",
+            key: "Randomize Hornets Damage",
             defaultValue: defaultPlayerNailDamageRando,
             configDescription: new ConfigDescription(
                 description: "Enable/Disable Randomization of Hornet's Needle Damage.",
