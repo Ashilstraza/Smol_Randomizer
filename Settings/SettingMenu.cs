@@ -354,7 +354,7 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
             descriptionLabel.Text.horizontalOverflow = HorizontalWrapMode.Overflow;
         }
 
-        (float min, float max) = configEntry.Description.AcceptableValues is AcceptableValueRange<float> range ? Tuple.Create(range.MinValue, range.MaxValue) : Tuple.Create(0f, (float)Settings.maxSliderPercent);
+        (float min, float max) = configEntry.Description.AcceptableValues is AcceptableRangeforFloatRange range ? Tuple.Create(range.MinValue, range.MaxValue) : Tuple.Create(0f, (float)Settings.maxSliderPercent);
         int ticks = (int)Math.Round(max - min);
         LinearFloatSliderModel minModel = SliderModels.ForFloats(min, max, ticks);
         LinearFloatSliderModel maxModel = SliderModels.ForFloats(min, max, ticks);
@@ -392,7 +392,7 @@ public class Cute_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
             descriptionLabel.Text.horizontalOverflow = HorizontalWrapMode.Overflow;
         }
 
-        (int min, int max) = configEntry.Description.AcceptableValues is AcceptableValueRange<int> range ? Tuple.Create(range.MinValue, range.MaxValue) : Tuple.Create(0, Settings.maxSliderPercent);
+        (int min, int max) = configEntry.Description.AcceptableValues is AcceptableRangeforIntRange range ? Tuple.Create(range.MinValue, range.MaxValue) : Tuple.Create(0, Settings.maxSliderPercent);
         IntSliderModel minModel = SliderModels.ForInts(min, max);
         IntSliderModel maxModel = SliderModels.ForInts(min, max);
 

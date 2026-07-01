@@ -135,7 +135,7 @@ public static class Settings
             FloatRange value = (FloatRange)entry.BoxedValue;
             string min = (value.Min * 100).ToString();
             string max = (value.Max * 100).ToString();
-            TextRange(ref min, ref max, RangeType.Percent);
+            TextRange(ref min, ref max, RangeType.Percent, entry.Description.AcceptableValues);
             try
             {
                 entry.BoxedValue = new FloatRange(float.Parse(min) / 100, float.Parse(max) / 100);
@@ -150,7 +150,7 @@ public static class Settings
             IntRange value = (IntRange)entry.BoxedValue;
             string min = value.Min.ToString();
             string max = value.Max.ToString();
-            TextRange(ref min, ref max, RangeType.Value);
+            TextRange(ref min, ref max, RangeType.Value, entry.Description.AcceptableValues);
             try
             {
                 entry.BoxedValue = new IntRange((int)Math.Round(float.Parse(min)), (int)Math.Round(float.Parse(max)));
@@ -172,14 +172,28 @@ public static class Settings
     /// <param name="min">Minimum Value.</param>
     /// <param name="max">Maximum Value.</param>
     /// <param name="rangeType">Type of range the values are.</param>
-    private static void TextRange(ref string min, ref string max, RangeType rangeType)
+    private static void TextRange(ref string min, ref string max, RangeType rangeType, AcceptableValueBase? acceptableRange = null)
     {
+        int minVal = 0;
+        int maxVal = rangeType.Equals(RangeType.Percent) ? maxSliderPercent : maxSliderValue;
+
+        if (acceptableRange is AcceptableRangeforIntRange iRange)
+        {
+            minVal = iRange.MinValue;
+            maxVal = iRange.MaxValue;
+        }
+        else if(acceptableRange is AcceptableRangeforFloatRange fRange)
+        {
+            minVal = (int)fRange.MinValue;
+            maxVal= (int)fRange.MaxValue;
+        }
+
         using GUILayout.VerticalScope verticalGroup = new("box");
         using (GUILayout.HorizontalScope horizontalGroup = new("box"))
         {
             GUILayout.Label($"Minimum {(rangeType.Equals(RangeType.Percent) ? "Percent" : "Value")}");
             min = GUILayout.TextField(min, GUILayout.Width(30));
-            min = GUILayout.HorizontalSlider((float)Math.Round(float.Parse(min)), 0, (float)Math.Round(float.Parse(max)), GUILayout.Width(100)).ToString();
+            min = GUILayout.HorizontalSlider((float)Math.Round(float.Parse(min)), minVal, (float)Math.Round(float.Parse(max)), GUILayout.Width(100)).ToString();
 
         }
 
@@ -187,7 +201,7 @@ public static class Settings
         {
             GUILayout.Label($"Maximum {(rangeType.Equals(RangeType.Percent) ? "Percent" : "Value")}");
             max = GUILayout.TextField(max, GUILayout.Width(30));
-            max = GUILayout.HorizontalSlider((float)Math.Round(float.Parse(max)), (float)Math.Round(float.Parse(min)), rangeType.Equals(RangeType.Percent) ? maxSliderPercent : maxSliderValue, GUILayout.Width(100)).ToString();
+            max = GUILayout.HorizontalSlider((float)Math.Round(float.Parse(max)), (float)Math.Round(float.Parse(min)), maxVal, GUILayout.Width(100)).ToString();
         }
     }
 

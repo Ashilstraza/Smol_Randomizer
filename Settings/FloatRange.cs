@@ -1,5 +1,7 @@
 ﻿using System;
 
+using BepInEx.Configuration;
+
 namespace Smol_Randomizer.Settings;
 
 /// <summary>
@@ -45,6 +47,19 @@ public class FloatRange
     }
 
     /// <summary>
+    /// Workaround to allow casting a float to a FloatRange
+    /// </summary>
+    private float Both
+    {
+        get => min == max ? min : max / min;
+        set
+        {
+            min = value;
+            max = value;
+        }
+    }
+
+    /// <summary>
     /// Returns the range as a Tuple.
     /// </summary>
     /// <returns>(min, max)</returns>
@@ -72,6 +87,18 @@ public class FloatRange
             throw new ArgumentException($"{min} is greater than the maximum value ({max})");
         }
     }
+
+    /// <summary>
+    /// Cast a float to a FloatRange where both the minimum and maximum values equal the float
+    /// </summary>
+    /// <param name="fr">The float</param>
+    public static implicit operator float(FloatRange fr) => fr.Both;
+
+    /// <summary>
+    /// Cast a float to a FloatRange where both the minimum and maximum values equal the float
+    /// </summary>
+    /// <param name="f">The float</param>
+    public static explicit operator FloatRange(float f) => new(f, f);
 
     /// <summary>
     /// Checks to see if a given value is within the bounds of the Range
@@ -143,5 +170,77 @@ public class FloatRange
     public override int GetHashCode()
     {
         return HashCode.Combine(min, max);
+    }
+}
+
+public class AcceptableRangeforFloatRange(float minValue, float maxValue) : AcceptableValueBase(typeof(FloatRange))
+{
+    public float MinValue { get; } = minValue;
+    public float MaxValue { get; } = maxValue;
+
+    public override object Clamp(object value)
+    {
+        if (value.GetType() == typeof(FloatRange))
+        {
+            FloatRange range = (FloatRange)value;
+
+            if (MinValue.CompareTo(range.Min) > 0)
+            {
+                range.Min = MinValue;
+            }
+
+            if (MaxValue.CompareTo(range.Max) < 0)
+            {
+                range.Max = MaxValue;
+            }
+
+            return range;
+        }
+        else if (value.GetType() == typeof(float))
+        {
+            float f = (float)value;
+            if (MinValue.CompareTo(f) > 0)
+            {
+                return MinValue;
+            }
+
+            if (MaxValue.CompareTo(f) < 0)
+            {
+                return MaxValue;
+            }
+
+            return value;
+        }
+        else
+            throw new ArgumentException("Unable to clamp an object that is not an IntRange or int");
+    }
+
+    public override bool IsValid(object value)
+    {
+        if (value.GetType() == typeof(FloatRange))
+        {
+            FloatRange range = (FloatRange)value;
+
+            if (MinValue.CompareTo(range.Min) <= 0)
+            {
+                return MaxValue.CompareTo(range.Max) >= 0;
+            }
+        }
+        else if (value.GetType() == typeof(float))
+        {
+            float f = (float)value;
+
+            if (MinValue.CompareTo(f) <= 0)
+            {
+                return MaxValue.CompareTo(f) >= 0;
+            }
+        }
+
+        return false;
+    }
+
+    public override string ToDescriptionString()
+    {
+        return $"# Acceptable value range: From {MinValue} to {MaxValue}";
     }
 }

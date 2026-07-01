@@ -1,5 +1,7 @@
 ﻿using System;
 
+using BepInEx.Configuration;
+
 namespace Smol_Randomizer.Settings;
 
 /// <summary>
@@ -45,6 +47,19 @@ public class IntRange
     }
 
     /// <summary>
+    /// Workaround to allow casting an int to an IntRange
+    /// </summary>
+    private int Both
+    {
+        get => min == max ? min : max/min;
+        set
+        {
+            min = value;
+            max = value;
+        }
+    }
+
+    /// <summary>
     /// Returns the range as a Tuple.
     /// </summary>
     /// <returns>(min, max)</returns>
@@ -72,6 +87,18 @@ public class IntRange
             throw new ArgumentException($"{min} is greater than the maximum value ({max})");
         }
     }
+
+    /// <summary>
+    /// Cast an int to an IntRange where both the minimum and maximum values equal the int
+    /// </summary>
+    /// <param name="ir">The int</param>
+    public static implicit operator int(IntRange ir) => ir.Both;
+
+    /// <summary>
+    /// Cast an int to an IntRange where both the minimum and maximum values equal the int
+    /// </summary>
+    /// <param name="i">The int</param>
+    public static explicit operator IntRange(int i) => new(i,i);
 
     /// <summary>
     /// Checks to see if a given value is within the bounds of the Range
@@ -145,3 +172,76 @@ public class IntRange
         return HashCode.Combine(min, max);
     }
 }
+
+public class AcceptableRangeforIntRange(int minValue, int maxValue) : AcceptableValueBase(typeof(IntRange))
+{
+    public int MinValue { get; } = minValue;
+    public int MaxValue { get; } = maxValue;
+
+    public override object Clamp(object value)
+    {
+        if(value.GetType() == typeof(IntRange))
+        {
+            IntRange range = (IntRange)value;
+
+            if (MinValue.CompareTo(range.Min) > 0)
+            {
+                range.Min = MinValue;
+            }
+
+            if (MaxValue.CompareTo(range.Max) < 0)
+            {
+                range.Max = MaxValue;
+            }
+
+            return range;
+        }
+        else if (value.GetType() == typeof(int))
+        {
+            int i = (int)value;
+            if (MinValue.CompareTo(i) > 0)
+            {
+                return MinValue;
+            }
+
+            if (MaxValue.CompareTo(i) < 0)
+            {
+                return MaxValue;
+            }
+
+            return value;
+        }
+        else
+            throw new ArgumentException("Unable to clamp an object that is not an IntRange or int");
+    }
+
+    public override bool IsValid(object value)
+    {
+        if (value.GetType() == typeof(IntRange))
+        {
+            IntRange range = (IntRange)value;
+
+            if (MinValue.CompareTo(range.Min) <= 0)
+            {
+                return MaxValue.CompareTo(range.Max) >= 0;
+            }
+        }
+        else if (value.GetType() == typeof(int))
+        {
+            int i = (int)value;
+
+            if (MinValue.CompareTo(i) <= 0)
+            {
+                return MaxValue.CompareTo(i) >= 0;
+            }
+        }
+
+        return false;
+    }
+
+    public override string ToDescriptionString()
+    {
+        return $"# Acceptable value range: From {MinValue} to {MaxValue}";
+    }
+}
+

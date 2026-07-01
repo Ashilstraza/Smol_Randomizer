@@ -336,7 +336,7 @@ internal class Enemy_Damage_Rando : Rando_Base
             defaultValue: defaultDamageRange,
             configDescription: new ConfigDescription(
                 description: "Set damage range.",
-                acceptableValues: new AcceptableValueRange<int>(0,10),
+                acceptableValues: new AcceptableRangeforIntRange(0, 10),
                 tags: new ConfigurationManagerAttributes
                 {
                     Order = 1,
