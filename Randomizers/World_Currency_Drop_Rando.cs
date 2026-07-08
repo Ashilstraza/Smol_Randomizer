@@ -234,10 +234,10 @@ internal class World_Currency_Drop_Rando : Rando_Base
     private void UpdateConsistantMultipliers()
     {
         if (shardChanceChanging)
-            consistantMultiplier = Cute_Rando_Core.RandoHelper(ShardChanceMultiplier.AsTuple(), Settings.Settings.SaveData.SaveSeed);
+            consistantMultiplier = Cute_Rando_Core.RandoHelper(ShardChanceMultiplier.AsTuple(), Cute_Rando_Core.RNGSeed(nameof(consistantMultiplier)));
 
         if (architectCrestChanging)
-            consistantACMultiplier = Cute_Rando_Core.RandoHelper(ArchitectCrestMultiplier.AsTuple(), Settings.Settings.SaveData.SaveSeed);
+            consistantACMultiplier = Cute_Rando_Core.RandoHelper(ArchitectCrestMultiplier.AsTuple(), Cute_Rando_Core.RNGSeed(nameof(consistantACMultiplier)));
 
         architectCrestChanging = false;
         shardChanceChanging = false;
