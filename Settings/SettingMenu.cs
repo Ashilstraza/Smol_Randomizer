@@ -158,7 +158,7 @@ internal class SettingMenu : Smol_Randomizer_MenuBuilder
             {
                 if (!visible) return;
 
-                resetButton.SetMainColor(Settings.SaveData != null ? Color.white : Color.gray);
+                resetButton.SetMainColor(Settings.Loaded ? Color.white : Color.gray);
             };
             
             randoResetButtons.Add(resetButton);
@@ -215,7 +215,7 @@ internal class SettingMenu : Smol_Randomizer_MenuBuilder
             {
                 if (!visible) return;
 
-                resetButton.SetMainColor(Settings.SaveData != null ? Color.white : Color.gray);
+                resetButton.SetMainColor(Settings.Loaded ? Color.white : Color.gray);
             };
 
             randoResetButtons.Add(resetButton);
