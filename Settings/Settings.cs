@@ -104,6 +104,7 @@ public static class Settings
             new ConfigDescription(
                 "Test new things"));
 #endif
+        enableRandomizer.SettingChanged += Cute_Rando_Core.UpdateSettings;
         enabledRandomizerColors.SettingChanged += SettingMenu.OnEnabledRandomizerColorChanged;
         SettingMenu.ChangeColors(EnabledRandomizerColors);
     }
@@ -241,8 +242,12 @@ public static class Settings
     {
         get
         {
-            saveData ??= new();
-            RandoPerSaveData.Saving();
+            if (saveData == null)
+            {
+                saveData ??= new();
+                RandoPerSaveData.Saving();
+            }
+
             return saveData;
         }
         set
@@ -252,6 +257,25 @@ public static class Settings
         }
     }
     private static RandoPerSaveData saveData;
+
+    public static bool Loaded
+    {
+        get
+        {
+            if (loading)
+            {
+                if (GameManager.instance.sm.sceneType == GlobalEnums.SceneType.GAMEPLAY)
+                    loaded = true;
+                else loaded = false;
+                loading = false;
+            }
+            return loaded;
+        }
+    }
+
+    private static bool loaded = false;
+
+    internal static bool loading = false;
     #endregion
 }
 
@@ -272,10 +296,36 @@ public class RandoPerSaveData
     }
 
     /// <summary>
+    /// The seed for the save
+    /// </summary>
+    [JsonIgnore]
+    public int SaveSeed
+    {
+        get
+        {
+            if (saveSeed == int.MinValue) saveSeed = Cute_Rando_Core.GetNewSaveSeed();
+            return saveSeed;
+        }
+    }
+
+    [JsonProperty]
+    private int saveSeed = int.MinValue;
+
+    /// <summary>
+    /// Called on the data being loaded
+    /// </summary>
+    internal static event Action<bool> OnSettingsLoaded;
+    /// <summary>
+    /// Called on the data being saved
+    /// </summary>
+    internal static event Action OnSettingsSaved;
+
+    /// <summary>
     /// Loads the saved data into the various randomizers that are listening for the load.
     /// </summary>
     internal void Load()
     {
+        Settings.loading = true;
         try
         {
             OnSettingsLoaded?.Invoke(!(SmolSaveDictionary == null));
@@ -291,7 +341,7 @@ public class RandoPerSaveData
     /// </summary>
     internal static void Saving()
     {
-        OnSettingsSaved?.Invoke(true);
+        OnSettingsSaved?.Invoke();
     }
 
     /// <summary>
@@ -323,13 +373,21 @@ public class RandoPerSaveData
     }
 
     /// <summary>
-    /// Called on the data being loaded
+    /// Rerolls the seed.
     /// </summary>
-    internal static event Action<bool> OnSettingsLoaded;
+    internal void RerollSeed()
+    {
+        saveSeed = Cute_Rando_Core.GetNewSaveSeed();
+    }
+
     /// <summary>
-    /// Called on the data being saved
+    /// Sets the seed to the given value.
     /// </summary>
-    internal static event Action<bool> OnSettingsSaved;
+    /// <param name="seed">The new seed</param>
+    internal void SetSeed(int seed)
+    {
+        saveSeed = seed;
+    }
 }
 
 /// <summary>
@@ -390,5 +448,6 @@ public enum RandomizerEnemyTypeFlags
 public enum RandomizerColors
 {
     GreenRed,
-    BlueYellow
+    BlueYellow,
+    PurpleOrange
 }

@@ -116,6 +116,9 @@ internal class Enemy_Damage_Rando : Rando_Base
         savedData[nameof(sceneDamageNumbers)] = sceneDamageNumbers;
     }
 
+    // Unneeded for this Randomizer
+    private protected override void OnSettingsSaved() { }
+
     /// <summary>
     /// Patch DamageHero.OnEnable on game startup
     /// </summary>
@@ -178,7 +181,7 @@ internal class Enemy_Damage_Rando : Rando_Base
             case RandomizerConsistencyA.Scene:
                 if (!sceneDamageNumbers.TryGetValue(operatingScene, out Dictionary<string, int> damageNumbersSet))
                 {
-                    DamageSetter(ref damageValue);
+                    DamageSetter(ref damageValue, Cute_Rando_Core.RNGSeed(name + operatingScene));
                     sceneDamageNumbers[operatingScene] = new() { { name, damageValue } };
                 }
                 else

@@ -174,12 +174,23 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     /// <summary>
     /// Update the settings we care about
     /// </summary>
-    private static void UpdateSettings()
+    /// <param name="sender">?</param>
+    /// <param name="args">The setting that was changed</param>
+    internal static void UpdateSettings(object sender, EventArgs args)
     {
 #if DEBUG
         testing = Settings.Settings.TestNewThings;
 #endif
         randomize = Settings.Settings.EnableRandomizer;
+        if (!randomize)
+        {
+            Smol_Randomizer_MenuBuilder.Enabled = Smol_Randomizer_MenuBuilder.LightGray;
+            Smol_Randomizer_MenuBuilder.Disabled = Smol_Randomizer_MenuBuilder.LightGray;
+        }
+        else
+            SettingMenu.ChangeColors(Settings.Settings.EnabledRandomizerColors);
+
+        SettingMenu.thisSettingMenu?.UpdateAllSubMenuColors();
     }
 
     /// <summary>
@@ -189,8 +200,7 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     /// <param name="mode">TODO: dunno</param>
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        UpdateSettings();
-
+        
         if (!randomize) return;
 
         foreach (KeyValuePair<string, Action<Scene, LoadSceneMode>> randomizer in activeOnSceneLoad)
@@ -246,6 +256,7 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     /// <param name="saveFile">The stream for the save file.</param>
     public void WriteSaveData(Stream saveFile)
     {
+        RandoPerSaveData.Saving();
         string json = JsonConvert.SerializeObject(Settings.Settings.SaveData, Formatting.Indented);
         using StreamWriter sw = new(saveFile);
 
@@ -547,7 +558,7 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     {
         int saveSeed = Settings.Settings.SaveData.SaveSeed;
         foreach (byte b in Encoding.Unicode.GetBytes(modifier))
-    {
+        {
             saveSeed += (int)b;
         }
         return saveSeed;

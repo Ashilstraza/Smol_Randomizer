@@ -129,6 +129,14 @@ internal class World_Currency_Drop_Rando : Rando_Base
         savedData[nameof(consistantACMultiplier)] = consistantACMultiplier;
     }
 
+    private protected override void OnSettingsSaved()
+    {
+        Dictionary<string, object> savedData = Settings.Settings.SaveData.GetSavedData(RandomizerName);
+
+        savedData[nameof(consistantMultiplier)] = consistantMultiplier;
+        savedData[nameof(consistantACMultiplier)] = consistantACMultiplier;
+    }
+
     /// <summary>
     /// On Scene Load, save current loading scene
     /// </summary>
@@ -218,6 +226,21 @@ internal class World_Currency_Drop_Rando : Rando_Base
         UpdateConsistantMultipliers();
         sceneMultiplier.Clear();
         sceneACMultiplier.Clear();
+    }
+
+    /// <summary>
+    /// Reroll the multipliers when called, must have changing bools set to true to change their respective multipliers
+    /// </summary>
+    private void UpdateConsistantMultipliers()
+    {
+        if (shardChanceChanging)
+            consistantMultiplier = Cute_Rando_Core.RandoHelper(ShardChanceMultiplier.AsTuple(), Settings.Settings.SaveData.SaveSeed);
+
+        if (architectCrestChanging)
+            consistantACMultiplier = Cute_Rando_Core.RandoHelper(ArchitectCrestMultiplier.AsTuple(), Settings.Settings.SaveData.SaveSeed);
+
+        architectCrestChanging = false;
+        shardChanceChanging = false;
     }
 
     #region Settings
@@ -384,21 +407,6 @@ internal class World_Currency_Drop_Rando : Rando_Base
             else
                 SettingMenu.UpdateSubMenuColor(architectChanceEnable);
         }
-    }
-
-    /// <summary>
-    /// Reroll the multipliers when called, must have changing bools set to true to change their respective multipliers
-    /// </summary>
-    private void UpdateConsistantMultipliers()
-    {
-        if (shardChanceChanging)
-            consistantMultiplier = Cute_Rando_Core.TupleRandoHelper(ShardChanceMultiplier.AsTuple());
-
-        if (architectCrestChanging)
-            consistantACMultiplier = Cute_Rando_Core.TupleRandoHelper(ArchitectCrestMultiplier.AsTuple());
-
-        architectCrestChanging = false;
-        shardChanceChanging = false;
     }
     #endregion
 }

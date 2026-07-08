@@ -31,7 +31,8 @@ internal abstract class Rando_Base
         InitSettings();
         Settings.Settings.enableRandomizer.SettingChanged += RandoCoreSetting;
         Settings.RandoPerSaveData.OnSettingsLoaded += OnSettingsLoaded;
-        Settings.Cute_Randomizer_MenuBuilder.OnResetClicked += OnResetClicked;
+        Settings.SettingMenu.OnResetClicked += OnResetClicked;
+        Settings.RandoPerSaveData.OnSettingsSaved += OnSettingsSaved;
     }
     /// <summary>
     /// Registers the various events we want to watch for
@@ -60,6 +61,11 @@ internal abstract class Rando_Base
 
         SetSaveData(savedData);
     }
+
+    /// <summary>
+    /// Event hook for when settings are saved
+    /// </summary>
+    private protected abstract void OnSettingsSaved();
 
     /// <summary>
     /// Clears this Randomizer's lists if the given name matches the RandomizerName

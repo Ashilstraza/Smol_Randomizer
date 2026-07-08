@@ -118,6 +118,10 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         savedData[nameof(sceneEnemySizes)] = sceneEnemySizes;
     }
 
+
+    // Unneeded for this Randomizer
+    private protected override void OnSettingsSaved() { }
+
     /// <summary>
     /// Patch HealthManager.OnEnable on game startup
     /// </summary>

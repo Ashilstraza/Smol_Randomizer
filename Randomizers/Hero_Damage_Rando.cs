@@ -77,6 +77,13 @@ internal class Hero_Damage_Rando : Rando_Base
         savedData[nameof(saveNailDamageOffset)] = saveNailDamageOffset;
     }
 
+    private protected override void OnSettingsSaved()
+    {
+        Dictionary<string, object> savedData = Settings.Settings.SaveData.GetSavedData(RandomizerName);
+
+        savedData[nameof(saveNailDamageOffset)] = saveNailDamageOffset;
+    }
+
     // Unused as we don't need
     private protected override void Register() { }
     private protected override void Unregister() { }
@@ -248,7 +255,7 @@ internal class Hero_Damage_Rando : Rando_Base
             key: "Damage Shift",
             defaultValue: defaultPlayerNailDamageShift,
             configDescription: new ConfigDescription(
-                description: "Shifts Hornet's needle damage within a range of the set value. Acceptable values range from 0 to 20.",
+                description: "Shifts Hornet's needle damage within a range of the set value.",
                 acceptableValues: new AcceptableValueRange<int>(0, 20),
                 tags: new ConfigurationManagerAttributes
                 {

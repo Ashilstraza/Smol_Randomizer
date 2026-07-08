@@ -115,6 +115,9 @@ internal class Enemy_Health_Rando : Rando_Base
         savedData[nameof(enemyHealthNumbers)] = enemyHealthNumbers;
         savedData[nameof(sceneHealthNumbers)] = sceneHealthNumbers;
     }
+    
+    // Unneeded for this Randomizer
+    private protected override void OnSettingsSaved() { }
 
     /// <summary>
     /// Patch HealthManager.OnEnable on game startup

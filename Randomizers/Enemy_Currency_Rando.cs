@@ -147,7 +147,11 @@ internal class Enemy_Currency_Rando : Rando_Base
         savedData[nameof(sceneGeoSets)] = sceneGeoSets;
         savedData[nameof(enemyShards)] = enemyShards;
         savedData[nameof(sceneShards)] = sceneShards;
+
     }
+
+    // Unneeded for this Randomizer
+    private protected override void OnSettingsSaved() { }
 
     /// <summary>
     /// Patch HealthManager.OnEnable on game startup
@@ -480,6 +484,7 @@ internal class Enemy_Currency_Rando : Rando_Base
             defaultValue: defaultRosaryPercentDropRange,
             configDescription: new ConfigDescription(
                 description: "Randomize the rosary drops as a percentage.",
+                acceptableValues: new AcceptableRangeforFloatRange(0f, 3f),
                 tags: new ConfigurationManagerAttributes
                 {
                     Order = 4,
@@ -491,6 +496,7 @@ internal class Enemy_Currency_Rando : Rando_Base
             defaultValue: defaultRosaryValueDropRange,
             configDescription: new ConfigDescription(
                 description: "Randomize the rosary drops as a flat amount.",
+                acceptableValues: new AcceptableRangeforIntRange(0, 100),
                 tags: new ConfigurationManagerAttributes
                 {
                     Order = 3,
@@ -513,6 +519,7 @@ internal class Enemy_Currency_Rando : Rando_Base
             defaultValue: defaultShardPercentDropRange,
             configDescription: new ConfigDescription(
                 description: "Randomize the shard drops as a percentage.",
+                acceptableValues: new AcceptableRangeforFloatRange(0f, 3f),
                 tags: new ConfigurationManagerAttributes
                 {
                     Order = 1,
@@ -524,6 +531,7 @@ internal class Enemy_Currency_Rando : Rando_Base
             defaultValue: defaultShardValueDropRange,
             configDescription: new ConfigDescription(
                 description: "Randomize the shard drops as a flat amount.",
+                acceptableValues: new AcceptableRangeforIntRange(0, 50),
                 tags: new ConfigurationManagerAttributes
                 {
                     Order = 0,
