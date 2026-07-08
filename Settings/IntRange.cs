@@ -51,7 +51,7 @@ public class IntRange
     /// </summary>
     private int Both
     {
-        get => min == max ? min : max/min;
+        get => min == max ? min : max / min;  // Doesn't get used
         set
         {
             min = value;
@@ -98,7 +98,7 @@ public class IntRange
     /// Cast an int to an IntRange where both the minimum and maximum values equal the int
     /// </summary>
     /// <param name="i">The int</param>
-    public static explicit operator IntRange(int i) => new(i,i);
+    public static explicit operator IntRange(int i) => new(i, i);
 
     /// <summary>
     /// Checks to see if a given value is within the bounds of the Range
@@ -180,7 +180,7 @@ public class AcceptableRangeforIntRange(int minValue, int maxValue) : Acceptable
 
     public override object Clamp(object value)
     {
-        if(value.GetType() == typeof(IntRange))
+        if (value.GetType() == typeof(IntRange))
         {
             IntRange range = (IntRange)value;
 

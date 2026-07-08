@@ -182,10 +182,10 @@ public static class Settings
             minVal = iRange.MinValue;
             maxVal = iRange.MaxValue;
         }
-        else if(acceptableRange is AcceptableRangeforFloatRange fRange)
+        else if (acceptableRange is AcceptableRangeforFloatRange fRange)
         {
             minVal = (int)fRange.MinValue;
-            maxVal= (int)fRange.MaxValue;
+            maxVal = (int)fRange.MaxValue;
         }
 
         using GUILayout.VerticalScope verticalGroup = new("box");

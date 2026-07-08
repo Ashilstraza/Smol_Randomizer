@@ -51,7 +51,7 @@ public class FloatRange
     /// </summary>
     private float Both
     {
-        get => min == max ? min : max / min;
+        get => min == max ? min : max / min; // Doesn't get used
         set
         {
             min = value;
