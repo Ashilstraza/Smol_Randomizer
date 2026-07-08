@@ -223,7 +223,7 @@ internal class Enemy_Currency_Rando : Rando_Base
         }
 
         if (ShardRandomizerType != RandomizeByRangeTypes.Disabled)
-            shellShardDrops = RandomizeShards(thing, ref shellShardDrops);
+            RandomizeShards(thing, ref shellShardDrops);
     }
 
     /// <summary>
@@ -233,7 +233,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// <param name="shellShardDrops">Shell shard drop quantitiy</param>
     /// <returns>Nukber of shards for enemy to drop</returns>
     /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
-    private int RandomizeShards(HealthManager thing, ref int shellShardDrops)
+    private void RandomizeShards(HealthManager thing, ref int shellShardDrops)
     {
         string operatingScene = thing.gameObject.scene.name;
 
@@ -248,42 +248,52 @@ internal class Enemy_Currency_Rando : Rando_Base
             case RandomizerConsistencyA.EnemyType:
                 if (!enemyShards.TryGetValue(name, out shards))
                 {
-                    shards = GetRandoTypeShards(ref shellShardDrops, Cute_Rando_Core.RNGSeed(name));
+                    shards = GetRandoTypeShards(shellShardDrops, Cute_Rando_Core.RNGSeed(name));
                     enemyShards[name] = shards;
                 }
 
-                return shards;
+                shellShardDrops = shards;
+                
+                return;
             case RandomizerConsistencyA.Scene:
 
                 if (!sceneShards.TryGetValue(operatingScene, out Dictionary<string, int> shardSet))
                 {
-                    shards = GetRandoTypeShards(ref shellShardDrops, Cute_Rando_Core.RNGSeed(name + operatingScene));
+                    shards = GetRandoTypeShards(shellShardDrops, Cute_Rando_Core.RNGSeed(name + operatingScene));
                     sceneShards[operatingScene] = new() { { name, shards } };
                 }
                 else
                 {
                     if (!shardSet.TryGetValue(name, out shards))
                     {
-                        shards = GetRandoTypeShards(ref shellShardDrops, Cute_Rando_Core.RNGSeed(name + operatingScene));
+                        shards = GetRandoTypeShards(shellShardDrops, Cute_Rando_Core.RNGSeed(name + operatingScene));
                         shardSet[name] = shards;
                     }
                 }
 
-                return shards;
+                shellShardDrops = shards;
+
+                return;
             case RandomizerConsistencyA.None:
-                return GetRandoTypeShards(ref shellShardDrops);
+                shellShardDrops = GetRandoTypeShards(shellShardDrops);
+                return;
             default:
                 throw new NotImplementedException();
         }
 
         // Helper to randomize shards
-        int GetRandoTypeShards(ref int shellShardDrops, int seed = int.MinValue)
+        int GetRandoTypeShards(int shellShardDrops, int seed = int.MinValue)
         {
-            return ShardRandomizerType == RandomizeByRangeTypes.Percent
-                ? (int)Math.Round(shellShardDrops * Cute_Rando_Core.RandoHelper(ShardPercentDropRange.AsTuple()), seed)
-                : ShardRandomizerType == RandomizeByRangeTypes.Value
-                    ? Cute_Rando_Core.RandoHelper(ShardValueDropRange.AsTuple(), seed)
-                    : 0;
+            int shards = 0;
+            float shardMultiplier;
+            if (ShardRandomizerType == RandomizeByRangeTypes.Percent)
+            {
+                shardMultiplier = (float)Cute_Rando_Core.RandoHelper(ShardPercentDropRange.AsTuple(), seed);
+                shards = (int)Math.Round(shardMultiplier * shellShardDrops);
+            }
+            else if (ShardRandomizerType == RandomizeByRangeTypes.Value)
+                shards = Cute_Rando_Core.RandoHelper(ShardValueDropRange.AsTuple(), seed);
+            return shards;
         }
     }
 
