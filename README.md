@@ -61,6 +61,9 @@ This randomizes the damage Enemies and Bosses does to Hornet. This includes both
 * Enemy Damage Minimum
 	* On or Off - This will set the minimum damage an enemy can do to Hornet to 1 when on.
 
+* Enemy Attack Consistancy
+	* On or Off - This will make each part of an attack do the same amount of damage. If disabled, each part of an attack may have different damage.
+
 </details>
 
 ## Enemy Health

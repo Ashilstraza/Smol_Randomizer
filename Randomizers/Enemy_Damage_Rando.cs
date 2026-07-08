@@ -141,21 +141,22 @@ internal class Enemy_Damage_Rando : Rando_Base
     /// Patch that hooks the end of OnEnable of damage hero objects to adjust how much damage they do
     /// </summary>
     /// <param name="__instance"></param>
-    private static void DamageHeroOnEnablePostfix(ref DamageHero __instance)
+    private static void DamageHeroOnEnablePostfix(ref DamageHero __instance, ref HealthManager ___healthManager)
     {
         if (!Instance.coreEnableRandomization || Instance.DamageModifierType == RandomizeByFlatAmount.Disabled)
             return;
 
         if (Instance.currentHeroDamagers.Add(__instance))
-            Instance.SetDamage(__instance);
+            Instance.SetDamage(__instance, ___healthManager);
     }
 
     /// <summary>
     /// Updates the damager with a new value
     /// </summary>
     /// <param name="damager">The damager to be adjusted</param>
+    /// <param name="enemyHealthManager">The HealthManager of the enemy</param>
     /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
-    private void SetDamage(DamageHero damager)
+    private void SetDamage(DamageHero damager, HealthManager enemyHealthManager)
     {
         if (damager == null || damager.hazardType != GlobalEnums.HazardType.ENEMY) return;
 
@@ -164,9 +165,26 @@ internal class Enemy_Damage_Rando : Rando_Base
         int damageValue = damager.damageDealt;
         string name = damager.name;
 
+        // Name of attack
         int cullIndex = name.IndexOf('(');
         if (cullIndex > 0) name = name[..cullIndex].TrimEnd(' ');
 
+        // Name of enemy
+        string enemyName;
+        if (EnemyAttackConsistancy && enemyHealthManager != null)
+        {
+            enemyName = enemyHealthManager.name;
+            cullIndex = enemyName.IndexOf('(');
+            if (cullIndex > 0) enemyName = enemyName[..cullIndex].TrimEnd(' ');
+
+            if (name != enemyName && char.IsDigit(name, name.Length - 1))
+            {
+            TheresMore: // Spy: There's More -- Soldier: No...
+                name = name[..(name.Length - 1)];
+                if (char.IsDigit(name, name.Length - 1)) goto TheresMore; // I am not sure if I should hate myself for goto label usage
+                if (name.LastIndexOf(' ') == name.Length - 1) name = name[..(name.Length - 1)];
+            }
+        }
         switch (RandomizerConsistency)
         {
             case RandomizerConsistencyA.EnemyType:
@@ -296,6 +314,20 @@ internal class Enemy_Damage_Rando : Rando_Base
     /// </summary>
     public readonly bool defaultEnemyDamageMinimum = false;
 
+    /// <summary>
+    /// If each part of an attack is the same damage
+    /// </summary>
+    public bool EnemyAttackConsistancy
+    {
+        get => enemyAttackConsistancy.Value;
+        internal set => enemyAttackConsistancy.Value = value;
+    }
+    private ConfigEntry<bool> enemyAttackConsistancy;
+    /// <summary>
+    /// Default settings if each part of an attack is the same damage
+    /// </summary>
+    public readonly bool defaultEnemyAttackConsistancy = true;
+
     // Used for determining if we need to update and clear the dictionaries
     private RandomizeByFlatAmount currentDamageModifierType;
 
@@ -310,7 +342,7 @@ internal class Enemy_Damage_Rando : Rando_Base
                 description: "Damage modifier type. Shift adjusts by a random amount. Range randomizes within a range.",
                 tags: new ConfigurationManagerAttributes
                 {
-                    Order = 4
+                    Order = 5
                 }));
         randomizerConsistency = config.Bind(
             section: RandomizerName,
@@ -320,7 +352,7 @@ internal class Enemy_Damage_Rando : Rando_Base
                 description: "Setting for if the enemy damage should be consistent per enemy type or room.",
                 tags: new ConfigurationManagerAttributes
                 {
-                    Order = 3
+                    Order = 4
                 }));
         damageShift = config.Bind(
             section: RandomizerName,
@@ -331,7 +363,7 @@ internal class Enemy_Damage_Rando : Rando_Base
                 acceptableValues: new AcceptableValueRange<int>(0, 10),
                 tags: new ConfigurationManagerAttributes
                 {
-                    Order = 2
+                    Order = 3
                 }));
         damageRange = config.Bind(
             section: RandomizerName,
@@ -342,7 +374,7 @@ internal class Enemy_Damage_Rando : Rando_Base
                 acceptableValues: new AcceptableRangeforIntRange(0, 10),
                 tags: new ConfigurationManagerAttributes
                 {
-                    Order = 1,
+                    Order = 2,
                     CustomDrawer = Settings.Settings.RangeDrawer
                 }));
         enemyDamageMinimum = config.Bind(
@@ -351,6 +383,16 @@ internal class Enemy_Damage_Rando : Rando_Base
             defaultValue: defaultEnemyDamageMinimum,
             configDescription: new ConfigDescription(
                 description: "Enforces a minimum damage for enemies to be 1. Overrides set values.",
+                tags: new ConfigurationManagerAttributes
+                {
+                    Order = 1
+                }));
+        enemyAttackConsistancy = config.Bind(
+            section: RandomizerName,
+            key: "Enemy Attack Consistancy",
+            defaultValue: defaultEnemyAttackConsistancy,
+            configDescription: new ConfigDescription(
+                description: "Makes each part of an attack do the same damage.",
                 tags: new ConfigurationManagerAttributes
                 {
                     Order = 0
