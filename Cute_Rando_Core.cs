@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 using BepInEx;
 
@@ -85,6 +86,7 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     /// The ModMenu settings menu window 
     /// </summary>
     internal static SettingMenu cuteRandomizerSettingWindow;
+    internal static Random noSeedRNG = new();
 
     /// <summary>
     /// Dictionary containing the randomizers that want to update the active limit regions
@@ -481,20 +483,74 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     /// Helper to simplify using Tuples to get a random float value
     /// </summary>
     /// <param name="tuple">The tuple to use as min and max float values</param>
-    /// <returns>A random float provided by UnityEngine.Random between the min and max of the tuple</returns>
-    public static float TupleRandoHelper((float min, float max) tuple)
+    /// /// <param name="seed">The seed to ensure that we are deterministic, if seed is int's minimum value then we don't use that.</param>
+    /// <returns>A random float between the min and max of the tuple</returns>
+    public static float RandoHelper((float min, float max) tuple, int seed = int.MinValue)
     {
-        return UnityEngine.Random.Range(tuple.min, tuple.max);
+        return RandoHelper(tuple.min, tuple.max, seed);
     }
 
     /// <summary>
     /// Helper to simplify using Tuples to get a random int value
     /// </summary>
     /// <param name="tuple">The tuple to use as min and max int values</param>
-    /// <returns>A random int provided by UnityEngine.Random between the min and max of the tuple</returns>
-    public static int TupleRandoHelper((int min, int max) tuple)
+    /// /// <param name="seed">The seed to ensure that we are deterministic, if seed is int's minimum value then we don't use that.</param>
+    /// <returns>A random int between the min and max of the tuple</returns>
+    public static int RandoHelper((int min, int max) tuple, int seed = int.MinValue)
     {
-        return UnityEngine.Random.Range(tuple.min, tuple.max);
+        return RandoHelper(tuple.min, tuple.max, seed);
+    }
+
+    /// <summary>
+    /// Helper to choose a random value
+    /// </summary>
+    /// <param name="min">Minimum random value, is inclusive</param>
+    /// <param name="max">Maximum random value, is inclusive when seeded, exclusive when it is not.</param>
+    /// /// <param name="seed">The seed to ensure that we are deterministic, if seed is int's minimum value then we don't use that.</param>
+    /// <returns>A random float between the min and max</returns>
+    public static float RandoHelper(float min, float max, int seed = int.MinValue)
+    {
+        if (seed > int.MinValue)
+        {
+            UnityEngine.Random.InitState(seed);
+            return UnityEngine.Random.Range(min, max);
+        }
+        double num = noSeedRNG.NextDouble();
+        return (float)((num * (max - min)) + min);
+    }
+
+    /// <summary>
+    /// Helper to choose a random value
+    /// </summary>
+    /// <param name="min">Minimum random value, is inclusive</param>
+    /// <param name="max">Maximum random value, is inclusive</param>
+    /// /// <param name="seed">The seed to ensure that we are deterministic, if seed is int's minimum value then we don't use that.</param>
+    /// <returns>A random float between the min and max</returns>
+    public static int RandoHelper(int min, int max, int seed = int.MinValue)
+    {
+        if (seed > int.MinValue)
+        {
+            UnityEngine.Random.InitState(seed);
+            return UnityEngine.Random.Range(min, max + 1); // we want max to be inclusive
+        }
+        return noSeedRNG.Next(min, max + 1);
+    }
+
+    public static int GetNewSaveSeed() => UnityEngine.Random.Range(int.MinValue + 1, int.MaxValue);
+
+    /// <summary>
+    /// Inspired by SimpleEnemyRando's GetCode() for getting the bytes in a string.
+    /// </summary>
+    /// <param name="modifier">A string to modify the seed.</param>
+    /// <returns>A modified seed</returns>
+    public static int RNGSeed(string modifier)
+    {
+        int saveSeed = Settings.Settings.SaveData.SaveSeed;
+        foreach (byte b in Encoding.Unicode.GetBytes(modifier))
+    {
+            saveSeed += (int)b;
+        }
+        return saveSeed;
     }
 
     /// <summary>

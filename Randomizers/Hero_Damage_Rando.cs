@@ -130,7 +130,7 @@ internal class Hero_Damage_Rando : Rando_Base
             case PlayerNailDamageConsistancy.NeedleUpgradeLevel:
                 if (!nailUpgradeDamages.TryGetValue(nailDamage, out int tempDamage))
                 {
-                    tempDamage = RollDamage();
+                    tempDamage = RollDamage(Cute_Rando_Core.RNGSeed(nailDamage.ToString()));
                     nailUpgradeDamages.Add(nailDamage, tempDamage);
                 }
 
@@ -139,7 +139,7 @@ internal class Hero_Damage_Rando : Rando_Base
             case PlayerNailDamageConsistancy.PerSave:
                 if (saveNailDamageOffset.Equals(int.MinValue))
                 {
-                    saveNailDamageOffset = RollDamage();
+                    saveNailDamageOffset = RollDamage(Settings.Settings.SaveData.SaveSeed);
                 }
 
                 nailDamage += saveNailDamageOffset;
@@ -154,9 +154,9 @@ internal class Hero_Damage_Rando : Rando_Base
 
         if (nailDamage <= 0 && PlayerNailDamageMinimum) nailDamage = 1;
 
-        int RollDamage()
+        int RollDamage(int seed = int.MinValue)
         {
-            return UnityEngine.Random.Range(PlayerNailDamageShift * (-1), PlayerNailDamageShift);
+            return Cute_Rando_Core.RandoHelper(PlayerNailDamageShift * (-1), PlayerNailDamageShift, seed);
         }
     }
 

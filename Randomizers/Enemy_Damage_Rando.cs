@@ -169,7 +169,7 @@ internal class Enemy_Damage_Rando : Rando_Base
             case RandomizerConsistencyA.EnemyType:
                 if (!enemyDamageNumbers.TryGetValue(name, out damageValue))
                 {
-                    DamageSetter(ref damageValue);
+                    DamageSetter(ref damageValue, Cute_Rando_Core.RNGSeed(name));
                     enemyDamageNumbers[name] = damageValue;
                 }
 
@@ -185,7 +185,7 @@ internal class Enemy_Damage_Rando : Rando_Base
                 {
                     if (!damageNumbersSet.TryGetValue(name, out damageValue))
                     {
-                        DamageSetter(ref damageValue);
+                        DamageSetter(ref damageValue, Cute_Rando_Core.RNGSeed(name + operatingScene));
                         damageNumbersSet[name] = damageValue;
                     }
                 }
@@ -199,12 +199,12 @@ internal class Enemy_Damage_Rando : Rando_Base
                 throw new NotImplementedException();
         }
 
-        void DamageSetter(ref int damage)
+        void DamageSetter(ref int damage, int seed = int.MinValue)
         {
             if (DamageModifierType == RandomizeByFlatAmount.Shift)
-                damage += UnityEngine.Random.Range(DamageShift * (-1), DamageShift);
+                damage += Cute_Rando_Core.RandoHelper(DamageShift * (-1), DamageShift, seed);
             else if (DamageModifierType == RandomizeByFlatAmount.Range)
-                damage = Cute_Rando_Core.TupleRandoHelper(DamageRange.AsTuple());
+                damage = Cute_Rando_Core.RandoHelper(DamageRange.AsTuple(), seed);
 
             if (damage <= 0 && EnemyDamageMinimum) damage = 1;
             else if (damage < 0) damage = 0;

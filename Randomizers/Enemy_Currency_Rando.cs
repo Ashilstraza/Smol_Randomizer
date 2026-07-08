@@ -244,7 +244,7 @@ internal class Enemy_Currency_Rando : Rando_Base
             case RandomizerConsistencyA.EnemyType:
                 if (!enemyShards.TryGetValue(name, out shards))
                 {
-                    shards = GetRandoTypeShards(ref shellShardDrops);
+                    shards = GetRandoTypeShards(ref shellShardDrops, Cute_Rando_Core.RNGSeed(name));
                     enemyShards[name] = shards;
                 }
 
@@ -253,14 +253,14 @@ internal class Enemy_Currency_Rando : Rando_Base
 
                 if (!sceneShards.TryGetValue(operatingScene, out Dictionary<string, int> shardSet))
                 {
-                    shards = GetRandoTypeShards(ref shellShardDrops);
+                    shards = GetRandoTypeShards(ref shellShardDrops, Cute_Rando_Core.RNGSeed(name + operatingScene));
                     sceneShards[operatingScene] = new() { { name, shards } };
                 }
                 else
                 {
                     if (!shardSet.TryGetValue(name, out shards))
                     {
-                        shards = GetRandoTypeShards(ref shellShardDrops);
+                        shards = GetRandoTypeShards(ref shellShardDrops, Cute_Rando_Core.RNGSeed(name + operatingScene));
                         shardSet[name] = shards;
                     }
                 }
@@ -273,12 +273,12 @@ internal class Enemy_Currency_Rando : Rando_Base
         }
 
         // Helper to randomize shards
-        int GetRandoTypeShards(ref int shellShardDrops)
+        int GetRandoTypeShards(ref int shellShardDrops, int seed = int.MinValue)
         {
             return ShardRandomizerType == RandomizeByRangeTypes.Percent
-                ? (int)Math.Round(shellShardDrops * Cute_Rando_Core.TupleRandoHelper(ShardPercentDropRange.AsTuple()))
+                ? (int)Math.Round(shellShardDrops * Cute_Rando_Core.RandoHelper(ShardPercentDropRange.AsTuple()), seed)
                 : ShardRandomizerType == RandomizeByRangeTypes.Value
-                    ? Cute_Rando_Core.TupleRandoHelper(ShardValueDropRange.AsTuple())
+                    ? Cute_Rando_Core.RandoHelper(ShardValueDropRange.AsTuple(), seed)
                     : 0;
         }
     }
@@ -301,7 +301,7 @@ internal class Enemy_Currency_Rando : Rando_Base
             case RandomizerConsistencyA.EnemyType:
                 if (!enemyGeoSets.TryGetValue(name, out geoSet))
                 {
-                    geoSet = GetRandoTypeGeo(thing);
+                    geoSet = GetRandoTypeGeo(thing, Cute_Rando_Core.RNGSeed(name));
                     enemyGeoSets[name] = geoSet;
                 }
 
@@ -311,14 +311,14 @@ internal class Enemy_Currency_Rando : Rando_Base
 
                 if (!sceneGeoSets.TryGetValue(operatingScene, out Dictionary<string, RandomizedGeoSet> geoSets))
                 {
-                    geoSet = GetRandoTypeGeo(thing);
+                    geoSet = GetRandoTypeGeo(thing, Cute_Rando_Core.RNGSeed(name + operatingScene));
                     sceneGeoSets[operatingScene] = new() { { name, geoSet } };
                 }
                 else
                 {
                     if (!geoSets.TryGetValue(name, out geoSet))
                     {
-                        geoSet = GetRandoTypeGeo(thing);
+                        geoSet = GetRandoTypeGeo(thing, Cute_Rando_Core.RNGSeed(name + operatingScene));
                         geoSets[name] = geoSet;
                     }
                 }
@@ -331,14 +331,14 @@ internal class Enemy_Currency_Rando : Rando_Base
                 throw new NotImplementedException();
         }
 
-        RandomizedGeoSet GetRandoTypeGeo(HealthManager thing)
+        RandomizedGeoSet GetRandoTypeGeo(HealthManager thing, int seed = int.MinValue)
         {
             RandomizedGeoSet geoSet = new(thing);
 
             if (RosaryRandomizerType == RandomizeByRangeTypes.Percent)
-                geoSet.MultiplyGeo(Cute_Rando_Core.TupleRandoHelper(RosaryPercentDropRange.AsTuple()));
+                geoSet.MultiplyGeo(Cute_Rando_Core.RandoHelper(RosaryPercentDropRange.AsTuple(), seed));
             else if (RosaryRandomizerType == RandomizeByRangeTypes.Value)
-                geoSet.SetGeoQuantity(Cute_Rando_Core.TupleRandoHelper(RosaryValueDropRange.AsTuple()));
+                geoSet.SetGeoQuantity(Cute_Rando_Core.RandoHelper(RosaryValueDropRange.AsTuple(), seed));
 
             return geoSet;
         }

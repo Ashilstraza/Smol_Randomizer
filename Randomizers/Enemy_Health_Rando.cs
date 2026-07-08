@@ -181,7 +181,7 @@ internal class Enemy_Health_Rando : Rando_Base
                 if (enemyHealthNumbers.TryGetValue(name, out tempHp))
                     hp = initHp = tempHp;
                 else
-                    enemyHealthNumbers.Add(name, RandomizeHp(boss, ref initHp, ref hp));
+                    enemyHealthNumbers.Add(name, RandomizeHp(boss, ref initHp, ref hp, Cute_Rando_Core.RNGSeed(name)));
 
                 break;
             case RandomizerConsistencyA.Scene:
@@ -190,10 +190,10 @@ internal class Enemy_Health_Rando : Rando_Base
                     if (healthManagerSet.TryGetValue(name, out tempHp))
                         hp = initHp = tempHp;
                     else
-                        healthManagerSet[name] = RandomizeHp(boss, ref initHp, ref hp);
+                        healthManagerSet[name] = RandomizeHp(boss, ref initHp, ref hp, Cute_Rando_Core.RNGSeed(name + operatingScene));
                 }
                 else
-                    sceneHealthNumbers[operatingScene] = new() { { name, RandomizeHp(boss, ref initHp, ref hp) } };
+                    sceneHealthNumbers[operatingScene] = new() { { name, RandomizeHp(boss, ref initHp, ref hp, Cute_Rando_Core.RNGSeed(name + operatingScene)) } };
 
                 break;
             case RandomizerConsistencyA.None:
@@ -204,9 +204,9 @@ internal class Enemy_Health_Rando : Rando_Base
         }
 
         // Helper to randomize hp
-        int RandomizeHp(bool boss, ref int initHp, ref int hp)
+        int RandomizeHp(bool boss, ref int initHp, ref int hp, int seed = int.MinValue)
         {
-            float randFloat = Cute_Rando_Core.TupleRandoHelper(boss ? BossHealthPercentRange.AsTuple() : EnemyHealthPercentRange.AsTuple());
+            float randFloat = Cute_Rando_Core.RandoHelper(boss ? BossHealthPercentRange.AsTuple() : EnemyHealthPercentRange.AsTuple(), seed);
             int tempHp;
 
             if (initHp <= 0)

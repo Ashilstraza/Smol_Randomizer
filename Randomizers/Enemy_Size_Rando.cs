@@ -180,7 +180,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
                 if (enemySizes.TryGetValue(name, out tempMultiplier))
                     ApplySize(thingTransform, tempMultiplier, walker);
                 else
-                    enemySizes.Add(name, RandomizeSize(boss, thingTransform, walker));
+                    enemySizes.Add(name, RandomizeSize(boss, thingTransform, walker, Cute_Rando_Core.RNGSeed(name)));
                 break;
             case RandomizerConsistencyA.Scene:
                 if (sceneEnemySizes.TryGetValue(operatingScene, out Dictionary<string, float> enemySizeSet))
@@ -188,10 +188,10 @@ internal sealed class Enemy_Size_Rando : Rando_Base
                     if (enemySizeSet.TryGetValue(name, out tempMultiplier))
                         ApplySize(thingTransform, tempMultiplier, walker);
                     else
-                        enemySizeSet[name] = RandomizeSize(boss, thingTransform, walker);
+                        enemySizeSet[name] = RandomizeSize(boss, thingTransform, walker, Cute_Rando_Core.RNGSeed(name + operatingScene));
                 }
                 else
-                    sceneEnemySizes[operatingScene] = new() { { name, RandomizeSize(boss, thingTransform, walker) } };
+                    sceneEnemySizes[operatingScene] = new() { { name, RandomizeSize(boss, thingTransform, walker, Cute_Rando_Core.RNGSeed(name + operatingScene)) } };
                 break;
             case RandomizerConsistencyA.None:
                 RandomizeSize(boss, thingTransform, walker);
@@ -200,9 +200,9 @@ internal sealed class Enemy_Size_Rando : Rando_Base
                 throw new NotImplementedException();
         }
 
-        float RandomizeSize(bool boss, Transform transform, Walker walker)
+        float RandomizeSize(bool boss, Transform transform, Walker walker, int seed = int.MinValue)
         {
-            float multiplier = Cute_Rando_Core.TupleRandoHelper(boss ? BossSizePercentRange.AsTuple() : EnemySizePercentRange.AsTuple());
+            float multiplier = Cute_Rando_Core.RandoHelper(boss ? BossSizePercentRange.AsTuple() : EnemySizePercentRange.AsTuple(), seed);
             ApplySize(transform, multiplier, walker);
             return multiplier;
         }

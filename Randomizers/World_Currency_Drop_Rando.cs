@@ -161,20 +161,20 @@ internal class World_Currency_Drop_Rando : Rando_Base
             case RandomizerConsistencyB.Scene:
                 if (!sceneMultiplier.TryGetValue(currentScene, out multiplier))
                 {
-                    multiplier = Cute_Rando_Core.TupleRandoHelper(ShardChanceMultiplier.AsTuple());
+                    multiplier = Cute_Rando_Core.RandoHelper(ShardChanceMultiplier.AsTuple(), Cute_Rando_Core.RNGSeed(currentScene));
                     sceneMultiplier[currentScene] = multiplier;
                 }
 
                 if (!sceneACMultiplier.TryGetValue(currentScene, out multiplierAC))
                 {
-                    multiplierAC = Cute_Rando_Core.TupleRandoHelper(ArchitectCrestMultiplier.AsTuple());
+                    multiplierAC = Cute_Rando_Core.RandoHelper(ArchitectCrestMultiplier.AsTuple(), Cute_Rando_Core.RNGSeed(currentScene));
                     sceneACMultiplier[currentScene] = multiplierAC;
                 }
 
                 break;
             case RandomizerConsistencyB.None:
-                multiplier = Cute_Rando_Core.TupleRandoHelper(ShardChanceMultiplier.AsTuple());
-                multiplierAC = Cute_Rando_Core.TupleRandoHelper(ArchitectCrestMultiplier.AsTuple());
+                multiplier = Cute_Rando_Core.RandoHelper(ShardChanceMultiplier.AsTuple());
+                multiplierAC = Cute_Rando_Core.RandoHelper(ArchitectCrestMultiplier.AsTuple());
                 break;
             default:
                 throw new NotImplementedException();
