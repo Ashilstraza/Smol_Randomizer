@@ -371,8 +371,8 @@ internal class World_Currency_Drop_Rando : Rando_Base
                     CustomDrawer = Settings.Settings.RangeDrawer
                 }));
 
-        shardChanceEnable.SettingChanged += ChanceEnable;
-        architectChanceEnable.SettingChanged += ChanceEnable;
+        shardChanceEnable.SettingChanged += OnSettingsUpdated;
+        architectChanceEnable.SettingChanged += OnSettingsUpdated;
 
         // Set Setting Menu Button Color
         if (!shardChanceEnable.Value && !architectChanceEnable.Value)
@@ -386,12 +386,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
         }
     }
 
-    /// <summary>
-    /// Event Hook when the chance setting is updated for either option
-    /// </summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
-    private void ChanceEnable(object sender, EventArgs args)
+    private protected override void OnSettingsUpdated(object sender, EventArgs args)
     {
         if (!shardChanceEnable.Value && !architectChanceEnable.Value)
         {
@@ -407,6 +402,8 @@ internal class World_Currency_Drop_Rando : Rando_Base
             else
                 SettingMenu.UpdateSubMenuColor(architectChanceEnable);
         }
+
+        ResetAllLists();
     }
     #endregion
 }

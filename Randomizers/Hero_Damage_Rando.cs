@@ -272,8 +272,15 @@ internal class Hero_Damage_Rando : Rando_Base
                     Order = 0
                 }));
 
+        playerNailDamageShift.SettingChanged += OnSettingsUpdated;
+
         playerNailDamageRando.SettingChanged += SettingMenu.OnRandomizerEnable;
         SettingMenu.UpdateSubMenuColor(playerNailDamageRando);
+    }
+
+    private protected override void OnSettingsUpdated(object sender, EventArgs args)
+    {
+        ResetAllLists();
     }
     #endregion
 }

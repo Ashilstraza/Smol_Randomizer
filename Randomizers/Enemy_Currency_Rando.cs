@@ -253,7 +253,7 @@ internal class Enemy_Currency_Rando : Rando_Base
                 }
 
                 shellShardDrops = shards;
-                
+
                 return;
             case RandomizerConsistencyA.Scene:
 
@@ -571,6 +571,9 @@ internal class Enemy_Currency_Rando : Rando_Base
         }
     }
 
+    // Unused, using separate ones for rosaries and shards
+    private protected override void OnSettingsUpdated(object sender, EventArgs args) { }
+
     /// <summary>
     /// Clears the rosary lists if needed
     /// </summary>
@@ -597,6 +600,9 @@ internal class Enemy_Currency_Rando : Rando_Base
 
             currentRosarySetting = rvt;
         }
+
+        enemyGeoSets.Clear();
+        sceneGeoSets.Clear();
     }
 
     /// <summary>
@@ -625,6 +631,9 @@ internal class Enemy_Currency_Rando : Rando_Base
 
             currentShardSetting = rvt;
         }
+
+        enemyShards.Clear();
+        sceneShards.Clear();
     }
     #endregion
 }

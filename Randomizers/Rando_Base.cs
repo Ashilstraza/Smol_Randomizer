@@ -95,6 +95,13 @@ internal abstract class Rando_Base
     private protected abstract void InitSettings();
 
     /// <summary>
+    /// Event Hook for when registered settings are updated
+    /// </summary>
+    /// <param name="sender">?</param>
+    /// <param name="args">The setting that was changed</param>
+    private protected abstract void OnSettingsUpdated(object sender, EventArgs args);
+
+    /// <summary>
     /// Reset all tracked lists
     /// </summary>
     private protected abstract void ResetAllLists();

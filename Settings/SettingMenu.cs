@@ -6,14 +6,10 @@ using BepInEx.Configuration;
 
 using Silksong.ModMenu.Elements;
 using Silksong.ModMenu.Models;
-using Silksong.ModMenu.Plugin;
-using Silksong.ModMenu.Screens;
 
 using Smol_Randomizer.Randomizers;
 
 using UnityEngine;
-using UnityEngine.Tilemaps;
-using UnityEngine.UIElements;
 
 namespace Smol_Randomizer.Settings;
 
@@ -160,7 +156,7 @@ internal class SettingMenu : Smol_Randomizer_MenuBuilder
 
                 resetButton.SetMainColor(Settings.Loaded ? Color.white : Color.gray);
             };
-            
+
             randoResetButtons.Add(resetButton);
         }
         else
@@ -264,7 +260,7 @@ internal class SettingMenu : Smol_Randomizer_MenuBuilder
             ParserTextModel<int> model = TextModels.ForIntegers();
             TextInput<int> intInput = new(label, model, description);
             intInput.Value = Settings.Loaded ? Settings.SaveData.SaveSeed : 0;
-            
+
             intInput.OnValueChanged += delegate (int value)
             {
                 if (!Settings.Loaded) return;
@@ -272,7 +268,7 @@ internal class SettingMenu : Smol_Randomizer_MenuBuilder
                 Settings.SaveData.SetSeed(value);
                 seedLabel.Text.text = SeedText();
             };
-            
+
             intInput.OnVisibilityChanged += delegate (bool visible)
             {
                 if (!visible) return;

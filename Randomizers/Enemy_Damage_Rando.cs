@@ -400,20 +400,16 @@ internal class Enemy_Damage_Rando : Rando_Base
 
         currentDamageModifierType = damageModifierType.Value;
 
-        damageModifierType.SettingChanged += OnDamageSettingsUpdated;
-        damageShift.SettingChanged += OnDamageSettingsUpdated;
-        damageRange.SettingChanged += OnDamageSettingsUpdated;
+        damageModifierType.SettingChanged += OnSettingsUpdated;
+        damageShift.SettingChanged += OnSettingsUpdated;
+        damageRange.SettingChanged += OnSettingsUpdated;
+        enemyAttackConsistancy.SettingChanged += OnSettingsUpdated;
 
         damageModifierType.SettingChanged += SettingMenu.OnRandomizerEnable;
         SettingMenu.UpdateSubMenuColor(damageModifierType);
     }
 
-    /// <summary>
-    /// Event hook for when the damage settings are updated
-    /// </summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
-    private void OnDamageSettingsUpdated(object sender, EventArgs args)
+    private protected override void OnSettingsUpdated(object sender, EventArgs args)
     {
         if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is RandomizeByFlatAmount dm && !dm.Equals(currentDamageModifierType))
         {
@@ -425,6 +421,8 @@ internal class Enemy_Damage_Rando : Rando_Base
 
             currentDamageModifierType = dm;
         }
+
+        ResetAllLists();
     }
     #endregion
 }

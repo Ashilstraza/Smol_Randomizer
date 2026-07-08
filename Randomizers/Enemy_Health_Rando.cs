@@ -115,7 +115,7 @@ internal class Enemy_Health_Rando : Rando_Base
         savedData[nameof(enemyHealthNumbers)] = enemyHealthNumbers;
         savedData[nameof(sceneHealthNumbers)] = sceneHealthNumbers;
     }
-    
+
     // Unneeded for this Randomizer
     private protected override void OnSettingsSaved() { }
 
@@ -347,18 +347,15 @@ internal class Enemy_Health_Rando : Rando_Base
 
         currentHealthRandomizerSetting = enemyHealthRandomizerSetting.Value;
 
-        enemyHealthRandomizerSetting.SettingChanged += OnHealthRandoSettingUpdated;
+        enemyHealthRandomizerSetting.SettingChanged += OnSettingsUpdated;
+        enemyHealthPercentRange.SettingChanged += OnSettingsUpdated;
+        bossHealthPercentRange.SettingChanged += OnSettingsUpdated;
 
         enemyHealthRandomizerSetting.SettingChanged += SettingMenu.OnRandomizerEnable;
         SettingMenu.UpdateSubMenuColor(enemyHealthRandomizerSetting);
     }
 
-    /// <summary>
-    /// Event hook for when the health randomizer setting is updated
-    /// </summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
-    private void OnHealthRandoSettingUpdated(object sender, EventArgs args)
+    private protected override void OnSettingsUpdated(object sender, EventArgs args)
     {
         if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is RandomizerEnemyTypeFlags ehr && !ehr.Equals(currentHealthRandomizerSetting))
         {
@@ -370,6 +367,8 @@ internal class Enemy_Health_Rando : Rando_Base
 
             currentHealthRandomizerSetting = ehr;
         }
+
+        ResetAllLists();
     }
     #endregion
 }

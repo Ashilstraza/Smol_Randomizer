@@ -200,7 +200,7 @@ public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCusto
     /// <param name="mode">TODO: dunno</param>
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        
+
         if (!randomize) return;
 
         foreach (KeyValuePair<string, Action<Scene, LoadSceneMode>> randomizer in activeOnSceneLoad)

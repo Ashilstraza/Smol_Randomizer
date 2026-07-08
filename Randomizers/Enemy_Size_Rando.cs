@@ -345,20 +345,15 @@ internal sealed class Enemy_Size_Rando : Rando_Base
 
         currentSizeRandomizerSetting = enemySizeRandomizerSetting.Value;
 
-        randomizerConsistency.SettingChanged += OnRandoConsistencyUpdated;
-
-        enemySizeRandomizerSetting.SettingChanged += OnSizeRandoSettingUpdated;
+        enemySizeRandomizerSetting.SettingChanged += OnSettingsUpdated;
+        enemySizePercentRange.SettingChanged += OnSettingsUpdated;
+        bossSizePercentRange.SettingChanged += OnSettingsUpdated;
 
         enemySizeRandomizerSetting.SettingChanged += SettingMenu.OnRandomizerEnable;
         SettingMenu.UpdateSubMenuColor(enemySizeRandomizerSetting);
     }
 
-    /// <summary>
-    /// Event hook for when the health randomizer setting is updated
-    /// </summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
-    private void OnSizeRandoSettingUpdated(object sender, EventArgs args)
+    private protected override void OnSettingsUpdated(object sender, EventArgs args)
     {
         if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is RandomizerEnemyTypeFlags ehr && !ehr.Equals(currentSizeRandomizerSetting))
         {
@@ -376,15 +371,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
 
             currentSizeRandomizerSetting = ehr;
         }
-    }
 
-    /// <summary>
-    /// Event hook for when the randomizer consistency setting is updated
-    /// </summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
-    private void OnRandoConsistencyUpdated(object sender, EventArgs args)
-    {
         ResetAllLists();
     }
     #endregion
