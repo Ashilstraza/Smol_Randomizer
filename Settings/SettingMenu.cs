@@ -183,10 +183,23 @@ internal class SettingMenu : Smol_Randomizer_MenuBuilder
             screenBuilder.BlankSpace();
 
             TextButton resetButton = screenBuilder.Button("Reset All Saved Values for Current Slot",
-                delegate
+                ResetAllSavedData,
+                "Resets the saved values for the current slot.");
+
+            resetButton.OnVisibilityChanged += delegate (bool visible)
+            {
+                if (!visible) return;
+
+                resetButton.SetMainColor(Settings.Loaded ? Color.white : Color.gray);
+            };
+
+            randoResetButtons.Add(resetButton);
+        }
+    }
+
+    private static void ResetAllSavedData()
                 {
-                    string sectionName = settings.First().Value.Definition.Section;
-                    Console.WriteLine($"Reset Saved All Saved Values for Current Slot");
+        
                     try
                     {
                         HashSet<string> resetRandos = [];
@@ -204,17 +217,6 @@ internal class SettingMenu : Smol_Randomizer_MenuBuilder
                     {
                         Console.Error.WriteLineAsync($"[{Cute_Rando_Core.MODNAME}] Exception encountered when resetting all saved values.\n" + ex.Message);
                     }
-                },
-                "Resets the saved values for the current slot.");
-
-            resetButton.OnVisibilityChanged += delegate (bool visible)
-            {
-                if (!visible) return;
-
-                resetButton.SetMainColor(Settings.Loaded ? Color.white : Color.gray);
-            };
-
-            randoResetButtons.Add(resetButton);
         }
     }
 
@@ -267,6 +269,7 @@ internal class SettingMenu : Smol_Randomizer_MenuBuilder
 
                 Settings.SaveData.SetSeed(value);
                 seedLabel.Text.text = SeedText();
+                ResetAllSavedData();
             };
 
             intInput.OnVisibilityChanged += delegate (bool visible)
