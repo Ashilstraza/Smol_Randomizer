@@ -11,6 +11,8 @@ using Smol_Randomizer.Randomizers;
 
 using UnityEngine;
 
+using static UnityEngine.Rendering.RayTracingAccelerationStructure;
+
 namespace Smol_Randomizer.Settings;
 
 /// <summary>
@@ -89,7 +91,7 @@ internal class SettingMenu : Smol_Randomizer_MenuBuilder
             {
                 Smol_Randomizer_MenuBuilder subMenu = (Smol_Randomizer_MenuBuilder)BuildPagedSubMenu(settingGroup);
                 Additional_Elements(ref subMenu, settingGroup);
-                randoMenuButtons.Add(SubMenuButton(subMenu, Cute_Rando_Core.GetRandoDescription(settingGroup.Key)));
+                randoMenuButtons.Add(SubMenuButton(subMenu, CuteRandoCore.GetRandoDescription(settingGroup.Key)));
 
                 // Add Current Save Menu after Main Settings button
                 if (settingGroup.Key == "Main Settings")
@@ -127,9 +129,7 @@ internal class SettingMenu : Smol_Randomizer_MenuBuilder
             delegate
             {
                 foreach (ConfigEntryBase setting in settings.Values)
-                {
                     setting.BoxedValue = setting.DefaultValue;
-                }
             },
             "Resets the settings to their default values.");
             screenBuilder.BlankSpace();
@@ -138,14 +138,13 @@ internal class SettingMenu : Smol_Randomizer_MenuBuilder
                 delegate
                 {
                     string sectionName = settings.First().Value.Definition.Section;
-                    Console.WriteLine($"Reset Saved {sectionName} Values for Current Slot");
                     try
                     {
                         OnResetClicked?.Invoke(settings.First().Value.Definition.Section);
                     }
                     catch (Exception ex)
                     {
-                        Console.Error.WriteLineAsync($"[{Cute_Rando_Core.MODNAME}] Exception encountered when invoking OnResetClicked().\n" + ex.Message);
+                        Console.Error.WriteLineAsync($"[{CuteRandoCore.MODNAME}] Exception encountered when invoking OnResetClicked().\n" + ex.Message);
                     }
                 },
                 "Resets the saved values for the current slot.");
@@ -166,17 +165,14 @@ internal class SettingMenu : Smol_Randomizer_MenuBuilder
             screenBuilder.Button("Reset All Settings to Their Defaults",
                 delegate
                 {
-                    Console.WriteLine($"Reset All Settings to Their Defaults");
                     try
                     {
                         foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> setting in Settings.ConfigFile)
-                        {
                             setting.Value.BoxedValue = setting.Value.DefaultValue;
-                        }
                     }
                     catch (Exception ex)
                     {
-                        Console.Error.WriteLineAsync($"[{Cute_Rando_Core.MODNAME}] Exception encountered when resetting all settings.\n" + ex.Message);
+                        Console.Error.WriteLineAsync($"[{CuteRandoCore.MODNAME}] Exception encountered when resetting all settings.\n" + ex.Message);
                     }
                 },
                 "Resets the settings for all the randomizers to their default settings.");
@@ -198,25 +194,24 @@ internal class SettingMenu : Smol_Randomizer_MenuBuilder
     }
 
     private static void ResetAllSavedData()
-                {
+    {
         
-                    try
-                    {
-                        HashSet<string> resetRandos = [];
-                        foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> setting in Settings.ConfigFile)
-                        {
-                            string section = setting.Key.Section;
-                            if (!resetRandos.Contains(setting.Key.Section))
-                            {
-                                OnResetClicked?.Invoke(section);
-                                resetRandos.Add(section);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.Error.WriteLineAsync($"[{Cute_Rando_Core.MODNAME}] Exception encountered when resetting all saved values.\n" + ex.Message);
-                    }
+        try
+        {
+            HashSet<string> resetRandos = [];
+            foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> setting in Settings.ConfigFile)
+            {
+                string section = setting.Key.Section;
+                if (!resetRandos.Contains(setting.Key.Section))
+                {
+                    OnResetClicked?.Invoke(section);
+                    resetRandos.Add(section);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLineAsync($"[{CuteRandoCore.MODNAME}] Exception encountered when resetting all saved values.\n" + ex.Message);
         }
     }
 
@@ -260,8 +255,10 @@ internal class SettingMenu : Smol_Randomizer_MenuBuilder
         static TextInput<int> SeedInput(string label, string description, TextLabel seedLabel)
         {
             ParserTextModel<int> model = TextModels.ForIntegers();
-            TextInput<int> intInput = new(label, model, description);
-            intInput.Value = Settings.Loaded ? Settings.SaveData.SaveSeed : 0;
+            TextInput<int> intInput = new(label, model, description)
+            {
+                Value = Settings.Loaded ? Settings.SaveData.SaveSeed : 0
+            };
 
             intInput.OnValueChanged += delegate (int value)
             {
@@ -374,7 +371,7 @@ internal class SettingMenu : Smol_Randomizer_MenuBuilder
     /// <exception cref="NotImplementedException">Thrown if the color set has not been implemented</exception>
     internal static void ChangeColors(RandomizerColors newColor)
     {
-        if (Cute_Rando_Core.randomize)
+        if (CuteRandoCore.randomize)
             switch (newColor)
             {
                 case RandomizerColors.GreenRed:

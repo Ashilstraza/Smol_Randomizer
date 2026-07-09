@@ -104,7 +104,7 @@ public static class Settings
             new ConfigDescription(
                 "Test new things"));
 #endif
-        enableRandomizer.SettingChanged += Cute_Rando_Core.UpdateSettings;
+        enableRandomizer.SettingChanged += CuteRandoCore.UpdateSettings;
         enabledRandomizerColors.SettingChanged += SettingMenu.OnEnabledRandomizerColorChanged;
         SettingMenu.ChangeColors(EnabledRandomizerColors);
     }
@@ -303,7 +303,7 @@ public class RandoPerSaveData
     {
         get
         {
-            if (saveSeed == int.MinValue) saveSeed = Cute_Rando_Core.GetNewSaveSeed();
+            if (saveSeed == int.MinValue) saveSeed = CuteRandoCore.GetNewSaveSeed();
             return saveSeed;
         }
     }
@@ -332,7 +332,7 @@ public class RandoPerSaveData
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLineAsync($"[{Cute_Rando_Core.MODNAME}] Exception encountered when invoking OnSettingsLoaded()\n" + ex.Message);
+            Console.Error.WriteLineAsync($"[{CuteRandoCore.MODNAME}] Exception encountered when invoking OnSettingsLoaded()\n" + ex.Message);
         }
     }
 
@@ -377,7 +377,7 @@ public class RandoPerSaveData
     /// </summary>
     internal void RerollSeed()
     {
-        saveSeed = Cute_Rando_Core.GetNewSaveSeed();
+        saveSeed = CuteRandoCore.GetNewSaveSeed();
     }
 
     /// <summary>

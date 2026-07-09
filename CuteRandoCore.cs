@@ -30,7 +30,7 @@ namespace Smol_Randomizer;
 [BepInDependency("org.silksong-modding.modmenu")]
 [BepInDependency(DataManagerPlugin.Id)]
 [BepInPlugin(GUID, MODNAME, VERSION)]
-public class Cute_Rando_Core : BaseUnityPlugin, IModMenuInterface, IModMenuCustomMenu, /*ISaveDataMod<RandoPerSaveData>*/ IRawSaveDataMod
+public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomMenu, IRawSaveDataMod
 {
     /// <summary>
     /// Mod ID
@@ -646,5 +646,8 @@ public class Randomizer_Info(string name, RandomizerEventType randomizerType, Me
     /// The method to call to use the randomizer.
     /// </summary>
     public MethodInfo Method => method;
+    /// <summary>
+    /// The first argument of the method being called.
+    /// </summary>
     public object? Object => o;
 }

@@ -64,7 +64,7 @@ internal class Enemy_Damage_Rando : Rando_Base
         RandomizerName = "Enemy Damage Randomizer";
         RandomizerDescription = "Randomizes the damage delt to Hornet by enemies and bosses.";
 
-        if (!Cute_Rando_Core.RegisterRandomizer(new(
+        if (!CuteRandoCore.RegisterRandomizer(new(
             RandomizerName,
             RandomizerEventType.GameStartup,
             AccessTools.Method(
@@ -92,14 +92,14 @@ internal class Enemy_Damage_Rando : Rando_Base
 
     private protected override void Register()
     {
-        Cute_Rando_Core.RegisterRandomizer(eventActiveHeroDamager);
-        Cute_Rando_Core.RegisterRandomizer(eventOnFirstSceneFrame);
+        CuteRandoCore.RegisterRandomizer(eventActiveHeroDamager);
+        CuteRandoCore.RegisterRandomizer(eventOnFirstSceneFrame);
     }
 
     private protected override void Unregister()
     {
-        Cute_Rando_Core.UnregisterRandomizer(eventActiveHeroDamager);
-        Cute_Rando_Core.UnregisterRandomizer(eventOnFirstSceneFrame);
+        CuteRandoCore.UnregisterRandomizer(eventActiveHeroDamager);
+        CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
@@ -124,7 +124,7 @@ internal class Enemy_Damage_Rando : Rando_Base
     /// </summary>
     private void GameStartup()
     {
-        Cute_Rando_Core.harmony.Patch(
+        CuteRandoCore.harmony.Patch(
             AccessTools.Method(typeof(DamageHero), "OnEnable"),
             postfix: new HarmonyMethod(typeof(Enemy_Damage_Rando), nameof(DamageHeroOnEnablePostfix)));
     }
@@ -190,7 +190,7 @@ internal class Enemy_Damage_Rando : Rando_Base
             case RandomizerConsistencyA.EnemyType:
                 if (!enemyDamageNumbers.TryGetValue(name, out damageValue))
                 {
-                    DamageSetter(ref damageValue, Cute_Rando_Core.RNGSeed(name));
+                    DamageSetter(ref damageValue, CuteRandoCore.RNGSeed(name));
                     enemyDamageNumbers[name] = damageValue;
                 }
 
@@ -199,14 +199,14 @@ internal class Enemy_Damage_Rando : Rando_Base
             case RandomizerConsistencyA.Scene:
                 if (!sceneDamageNumbers.TryGetValue(operatingScene, out Dictionary<string, int> damageNumbersSet))
                 {
-                    DamageSetter(ref damageValue, Cute_Rando_Core.RNGSeed(name + operatingScene));
+                    DamageSetter(ref damageValue, CuteRandoCore.RNGSeed(name + operatingScene));
                     sceneDamageNumbers[operatingScene] = new() { { name, damageValue } };
                 }
                 else
                 {
                     if (!damageNumbersSet.TryGetValue(name, out damageValue))
                     {
-                        DamageSetter(ref damageValue, Cute_Rando_Core.RNGSeed(name + operatingScene));
+                        DamageSetter(ref damageValue, CuteRandoCore.RNGSeed(name + operatingScene));
                         damageNumbersSet[name] = damageValue;
                     }
                 }
@@ -223,9 +223,9 @@ internal class Enemy_Damage_Rando : Rando_Base
         void DamageSetter(ref int damage, int seed = int.MinValue)
         {
             if (DamageModifierType == RandomizeByFlatAmount.Shift)
-                damage += Cute_Rando_Core.RandoHelper(DamageShift * (-1), DamageShift, seed);
+                damage += CuteRandoCore.RandoHelper(DamageShift * (-1), DamageShift, seed);
             else if (DamageModifierType == RandomizeByFlatAmount.Range)
-                damage = Cute_Rando_Core.RandoHelper(DamageRange.AsTuple(), seed);
+                damage = CuteRandoCore.RandoHelper(DamageRange.AsTuple(), seed);
 
             if (damage <= 0 && EnemyDamageMinimum) damage = 1;
             else if (damage < 0) damage = 0;

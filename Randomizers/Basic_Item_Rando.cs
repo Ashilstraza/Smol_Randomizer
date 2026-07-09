@@ -25,12 +25,12 @@ internal class Basic_Item_Rando
 
     internal static void InitRandomizer()
     {
-        if (!Cute_Rando_Core.RegisterRandomizer(randomizerOnSceneLoad))
+        if (!CuteRandoCore.RegisterRandomizer(randomizerOnSceneLoad))
         {
             return;
         }
 
-        if (!Cute_Rando_Core.RegisterRandomizer(randomizerGameShutdown))
+        if (!CuteRandoCore.RegisterRandomizer(randomizerGameShutdown))
         {
             return;
         }
@@ -59,7 +59,7 @@ internal class Basic_Item_Rando
 
         UpdateObjects(scene.GetRootGameObjects());
 
-        if (!Cute_Rando_Core.testing)
+        if (!CuteRandoCore.testing)
         {
             return;
         }
@@ -441,7 +441,7 @@ internal class Basic_Item_Rando
     /// </summary>
     internal static void ImportWorldObjectsFile()
     {
-        Cute_Rando_Core.ImportJsonFile("World_Objects", out string tempWorldObjects);
+        CuteRandoCore.ImportJsonFile("World_Objects", out string tempWorldObjects);
 
         worldObjects = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, HashSet<string>>>>(File.ReadAllText(tempWorldObjects)) ?? [];
     }
@@ -453,7 +453,7 @@ internal class Basic_Item_Rando
     {
         if (worldObjects != null)
         {
-            Cute_Rando_Core.ExportJsonFile("World_Objects", worldObjects);
+            CuteRandoCore.ExportJsonFile("World_Objects", worldObjects);
         }
     }
 }
