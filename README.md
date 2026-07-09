@@ -1,4 +1,4 @@
-# Smol_Randimizer
+# Smol Randomizer
 
 A small randomizer for Silksong. This is not an item randomizer. This randomizes miscellaneous things like those listed below.
 
