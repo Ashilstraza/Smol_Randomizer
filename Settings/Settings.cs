@@ -284,7 +284,7 @@ public static class Settings
 /// </summary>
 public class RandoPerSaveData
 {
-    #if DEBUG && TESTING // Enable Saving Data
+#if DEBUG && TESTING // Enable Saving Data
     /// <summary>
     /// Dictionary containing references to all the data we want to save per-save slot
     /// </summary>

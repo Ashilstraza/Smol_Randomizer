@@ -1,6 +1,8 @@
 # Smol_Randimizer
 
-A small randomizer for Silksong. This is not an item randomizer. This randomizes miscellaneous things like:
+A small randomizer for Silksong. This is not an item randomizer. This randomizes miscellaneous things like those listed below.
+
+To use, download and enable within your mod manager of choice (or by manually installing if that is your jam), start Silksong, and go into the mod options within. There you can enable, disable, and configure the options to your liking. These are currently global across whichever save file you choose, but in the future will be per-save.
 
 ## Enemy Currency
 
@@ -165,9 +167,11 @@ The Architect crest has a special interaction with these walls which this acount
 
 When changing settings, most things will not take effect until the scene changes.
 
+You can change the seed of the current save by going into the mod's options, Current Save Information, then either reroll or manually set the seed.
+
 The settings for the randomizers can be set in such a way to make enemies always have certain values. Examples include:
 * Enemies all being tiny. (Bugs should always be smol!)
-* Enemies dropping hundreds of rosaries and shards upon death. (No more grinding needed!)
+* Enemies dropping a lot of rosaries and shards upon death. (No more grinding needed!)
 * Enemies not dealing any damage. (Silksong now a walking and running simulator!)
 * Bosses having way more health. (I am not responsible for wrist damage from having to attack Karmalita so much!)
 

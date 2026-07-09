@@ -62,6 +62,7 @@
     <PathMap Condition="'$(Configuration)' == 'Release'">$(MSBuildProjectDirectory)=/</PathMap>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <AllowUnsafeBlocks>False</AllowUnsafeBlocks>
+    <UserSecretsId>4339da4a-aa6f-4bbd-88e6-cbc46333a379</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="References\**" />
