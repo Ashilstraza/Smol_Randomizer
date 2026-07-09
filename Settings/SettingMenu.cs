@@ -167,7 +167,10 @@ internal class SettingMenu : SmolRandomizerMenuBuilder
                     try
                     {
                         foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> setting in Settings.ConfigFile)
+                        {
+                            if (setting.Key.Section != "Main Settings")
                             setting.Value.BoxedValue = setting.Value.DefaultValue;
+                    }
                     }
                     catch (Exception ex)
                     {
