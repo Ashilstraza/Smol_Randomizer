@@ -5,6 +5,8 @@ using BepInEx.Configuration;
 
 using HarmonyLib;
 
+using HutongGames.PlayMaker.Actions;
+
 using MonoMod.Utils;
 
 using Newtonsoft.Json;

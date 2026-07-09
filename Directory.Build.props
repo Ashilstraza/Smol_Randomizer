@@ -2,7 +2,7 @@
 	<PropertyGroup>
 		<!-- These properties will control the generated plugin info and Thunderstore manifest. -->
 		<Title>Smol Randomizer</Title>
-		<AssemblyTitle>Smol Randomizer</AssemblyTitle>
+		<AssemblyTitle>Smol_Randomizer</AssemblyTitle>
 		<Description>Randomizer for Miscellanious Smol Things</Description>
 		<PackageId>ashilstraza.randomizer.cute</PackageId>
 		<!--
