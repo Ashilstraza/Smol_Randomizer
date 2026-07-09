@@ -43,7 +43,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <summary>
     /// Mod Version
     /// </summary>
-    public const string VERSION = "0.0.1";
+    public const string VERSION = "0.1.0";
 
     /// <summary>
     /// If we should update the active limit regions after a scene load
@@ -411,7 +411,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
                         randomizer.Object));
                 break;
             default:
-                Console.Error.WriteLine("Unimplimented entryType");
+                Console.Error.WriteLine("Unimplemented entryType");
                 allRandomizerActions.Remove(randomizer);
                 return false;
         }
@@ -469,7 +469,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
                 activeGameShutdown.Remove(randomizer.Name);
                 break;
             default:
-                Console.Error.WriteLine("Unimplimented entryType");
+                Console.Error.WriteLine("Unimplemented entryType");
                 return false;
         }
 

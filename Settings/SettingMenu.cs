@@ -11,8 +11,6 @@ using Smol_Randomizer.Randomizers;
 
 using UnityEngine;
 
-using static UnityEngine.Rendering.RayTracingAccelerationStructure;
-
 namespace Smol_Randomizer.Settings;
 
 /// <summary>
@@ -195,7 +193,7 @@ internal class SettingMenu : SmolRandomizerMenuBuilder
 
     private static void ResetAllSavedData()
     {
-        
+
         try
         {
             HashSet<string> resetRandos = [];
