@@ -131,6 +131,9 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         CuteRandoCore.harmony.Patch(AccessTools.Method(
             typeof(HealthManager), "OnEnable"),
             postfix: new HarmonyMethod(typeof(Enemy_Size_Rando), nameof(HealthManagerOnEnablePostfix)));
+        CuteRandoCore.harmony.Patch(AccessTools.Method(
+            typeof(SetScale), "DoSetScale"),
+            prefix: new HarmonyMethod(typeof(Enemy_Size_Rando), nameof(SetScaleDoSetScalePrefix)));
         return;
     }
 
@@ -153,6 +156,21 @@ internal sealed class Enemy_Size_Rando : Rando_Base
 
         if (Instance.currentEnemyHealthManagers.Add(__instance))
             Instance.SetSize(__instance);
+    }
+
+    /// <summary>
+    /// Patch that applies the correct x scale on enemies' SetScale FSM Action
+    /// </summary>
+    /// <param name="__instance">The SetScale Action of the enemy</param>
+    /// <returns>always true to continue processing SetScale</returns>
+    private static bool SetScaleDoSetScalePrefix(ref SetScale __instance)
+    {
+        if (__instance.x.Value is not -1f and not 1f) return true;
+        if (__instance.Owner != null && Instance.currentEnemyHealthManagers.Contains(__instance.Owner.GetComponent<HealthManager>()))
+        {
+            __instance.x = __instance.Owner.transform.GetScaleX();
+        }
+        return true;
     }
 
     /// <summary>
