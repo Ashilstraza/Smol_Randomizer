@@ -284,16 +284,18 @@ public static class Settings
 /// </summary>
 public class RandoPerSaveData
 {
+    #if DEBUG && TESTING // Enable Saving Data
     /// <summary>
     /// Dictionary containing references to all the data we want to save per-save slot
     /// </summary>
     [JsonProperty]
     public Dictionary<string, Dictionary<string, object>> SmolSaveDictionary
-    // <Randomizer, <Randomizer Dictionary Name, Dictionary>>
+    // <Randomizer, <Randomizer Dictionary Name, Saved Object>>
     {
         get;
         internal set;
     }
+#endif
 
     /// <summary>
     /// The seed for the save
@@ -326,6 +328,7 @@ public class RandoPerSaveData
     internal void Load()
     {
         Settings.loading = true;
+#if DEBUG && TESTING // Enable Saving Data
         try
         {
             OnSettingsLoaded?.Invoke(!(SmolSaveDictionary == null));
@@ -334,6 +337,7 @@ public class RandoPerSaveData
         {
             Console.Error.WriteLineAsync($"[{CuteRandoCore.MODNAME}] Exception encountered when invoking OnSettingsLoaded()\n" + ex.Message);
         }
+#endif
     }
 
     /// <summary>
@@ -344,6 +348,7 @@ public class RandoPerSaveData
         OnSettingsSaved?.Invoke();
     }
 
+#if DEBUG && TESTING // Enable Saving Data
     /// <summary>
     /// Returns a dictionary containing all the saved data for the given randomizer. If it does not exists, just returns an empty dictionary.
     /// </summary>
@@ -371,6 +376,7 @@ public class RandoPerSaveData
         SmolSaveDictionary ??= [];
         SmolSaveDictionary[randomizer] = dictionary;
     }
+#endif
 
     /// <summary>
     /// Rerolls the seed.

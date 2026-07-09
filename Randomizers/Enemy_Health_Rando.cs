@@ -102,6 +102,7 @@ internal class Enemy_Health_Rando : Rando_Base
         CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
+#if DEBUG && TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(enemyHealthNumbers), out object tempDict))
@@ -118,6 +119,7 @@ internal class Enemy_Health_Rando : Rando_Base
 
     // Unneeded for this Randomizer
     private protected override void OnSettingsSaved() { }
+#endif
 
     /// <summary>
     /// Patch HealthManager.OnEnable on game startup

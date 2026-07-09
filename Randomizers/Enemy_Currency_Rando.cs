@@ -129,6 +129,7 @@ internal class Enemy_Currency_Rando : Rando_Base
         CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
+#if DEBUG && TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(enemyGeoSets), out object tempDict))
@@ -147,11 +148,11 @@ internal class Enemy_Currency_Rando : Rando_Base
         savedData[nameof(sceneGeoSets)] = sceneGeoSets;
         savedData[nameof(enemyShards)] = enemyShards;
         savedData[nameof(sceneShards)] = sceneShards;
-
     }
 
     // Unneeded for this Randomizer
     private protected override void OnSettingsSaved() { }
+#endif
 
     /// <summary>
     /// Patch HealthManager.OnEnable on game startup

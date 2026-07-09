@@ -32,7 +32,9 @@ internal abstract class Rando_Base
         Settings.Settings.enableRandomizer.SettingChanged += RandoCoreSetting;
         Settings.RandoPerSaveData.OnSettingsLoaded += OnSettingsLoaded;
         Settings.SettingMenu.OnResetClicked += OnResetClicked;
+#if DEBUG && TESTING // Enable Saving Data
         Settings.RandoPerSaveData.OnSettingsSaved += OnSettingsSaved;
+#endif
     }
     /// <summary>
     /// Registers the various events we want to watch for
@@ -52,6 +54,7 @@ internal abstract class Rando_Base
     {
         ResetAllLists();
 
+#if DEBUG && TESTING // Enable Saving Data
         Dictionary<string, object> savedData = Settings.Settings.SaveData.GetSavedData(RandomizerName);
 
         if (hasSaveData)
@@ -60,12 +63,8 @@ internal abstract class Rando_Base
         }
 
         SetSaveData(savedData);
+#endif
     }
-
-    /// <summary>
-    /// Event hook for when settings are saved
-    /// </summary>
-    private protected abstract void OnSettingsSaved();
 
     /// <summary>
     /// Clears this Randomizer's lists if the given name matches the RandomizerName
@@ -77,6 +76,7 @@ internal abstract class Rando_Base
             ResetAllLists();
     }
 
+#if DEBUG && TESTING // Enable Saving Data
     /// <summary>
     /// Apply the given per-slot data to the Randomizer's various saved settings
     /// </summary>
@@ -88,6 +88,12 @@ internal abstract class Rando_Base
     /// </summary>
     /// <param name="savedData"></param>
     private protected abstract void SetSaveData(Dictionary<string, object> savedData);
+
+    /// <summary>
+    /// Event hook for when settings are saved
+    /// </summary>
+    private protected abstract void OnSettingsSaved();
+#endif
 
     /// <summary>
     /// Add the randomizer's settings into the core

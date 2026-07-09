@@ -104,6 +104,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
+#if DEBUG && TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(enemySizes), out object tempDict))
@@ -118,9 +119,9 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         savedData[nameof(sceneEnemySizes)] = sceneEnemySizes;
     }
 
-
     // Unneeded for this Randomizer
     private protected override void OnSettingsSaved() { }
+#endif
 
     /// <summary>
     /// Patch HealthManager.OnEnable on game startup

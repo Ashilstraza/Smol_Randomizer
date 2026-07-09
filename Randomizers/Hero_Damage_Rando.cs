@@ -63,6 +63,7 @@ internal class Hero_Damage_Rando : Rando_Base
         base.InitRandomizer();
     }
 
+#if DEBUG && TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(nailUpgradeDamages), out object tempDict))
@@ -83,6 +84,7 @@ internal class Hero_Damage_Rando : Rando_Base
 
         savedData[nameof(saveNailDamageOffset)] = saveNailDamageOffset;
     }
+#endif
 
     // Unused as we don't need
     private protected override void Register() { }

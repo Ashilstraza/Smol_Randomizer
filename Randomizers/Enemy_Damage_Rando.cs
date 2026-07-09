@@ -102,6 +102,7 @@ internal class Enemy_Damage_Rando : Rando_Base
         CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
+    #if DEBUG && TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(enemyDamageNumbers), out object tempDict))
@@ -118,6 +119,7 @@ internal class Enemy_Damage_Rando : Rando_Base
 
     // Unneeded for this Randomizer
     private protected override void OnSettingsSaved() { }
+#endif
 
     /// <summary>
     /// Patch DamageHero.OnEnable on game startup
@@ -179,7 +181,7 @@ internal class Enemy_Damage_Rando : Rando_Base
 
             if (name != enemyName && char.IsDigit(name, name.Length - 1))
             {
-            TheresMore: // Spy: There's More -- Soldier: No...
+            TheresMore: // Soldier: Dear god -- Spy: There's More -- Soldier: No...
                 name = name[..(name.Length - 1)];
                 if (char.IsDigit(name, name.Length - 1)) goto TheresMore; // I am not sure if I should hate myself for goto label usage
                 if (name.LastIndexOf(' ') == name.Length - 1) name = name[..(name.Length - 1)];

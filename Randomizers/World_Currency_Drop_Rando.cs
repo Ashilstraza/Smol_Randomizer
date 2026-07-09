@@ -109,6 +109,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
         CuteRandoCore.UnregisterRandomizer(eventOnSceneLoad);
     }
 
+#if DEBUG && TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(sceneMultiplier), out object tempDict))
@@ -136,6 +137,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
         savedData[nameof(consistantMultiplier)] = consistantMultiplier;
         savedData[nameof(consistantACMultiplier)] = consistantACMultiplier;
     }
+#endif
 
     /// <summary>
     /// On Scene Load, save current loading scene

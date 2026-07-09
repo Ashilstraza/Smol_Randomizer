@@ -39,7 +39,7 @@ internal class SettingMenu : SmolRandomizerMenuBuilder
     {
         Content.VerticalSpacing = VSPACE_TIGHT;
         GenerateMainPage();
-#if DEBUG && TESTING
+#if DEBUG && TESTING // Basic Item Rando
         BlankSpace();
         Label("World Objects", FontSizes.Medium);
         Button("Export World Objects",
@@ -131,7 +131,7 @@ internal class SettingMenu : SmolRandomizerMenuBuilder
             },
             "Resets the settings to their default values.");
             screenBuilder.BlankSpace();
-
+#if DEBUG && TESTING // Enable Saving Data
             TextButton resetButton = screenBuilder.Button("Reset Saved Values for Current Slot",
                 delegate
                 {
@@ -155,6 +155,7 @@ internal class SettingMenu : SmolRandomizerMenuBuilder
             };
 
             randoResetButtons.Add(resetButton);
+#endif
         }
         else
         {
@@ -175,7 +176,7 @@ internal class SettingMenu : SmolRandomizerMenuBuilder
                 },
                 "Resets the settings for all the randomizers to their default settings.");
             screenBuilder.BlankSpace();
-
+#if DEBUG && TESTING // Enable Saving Data
             TextButton resetButton = screenBuilder.Button("Reset All Saved Values for Current Slot",
                 ResetAllSavedData,
                 "Resets the saved values for the current slot.");
@@ -188,6 +189,7 @@ internal class SettingMenu : SmolRandomizerMenuBuilder
             };
 
             randoResetButtons.Add(resetButton);
+#endif
         }
     }
 
