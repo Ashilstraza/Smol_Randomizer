@@ -111,7 +111,7 @@ internal abstract class Rando_Base
     /// </summary>
     private protected void AddRandoDescription()
     {
-        Cute_Rando_Core.AddRandoDescription(RandomizerName, RandomizerDescription);
+        CuteRandoCore.AddRandoDescription(RandomizerName, RandomizerDescription);
     }
 
     /// <summary>

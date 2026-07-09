@@ -87,7 +87,7 @@ internal class Enemy_Currency_Rando : Rando_Base
         RandomizerName = "Enemy Currency Randomizer";
         RandomizerDescription = "Randomizes the quantity of Rosaries and Shards dropped by enemies.";
 
-        if (!Cute_Rando_Core.RegisterRandomizer(new(
+        if (!CuteRandoCore.RegisterRandomizer(new(
             RandomizerName,
             RandomizerEventType.GameStartup,
             AccessTools.Method(
@@ -119,14 +119,14 @@ internal class Enemy_Currency_Rando : Rando_Base
 
     private protected override void Register()
     {
-        Cute_Rando_Core.RegisterRandomizer(eventActiveEnemy);
-        Cute_Rando_Core.RegisterRandomizer(eventOnFirstSceneFrame);
+        CuteRandoCore.RegisterRandomizer(eventActiveEnemy);
+        CuteRandoCore.RegisterRandomizer(eventOnFirstSceneFrame);
     }
 
     private protected override void Unregister()
     {
-        Cute_Rando_Core.UnregisterRandomizer(eventActiveEnemy);
-        Cute_Rando_Core.UnregisterRandomizer(eventOnFirstSceneFrame);
+        CuteRandoCore.UnregisterRandomizer(eventActiveEnemy);
+        CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
@@ -158,7 +158,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// </summary>
     private void GameStartup()
     {
-        Cute_Rando_Core.harmony.Patch(
+        CuteRandoCore.harmony.Patch(
             AccessTools.Method(typeof(HealthManager), "OnEnable"),
             postfix: new HarmonyMethod(typeof(Enemy_Currency_Rando), nameof(HealthManagerOnEnablePostfix)));
     }
@@ -248,7 +248,7 @@ internal class Enemy_Currency_Rando : Rando_Base
             case RandomizerConsistencyA.EnemyType:
                 if (!enemyShards.TryGetValue(name, out shards))
                 {
-                    shards = GetRandoTypeShards(shellShardDrops, Cute_Rando_Core.RNGSeed(name));
+                    shards = GetRandoTypeShards(shellShardDrops, CuteRandoCore.RNGSeed(name));
                     enemyShards[name] = shards;
                 }
 
@@ -259,14 +259,14 @@ internal class Enemy_Currency_Rando : Rando_Base
 
                 if (!sceneShards.TryGetValue(operatingScene, out Dictionary<string, int> shardSet))
                 {
-                    shards = GetRandoTypeShards(shellShardDrops, Cute_Rando_Core.RNGSeed(name + operatingScene));
+                    shards = GetRandoTypeShards(shellShardDrops, CuteRandoCore.RNGSeed(name + operatingScene));
                     sceneShards[operatingScene] = new() { { name, shards } };
                 }
                 else
                 {
                     if (!shardSet.TryGetValue(name, out shards))
                     {
-                        shards = GetRandoTypeShards(shellShardDrops, Cute_Rando_Core.RNGSeed(name + operatingScene));
+                        shards = GetRandoTypeShards(shellShardDrops, CuteRandoCore.RNGSeed(name + operatingScene));
                         shardSet[name] = shards;
                     }
                 }
@@ -288,11 +288,11 @@ internal class Enemy_Currency_Rando : Rando_Base
             float shardMultiplier;
             if (ShardRandomizerType == RandomizeByRangeTypes.Percent)
             {
-                shardMultiplier = (float)Cute_Rando_Core.RandoHelper(ShardPercentDropRange.AsTuple(), seed);
+                shardMultiplier = (float)CuteRandoCore.RandoHelper(ShardPercentDropRange.AsTuple(), seed);
                 shards = (int)Math.Round(shardMultiplier * shellShardDrops);
             }
             else if (ShardRandomizerType == RandomizeByRangeTypes.Value)
-                shards = Cute_Rando_Core.RandoHelper(ShardValueDropRange.AsTuple(), seed);
+                shards = CuteRandoCore.RandoHelper(ShardValueDropRange.AsTuple(), seed);
             return shards;
         }
     }
@@ -315,7 +315,7 @@ internal class Enemy_Currency_Rando : Rando_Base
             case RandomizerConsistencyA.EnemyType:
                 if (!enemyGeoSets.TryGetValue(name, out geoSet))
                 {
-                    geoSet = GetRandoTypeGeo(thing, Cute_Rando_Core.RNGSeed(name));
+                    geoSet = GetRandoTypeGeo(thing, CuteRandoCore.RNGSeed(name));
                     enemyGeoSets[name] = geoSet;
                 }
 
@@ -325,14 +325,14 @@ internal class Enemy_Currency_Rando : Rando_Base
 
                 if (!sceneGeoSets.TryGetValue(operatingScene, out Dictionary<string, RandomizedGeoSet> geoSets))
                 {
-                    geoSet = GetRandoTypeGeo(thing, Cute_Rando_Core.RNGSeed(name + operatingScene));
+                    geoSet = GetRandoTypeGeo(thing, CuteRandoCore.RNGSeed(name + operatingScene));
                     sceneGeoSets[operatingScene] = new() { { name, geoSet } };
                 }
                 else
                 {
                     if (!geoSets.TryGetValue(name, out geoSet))
                     {
-                        geoSet = GetRandoTypeGeo(thing, Cute_Rando_Core.RNGSeed(name + operatingScene));
+                        geoSet = GetRandoTypeGeo(thing, CuteRandoCore.RNGSeed(name + operatingScene));
                         geoSets[name] = geoSet;
                     }
                 }
@@ -350,9 +350,9 @@ internal class Enemy_Currency_Rando : Rando_Base
             RandomizedGeoSet geoSet = new(thing);
 
             if (RosaryRandomizerType == RandomizeByRangeTypes.Percent)
-                geoSet.MultiplyGeo(Cute_Rando_Core.RandoHelper(RosaryPercentDropRange.AsTuple(), seed));
+                geoSet.MultiplyGeo(CuteRandoCore.RandoHelper(RosaryPercentDropRange.AsTuple(), seed));
             else if (RosaryRandomizerType == RandomizeByRangeTypes.Value)
-                geoSet.SetGeoQuantity(Cute_Rando_Core.RandoHelper(RosaryValueDropRange.AsTuple(), seed));
+                geoSet.SetGeoQuantity(CuteRandoCore.RandoHelper(RosaryValueDropRange.AsTuple(), seed));
 
             return geoSet;
         }
@@ -674,9 +674,9 @@ internal record RandomizedGeoSet
     /// </summary>
     /// <param name="thing">HealthManager to extract the geo amounts from</param>
     public RandomizedGeoSet(HealthManager thing)
-        : this((int)Cute_Rando_Core.TraverseHelper(thing, "smallGeoDrops").GetValue(),
-              (int)Cute_Rando_Core.TraverseHelper(thing, "mediumGeoDrops").GetValue(),
-              (int)Cute_Rando_Core.TraverseHelper(thing, "largeGeoDrops").GetValue())
+        : this((int)CuteRandoCore.TraverseHelper(thing, "smallGeoDrops").GetValue(),
+              (int)CuteRandoCore.TraverseHelper(thing, "mediumGeoDrops").GetValue(),
+              (int)CuteRandoCore.TraverseHelper(thing, "largeGeoDrops").GetValue())
     {
     }
 

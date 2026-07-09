@@ -66,7 +66,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         RandomizerName = "Enemy Size Randomizer";
         RandomizerDescription = "Randomizes the sizes of enemies and bosses.";
 
-        if (!Cute_Rando_Core.RegisterRandomizer(new(
+        if (!CuteRandoCore.RegisterRandomizer(new(
             RandomizerName,
             RandomizerEventType.GameStartup,
             AccessTools.Method(
@@ -94,14 +94,14 @@ internal sealed class Enemy_Size_Rando : Rando_Base
 
     private protected override void Register()
     {
-        Cute_Rando_Core.RegisterRandomizer(eventActiveEnemy);
-        Cute_Rando_Core.RegisterRandomizer(eventOnFirstSceneFrame);
+        CuteRandoCore.RegisterRandomizer(eventActiveEnemy);
+        CuteRandoCore.RegisterRandomizer(eventOnFirstSceneFrame);
     }
 
     private protected override void Unregister()
     {
-        Cute_Rando_Core.UnregisterRandomizer(eventActiveEnemy);
-        Cute_Rando_Core.UnregisterRandomizer(eventOnFirstSceneFrame);
+        CuteRandoCore.UnregisterRandomizer(eventActiveEnemy);
+        CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
@@ -127,7 +127,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// </summary>
     private void GameStartup()
     {
-        Cute_Rando_Core.harmony.Patch(AccessTools.Method(
+        CuteRandoCore.harmony.Patch(AccessTools.Method(
             typeof(HealthManager), "OnEnable"),
             postfix: new HarmonyMethod(typeof(Enemy_Size_Rando), nameof(HealthManagerOnEnablePostfix)));
         return;
@@ -163,7 +163,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     {
         if (thing == null || thing.transform == null) return;
 
-        bool boss = Cute_Rando_Core.IsBoss(thing);
+        bool boss = CuteRandoCore.IsBoss(thing);
 
         if (boss && !EnemySizeRandomizerSetting.HasFlag(RandomizerEnemyTypeFlags.Boss))
             return;
@@ -184,7 +184,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
                 if (enemySizes.TryGetValue(name, out tempMultiplier))
                     ApplySize(thingTransform, tempMultiplier, walker);
                 else
-                    enemySizes.Add(name, RandomizeSize(boss, thingTransform, walker, Cute_Rando_Core.RNGSeed(name)));
+                    enemySizes.Add(name, RandomizeSize(boss, thingTransform, walker, CuteRandoCore.RNGSeed(name)));
                 break;
             case RandomizerConsistencyA.Scene:
                 if (sceneEnemySizes.TryGetValue(operatingScene, out Dictionary<string, float> enemySizeSet))
@@ -192,10 +192,10 @@ internal sealed class Enemy_Size_Rando : Rando_Base
                     if (enemySizeSet.TryGetValue(name, out tempMultiplier))
                         ApplySize(thingTransform, tempMultiplier, walker);
                     else
-                        enemySizeSet[name] = RandomizeSize(boss, thingTransform, walker, Cute_Rando_Core.RNGSeed(name + operatingScene));
+                        enemySizeSet[name] = RandomizeSize(boss, thingTransform, walker, CuteRandoCore.RNGSeed(name + operatingScene));
                 }
                 else
-                    sceneEnemySizes[operatingScene] = new() { { name, RandomizeSize(boss, thingTransform, walker, Cute_Rando_Core.RNGSeed(name + operatingScene)) } };
+                    sceneEnemySizes[operatingScene] = new() { { name, RandomizeSize(boss, thingTransform, walker, CuteRandoCore.RNGSeed(name + operatingScene)) } };
                 break;
             case RandomizerConsistencyA.None:
                 RandomizeSize(boss, thingTransform, walker);
@@ -206,7 +206,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
 
         float RandomizeSize(bool boss, Transform transform, Walker walker, int seed = int.MinValue)
         {
-            float multiplier = Cute_Rando_Core.RandoHelper(boss ? BossSizePercentRange.AsTuple() : EnemySizePercentRange.AsTuple(), seed);
+            float multiplier = CuteRandoCore.RandoHelper(boss ? BossSizePercentRange.AsTuple() : EnemySizePercentRange.AsTuple(), seed);
             ApplySize(transform, multiplier, walker);
             return multiplier;
         }
@@ -217,7 +217,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
 
             if (walker != null)
             {
-                Traverse rightScale = Cute_Rando_Core.TraverseHelper(walker, "rightScale");
+                Traverse rightScale = CuteRandoCore.TraverseHelper(walker, "rightScale");
                 int direction = (float)rightScale.GetValue() < 0 ? -1 : 1;
                 rightScale.SetValue(Math.Abs(transform.localScale.x) * direction);
             }
@@ -359,14 +359,14 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         {
             if (ehr.Equals(RandomizerEnemyTypeFlags.None) && !currentSizeRandomizerSetting.Equals(RandomizerEnemyTypeFlags.None))
             {
-                Cute_Rando_Core.UnregisterRandomizer(eventActiveEnemy);
-                Cute_Rando_Core.UnregisterRandomizer(eventOnFirstSceneFrame);
+                CuteRandoCore.UnregisterRandomizer(eventActiveEnemy);
+                CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
             }
 
             if (currentSizeRandomizerSetting.Equals(RandomizerEnemyTypeFlags.None) && !ehr.Equals(RandomizerEnemyTypeFlags.None))
             {
-                Cute_Rando_Core.RegisterRandomizer(eventActiveEnemy);
-                Cute_Rando_Core.RegisterRandomizer(eventOnFirstSceneFrame);
+                CuteRandoCore.RegisterRandomizer(eventActiveEnemy);
+                CuteRandoCore.RegisterRandomizer(eventOnFirstSceneFrame);
             }
 
             currentSizeRandomizerSetting = ehr;

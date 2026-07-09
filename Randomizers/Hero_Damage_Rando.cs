@@ -52,7 +52,7 @@ internal class Hero_Damage_Rando : Rando_Base
         RandomizerName = "Hornet Damage Randomizer";
         RandomizerDescription = "Randomizes the damage Hornet does.";
 
-        if (!Cute_Rando_Core.RegisterRandomizer(new(
+        if (!CuteRandoCore.RegisterRandomizer(new(
             RandomizerName,
             RandomizerEventType.GameStartup,
             AccessTools.Method(
@@ -100,9 +100,9 @@ internal class Hero_Damage_Rando : Rando_Base
         Chainloader.PluginInfos.TryGetValue("io.github.hk-speedrunning.debugmod", out PluginInfo DebugMod);
 
         if (Harmony.GetPatchInfo(AccessTools.Method(typeof(PlayerData), "get_nailDamage"))?.Postfixes?.FirstOrDefault(patch => patch.owner == "io.github.hk-speedrunning.debugmod") != null)
-            Cute_Rando_Core.harmony.Patch(AccessTools.Method(DebugMod.Instance.GetType(), "Get_NailDamage"), postfix: new HarmonyMethod(typeof(Hero_Damage_Rando), nameof(DebugModGetNailDamagePostfix)));
+            CuteRandoCore.harmony.Patch(AccessTools.Method(DebugMod.Instance.GetType(), "Get_NailDamage"), postfix: new HarmonyMethod(typeof(Hero_Damage_Rando), nameof(DebugModGetNailDamagePostfix)));
         else
-            Cute_Rando_Core.harmony.Patch(AccessTools.Method(typeof(PlayerData), "get_nailDamage"), postfix: new HarmonyMethod(typeof(Hero_Damage_Rando), nameof(PlayerDataGetNailDamagePostfix)));
+            CuteRandoCore.harmony.Patch(AccessTools.Method(typeof(PlayerData), "get_nailDamage"), postfix: new HarmonyMethod(typeof(Hero_Damage_Rando), nameof(PlayerDataGetNailDamagePostfix)));
     }
 
     /// <summary>
@@ -137,7 +137,7 @@ internal class Hero_Damage_Rando : Rando_Base
             case PlayerNailDamageConsistancy.NeedleUpgradeLevel:
                 if (!nailUpgradeDamages.TryGetValue(nailDamage, out int tempDamage))
                 {
-                    tempDamage = RollDamage(Cute_Rando_Core.RNGSeed(nailDamage.ToString()));
+                    tempDamage = RollDamage(CuteRandoCore.RNGSeed(nailDamage.ToString()));
                     nailUpgradeDamages.Add(nailDamage, tempDamage);
                 }
 
@@ -163,7 +163,7 @@ internal class Hero_Damage_Rando : Rando_Base
 
         int RollDamage(int seed = int.MinValue)
         {
-            return Cute_Rando_Core.RandoHelper(PlayerNailDamageShift * (-1), PlayerNailDamageShift, seed);
+            return CuteRandoCore.RandoHelper(PlayerNailDamageShift * (-1), PlayerNailDamageShift, seed);
         }
     }
 

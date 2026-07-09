@@ -64,7 +64,7 @@ internal class Enemy_Health_Rando : Rando_Base
         RandomizerName = "Enemy Health Randomizer";
         RandomizerDescription = "Randomizes the health of enemies and bosses.";
 
-        if (!Cute_Rando_Core.RegisterRandomizer(new(
+        if (!CuteRandoCore.RegisterRandomizer(new(
             RandomizerName,
             RandomizerEventType.GameStartup,
             AccessTools.Method(
@@ -92,14 +92,14 @@ internal class Enemy_Health_Rando : Rando_Base
 
     private protected override void Register()
     {
-        Cute_Rando_Core.RegisterRandomizer(eventActiveEnemy);
-        Cute_Rando_Core.RegisterRandomizer(eventOnFirstSceneFrame);
+        CuteRandoCore.RegisterRandomizer(eventActiveEnemy);
+        CuteRandoCore.RegisterRandomizer(eventOnFirstSceneFrame);
     }
 
     private protected override void Unregister()
     {
-        Cute_Rando_Core.UnregisterRandomizer(eventActiveEnemy);
-        Cute_Rando_Core.UnregisterRandomizer(eventOnFirstSceneFrame);
+        CuteRandoCore.UnregisterRandomizer(eventActiveEnemy);
+        CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
@@ -124,7 +124,7 @@ internal class Enemy_Health_Rando : Rando_Base
     /// </summary>
     private void GameStartup()
     {
-        Cute_Rando_Core.harmony.Patch(
+        CuteRandoCore.harmony.Patch(
             AccessTools.Method(typeof(HealthManager), "OnEnable"),
             postfix: new HarmonyMethod(typeof(Enemy_Health_Rando), nameof(HealthManagerOnEnablePostfix)));
     }
@@ -166,7 +166,7 @@ internal class Enemy_Health_Rando : Rando_Base
     {
         if (thing == null) return;
 
-        bool boss = Cute_Rando_Core.IsBoss(thing);
+        bool boss = CuteRandoCore.IsBoss(thing);
 
         if (boss && !EnemyHealthRandomizerSetting.HasFlag(RandomizerEnemyTypeFlags.Boss)) return;
 
@@ -184,7 +184,7 @@ internal class Enemy_Health_Rando : Rando_Base
                 if (enemyHealthNumbers.TryGetValue(name, out tempHp))
                     hp = initHp = tempHp;
                 else
-                    enemyHealthNumbers.Add(name, RandomizeHp(boss, ref initHp, ref hp, Cute_Rando_Core.RNGSeed(name)));
+                    enemyHealthNumbers.Add(name, RandomizeHp(boss, ref initHp, ref hp, CuteRandoCore.RNGSeed(name)));
 
                 break;
             case RandomizerConsistencyA.Scene:
@@ -193,10 +193,10 @@ internal class Enemy_Health_Rando : Rando_Base
                     if (healthManagerSet.TryGetValue(name, out tempHp))
                         hp = initHp = tempHp;
                     else
-                        healthManagerSet[name] = RandomizeHp(boss, ref initHp, ref hp, Cute_Rando_Core.RNGSeed(name + operatingScene));
+                        healthManagerSet[name] = RandomizeHp(boss, ref initHp, ref hp, CuteRandoCore.RNGSeed(name + operatingScene));
                 }
                 else
-                    sceneHealthNumbers[operatingScene] = new() { { name, RandomizeHp(boss, ref initHp, ref hp, Cute_Rando_Core.RNGSeed(name + operatingScene)) } };
+                    sceneHealthNumbers[operatingScene] = new() { { name, RandomizeHp(boss, ref initHp, ref hp, CuteRandoCore.RNGSeed(name + operatingScene)) } };
 
                 break;
             case RandomizerConsistencyA.None:
@@ -209,7 +209,7 @@ internal class Enemy_Health_Rando : Rando_Base
         // Helper to randomize hp
         int RandomizeHp(bool boss, ref int initHp, ref int hp, int seed = int.MinValue)
         {
-            float randFloat = Cute_Rando_Core.RandoHelper(boss ? BossHealthPercentRange.AsTuple() : EnemyHealthPercentRange.AsTuple(), seed);
+            float randFloat = CuteRandoCore.RandoHelper(boss ? BossHealthPercentRange.AsTuple() : EnemyHealthPercentRange.AsTuple(), seed);
             int tempHp;
 
             if (initHp <= 0)

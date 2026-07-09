@@ -18,7 +18,7 @@ namespace Smol_Randomizer.Settings;
 /// Customized set of menu elements for easy building
 /// </summary>
 /// <param name="title">Title of the menu</param>
-public class Smol_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScreen(title)
+public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScreen(title)
 {
     // Additional Colors
     public static Color LightGray => new(0.75f, 0.75f, 0.75f);
@@ -314,7 +314,7 @@ public class Smol_Randomizer_MenuBuilder(LocalizedText title) : ScrollingMenuScr
         string title = settingGroup.Key;
         Dictionary<string, ConfigEntryBase> settings = settingGroup.Value;
 
-        Smol_Randomizer_MenuBuilder screenBuilder = new(title);
+        SmolRandomizerMenuBuilder screenBuilder = new(title);
         screenBuilder.Content.VerticalSpacing = VSPACE_TIGHT;
 
         foreach (ConfigEntryBase setting in settings.Values)
