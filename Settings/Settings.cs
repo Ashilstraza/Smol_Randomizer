@@ -15,7 +15,7 @@ namespace Smol_Randomizer.Settings;
 public static class Settings
 {
     #region Settings
-#if DEBUG
+#if DEBUG && TESTING
     /// <summary>
     /// If we want to test new things
     /// </summary>
@@ -96,7 +96,7 @@ public static class Settings
                 {
                     Order = 3
                 }));
-#if DEBUG
+#if DEBUG && TESTING
         testNewThings = config.Bind(
             "Testing",
             "Test new things",

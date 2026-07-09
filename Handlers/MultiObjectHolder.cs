@@ -1,4 +1,4 @@
-﻿#if DEBUG
+﻿#if DEBUG && TESTING
 using System;
 using System.Collections.Generic;
 

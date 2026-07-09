@@ -178,7 +178,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <param name="args">The setting that was changed</param>
     internal static void UpdateSettings(object sender, EventArgs args)
     {
-#if DEBUG
+#if DEBUG && TESTING
         testing = Settings.Settings.TestNewThings;
 #endif
         randomize = Settings.Settings.EnableRandomizer;

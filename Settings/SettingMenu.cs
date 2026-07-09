@@ -39,7 +39,7 @@ internal class SettingMenu : SmolRandomizerMenuBuilder
     {
         Content.VerticalSpacing = VSPACE_TIGHT;
         GenerateMainPage();
-#if DEBUG
+#if DEBUG && TESTING
         BlankSpace();
         Label("World Objects", FontSizes.Medium);
         Button("Export World Objects",
@@ -247,9 +247,6 @@ internal class SettingMenu : SmolRandomizerMenuBuilder
             seedButton.SetMainColor(Settings.Loaded ? Color.white : Color.gray);
         };
 
-        screenBuilder.Add(seedInput);
-        return screenBuilder;
-
         static TextInput<int> SeedInput(string label, string description, TextLabel seedLabel)
         {
             ParserTextModel<int> model = TextModels.ForIntegers();
@@ -282,6 +279,12 @@ internal class SettingMenu : SmolRandomizerMenuBuilder
         {
             return Settings.Loaded ? "Seed: " + Settings.SaveData.SaveSeed : "No Save Loaded";
         }
+
+        screenBuilder.Add(seedInput);
+
+
+
+        return screenBuilder;
     }
 
     /// <summary>

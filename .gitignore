@@ -487,3 +487,5 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+/World_Objects.json
+/Completed_World_Objects.json
