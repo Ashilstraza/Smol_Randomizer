@@ -266,7 +266,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[{MODNAME}] Exception encountered, unable to write per-save data for current save slot.\n" + ex.Message);
+            Log.LogError($"Exception encountered, unable to write per-save data for current save slot.\n" + ex.Message);
         }
     }
 
@@ -290,7 +290,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLineAsync($"[{MODNAME}] Exception encountered, unable to load per-save data for current save slot.\n" + ex.Message);
+            Log.LogError($"Exception encountered, unable to load per-save data for current save slot.\n" + ex.Message);
         }
     }
 
@@ -313,7 +313,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Exception encountered, unable to import {fileName}.\n" + ex.Message);
+            Log.LogError($"Exception encountered, unable to import {fileName}.\n" + ex.Message);
             importTarget = "";
         }
     }
@@ -332,7 +332,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Exception encountered, unable to export {fileName}.\n" + ex.Message);
+            Log.LogError($"Exception encountered, unable to export {fileName}.\n" + ex.Message);
         }
     }
 
@@ -353,16 +353,14 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
         foreach (Randomizer_Info randoInfo in allRandomizerActions)
         {
-            if (randomizer.Name == randoInfo.Name)
-                Console.Error.WriteLine($"[{MODNAME}] Unable to register randomizer action: There already is a randomizer with the same name.");
-            else if (randomizer.Method == randoInfo.Method)
-                Console.Error.WriteLine($"[{MODNAME}] Unable to register randomizer action: Duplicate action.");
+            if (randomizer.Method == randoInfo.Method)
+                Log.LogWarning($"Unable to register randomizer action: Duplicate action.");
         }
 
         if (!allRandomizerActions.Add(randomizer)) return false;
 
         if (allRandomizers.Add(randomizer.Name))
-            Console.WriteLine($"[{MODNAME}] Registering randomizer: {randomizer.Name}.");
+            Log.LogInfo($"Registering randomizer: {randomizer.Name}.");
 
         switch (randomizer.RandomizerType)
         {
@@ -411,7 +409,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
                         randomizer.Object));
                 break;
             default:
-                Console.Error.WriteLine("Unimplemented entryType");
+                Log.LogError("Unimplemented entryType");
                 allRandomizerActions.Remove(randomizer);
                 return false;
         }
@@ -445,7 +443,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         if (!allRandomizerActions.Remove(randomizer))
             return false;
 
-        Console.WriteLine($"[{MODNAME}] Unregistering randomizer event: {randomizer.RandomizerType} from {randomizer.Name}.");
+        Log.LogInfo($"Unregistering randomizer event: {randomizer.RandomizerType} from {randomizer.Name}.");
 
         switch (randomizer.RandomizerType)
         {
@@ -469,7 +467,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
                 activeGameShutdown.Remove(randomizer.Name);
                 break;
             default:
-                Console.Error.WriteLine("Unimplemented entryType");
+                Log.LogError("Unimplemented entryType");
                 return false;
         }
 
