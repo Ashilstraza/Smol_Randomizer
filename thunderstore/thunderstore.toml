@@ -1,5 +1,5 @@
 ﻿[config]
-schemaVersion = "0.1.0"
+schemaVersion = "0.0.1"
 
 [package]
 # The name of the team you are publishing as
@@ -29,6 +29,14 @@ outdir = "./dist"
 [[build.copy]]
 source = "./temp"
 target = "/"
+
+[[build.copy]]
+source = "../CHANGELOG.md"
+target = "./"
+
+[[build.copy]]
+source = "../LICENSE.txt"
+target = "./"
 
 # additional files and directories can be added to the package like this:
 # [[build.copy]]

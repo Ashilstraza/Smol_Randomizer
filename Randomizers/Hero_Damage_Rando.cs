@@ -39,14 +39,14 @@ internal class Hero_Damage_Rando : Rando_Base
     /// </summary>
     public Dictionary<int, int> nailUpgradeDamages = [];
 
+    /// <summary>
+    /// Constructor for this singleton
+    /// </summary>
     private Hero_Damage_Rando()
     {
         InitRandomizer();
     }
 
-    /// <summary>
-    /// Initialize Hero Damage Randomizer
-    /// </summary>
     private protected override void InitRandomizer()
     {
         RandomizerName = "Hornet Damage Randomizer";
@@ -63,7 +63,7 @@ internal class Hero_Damage_Rando : Rando_Base
         base.InitRandomizer();
     }
 
-#if DEBUG && TESTING // Enable Saving Data
+#if TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(nailUpgradeDamages), out object tempDict))
@@ -102,9 +102,13 @@ internal class Hero_Damage_Rando : Rando_Base
         Chainloader.PluginInfos.TryGetValue("io.github.hk-speedrunning.debugmod", out PluginInfo DebugMod);
 
         if (Harmony.GetPatchInfo(AccessTools.Method(typeof(PlayerData), "get_nailDamage"))?.Postfixes?.FirstOrDefault(patch => patch.owner == "io.github.hk-speedrunning.debugmod") != null)
-            CuteRandoCore.harmony.Patch(AccessTools.Method(DebugMod.Instance.GetType(), "Get_NailDamage"), postfix: new HarmonyMethod(typeof(Hero_Damage_Rando), nameof(DebugModGetNailDamagePostfix)));
+            CuteRandoCore.harmony.Patch(
+                AccessTools.Method(DebugMod.Instance.GetType(), "Get_NailDamage"),
+                postfix: new HarmonyMethod(typeof(Hero_Damage_Rando), nameof(DebugModGetNailDamagePostfix)));
         else
-            CuteRandoCore.harmony.Patch(AccessTools.Method(typeof(PlayerData), "get_nailDamage"), postfix: new HarmonyMethod(typeof(Hero_Damage_Rando), nameof(PlayerDataGetNailDamagePostfix)));
+            CuteRandoCore.harmony.Patch(
+                AccessTools.Method(typeof(PlayerData), "get_nailDamage"),
+                postfix: new HarmonyMethod(typeof(Hero_Damage_Rando), nameof(PlayerDataGetNailDamagePostfix)));
     }
 
     /// <summary>
@@ -228,6 +232,10 @@ internal class Hero_Damage_Rando : Rando_Base
     /// Default choice for the nail damage shift
     /// </summary>
     public readonly int defaultPlayerNailDamageShift = 3;
+    /// <summary>
+    /// Acceptable value range for player nail damage
+    /// </summary>
+    public AcceptableValueRange<int> acceptablePlayerNailDamageShift = new(0, 20);
 
     private protected override void InitSettings()
     {
@@ -258,7 +266,7 @@ internal class Hero_Damage_Rando : Rando_Base
             defaultValue: defaultPlayerNailDamageShift,
             configDescription: new ConfigDescription(
                 description: "Shifts Hornet's needle damage within a range of the set value.",
-                acceptableValues: new AcceptableValueRange<int>(0, 20),
+                acceptableValues: acceptablePlayerNailDamageShift,
                 tags: new ConfigurationManagerAttributes
                 {
                     Order = 1

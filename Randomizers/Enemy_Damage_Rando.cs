@@ -102,7 +102,7 @@ internal class Enemy_Damage_Rando : Rando_Base
         CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
-#if DEBUG && TESTING // Enable Saving Data
+#if TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(enemyDamageNumbers), out object tempDict))

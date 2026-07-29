@@ -32,7 +32,7 @@ internal abstract class Rando_Base
         Settings.Settings.enableRandomizer.SettingChanged += RandoCoreSetting;
         Settings.RandoPerSaveData.OnSettingsLoaded += OnSettingsLoaded;
         Settings.SettingMenu.OnResetClicked += OnResetClicked;
-#if DEBUG && TESTING // Enable Saving Data
+#if TESTING // Enable Saving Data
         Settings.RandoPerSaveData.OnSettingsSaved += OnSettingsSaved;
 #endif
     }
@@ -54,7 +54,7 @@ internal abstract class Rando_Base
     {
         ResetAllLists();
 
-#if DEBUG && TESTING // Enable Saving Data
+#if TESTING // Enable Saving Data
         Dictionary<string, object> savedData = Settings.Settings.SaveData.GetSavedData(RandomizerName);
 
         if (hasSaveData)
@@ -76,7 +76,7 @@ internal abstract class Rando_Base
             ResetAllLists();
     }
 
-#if DEBUG && TESTING // Enable Saving Data
+#if TESTING // Enable Saving Data
     /// <summary>
     /// Apply the given per-slot data to the Randomizer's various saved settings
     /// </summary>

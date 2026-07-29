@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 
 using BepInEx;
+using BepInEx.Logging;
 
 using GlobalEnums;
 
@@ -38,12 +39,12 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     public const string GUID = "ashilstraza.randomizer.cute";
     /// <summary>
     /// Mod Name
-    /// </summary>
+    /// </summary>]
     public const string MODNAME = "Smol Randomizer";
     /// <summary>
     /// Mod Version
     /// </summary>
-    public const string VERSION = "0.1.0";
+    public const string VERSION = "0.1.2";
 
     /// <summary>
     /// If we should update the active limit regions after a scene load
@@ -88,6 +89,8 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     internal static SettingMenu cuteRandomizerSettingWindow;
     internal static Random noSeedRNG = new();
 
+    internal static ManualLogSource Log;
+
     /// <summary>
     /// Dictionary containing the randomizers that want to update the active limit regions
     /// </summary>
@@ -122,6 +125,8 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
         Settings.Settings.Init(Config);
 
+        Log = Logger;
+
         // Access the instance to initialize each randomizer.
         _ = Enemy_Currency_Rando.Instance;
         _ = World_Currency_Drop_Rando.Instance;
@@ -129,6 +134,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         _ = Enemy_Damage_Rando.Instance;
         _ = Hero_Damage_Rando.Instance;
         _ = Enemy_Size_Rando.Instance;
+        _ = Hero_Size_Rando.Instance;
     }
 
     /// <summary>
@@ -178,7 +184,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <param name="args">The setting that was changed</param>
     internal static void UpdateSettings(object sender, EventArgs args)
     {
-#if DEBUG && TESTING
+#if TESTING
         testing = Settings.Settings.TestNewThings;
 #endif
         randomize = Settings.Settings.EnableRandomizer;
@@ -219,37 +225,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
             randomizer.Value.Invoke();
     }
 
-    /// <summary>
-    /// Create the custom mod menu
-    /// </summary>
-    /// <returns>the built mod menu</returns>
-    public AbstractMenuScreen BuildCustomMenu()
-    {
-        cuteRandomizerSettingWindow = new(MODNAME);
-        return cuteRandomizerSettingWindow;
-    }
-
-    /// <summary>
-    /// Retrieves the description of the given randomizer
-    /// </summary>
-    /// <param name="randoName">The name of the randomizer we want the description for</param>
-    /// <returns>The description of the given randomizer, returns an empty string if it was not found</returns>
-    public static string GetRandoDescription(string randoName)
-    {
-        randomizerDescriptions.TryGetValue(randoName, out string description);
-        return description;
-    }
-
-    /// <summary>
-    /// Sets the description of the given randomizer
-    /// </summary>
-    /// <param name="randoName">The name of the randomizer we want to add the description of</param>
-    /// <param name="randoDescription">The description of the randomizer</param>
-    internal static void AddRandoDescription(string randoName, string randoDescription)
-    {
-        randomizerDescriptions.Add(randoName, randoDescription);
-    }
-
+    #region File_Import/Export
     /// <summary>
     /// Writes the save data for the current save slot.
     /// </summary>
@@ -334,6 +310,39 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         {
             Log.LogError($"Exception encountered, unable to export {fileName}.\n" + ex.Message);
         }
+    }
+    #endregion
+
+    #region Randomizer_Functions
+    /// <summary>
+    /// Create the custom mod menu
+    /// </summary>
+    /// <returns>the built mod menu</returns>
+    public AbstractMenuScreen BuildCustomMenu()
+    {
+        cuteRandomizerSettingWindow = new(MODNAME);
+        return cuteRandomizerSettingWindow;
+    }
+
+    /// <summary>
+    /// Retrieves the description of the given randomizer
+    /// </summary>
+    /// <param name="randoName">The name of the randomizer we want the description for</param>
+    /// <returns>The description of the given randomizer, returns an empty string if it was not found</returns>
+    public static string GetRandoDescription(string randoName)
+    {
+        randomizerDescriptions.TryGetValue(randoName, out string description);
+        return description;
+    }
+
+    /// <summary>
+    /// Sets the description of the given randomizer
+    /// </summary>
+    /// <param name="randoName">The name of the randomizer we want to add the description of</param>
+    /// <param name="randoDescription">The description of the randomizer</param>
+    internal static void AddRandoDescription(string randoName, string randoDescription)
+    {
+        randomizerDescriptions.Add(randoName, randoDescription);
     }
 
     /// <summary>
@@ -476,7 +485,9 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
         return true;
     }
+    #endregion
 
+    #region Helper_Functions
     /// <summary>
     /// Helper method for grabbing private variables
     /// </summary>
@@ -608,6 +619,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
         return false;
     }
+    #endregion
 }
 
 /// <summary>

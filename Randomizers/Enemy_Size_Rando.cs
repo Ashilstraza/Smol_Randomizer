@@ -106,7 +106,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
-#if DEBUG && TESTING // Enable Saving Data
+#if TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(enemySizes), out object tempDict))
@@ -153,7 +153,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// <param name="__instance">The HealthManager of the enemy that we want to adjust the size of</param>
     private static void HealthManagerOnEnablePostfix(ref HealthManager __instance)
     {
-        if (!Instance.coreEnableRandomization || Instance.EnemySizeRandomizerSetting == RandomizerEnemyTypeFlags.None)
+        if (__instance == null || !Instance.coreEnableRandomization || Instance.EnemySizeRandomizerSetting == RandomizerEnemyTypeFlags.None)
             return;
 
         if (Instance.currentEnemyHealthManagers.Add(__instance))
@@ -182,7 +182,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
     private void SetSize(HealthManager thing)
     {
-        if (thing == null || thing.transform == null) return;
+        if (thing.transform == null) return;
 
         bool boss = CuteRandoCore.IsBoss(thing);
 

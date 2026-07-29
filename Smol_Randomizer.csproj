@@ -98,11 +98,17 @@
     <Reference Include="Assembly-CSharp">
       <HintPath>References\Assembly-CSharp.dll</HintPath>
     </Reference>
+    <Reference Include="DebugMod">
+      <HintPath>References\DebugMod.dll</HintPath>
+    </Reference>
     <Reference Include="PlayMaker">
       <HintPath>References\PlayMaker.dll</HintPath>
     </Reference>
     <Reference Include="Silksong.ModMenu">
       <HintPath>References\Silksong.ModMenu.dll</HintPath>
+    </Reference>
+    <Reference Include="TeamCherry.TK2D">
+      <HintPath>References\TeamCherry.TK2D.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>References\UnityEngine.UI.dll</HintPath>
@@ -115,11 +121,12 @@
   <Target Name="CopyAndPackageMod" AfterTargets="PostBuildEvent">
     <ItemGroup>
       <Binaries Include="$(TargetPath)" LocalDir="/" PackDir="/" />
-      <Binaries Include="$(TargetDir)/$(TargetName).pdb" LocalDir="/" PackDir="/" Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' " />
-      <Binaries Include="$(TargetDir)/$(TargetName).pdb" Condition="'$(Configuration)|$(Platform)'=='Testing|AnyCPU'">
+      <!--<Binaries Include="$(TargetDir)/$(TargetName).pdb" LocalDir="/" PackDir="/" Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' " />-->
+	  <Binaries Include="$(TargetDir)/$(TargetName).pdb"  LocalDir="/" PackDir="/" Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' or '$(Configuration)|$(Platform)'=='Testing|AnyCPU'" />
+      <!--<Binaries Include="$(TargetDir)/$(TargetName).pdb" Condition="'$(Configuration)|$(Platform)'=='Testing|AnyCPU'">
         <LocalDir>/</LocalDir>
         <PackDir>/</PackDir>
-      </Binaries>
+      </Binaries>-->
     </ItemGroup>
     <PropertyGroup>
       <ThunderstoreDir>$(ProjectDir)/thunderstore</ThunderstoreDir>

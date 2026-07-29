@@ -77,7 +77,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
             AccessTools.Method(
                 typeof(World_Currency_Drop_Rando),
                 nameof(SetCurrency)),
-            this);
+                this);
 
         eventOnSceneLoad = new(
             RandomizerName,
@@ -85,7 +85,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
             AccessTools.Method(
                 typeof(World_Currency_Drop_Rando),
                 nameof(OnSceneLoad)),
-            this);
+                this);
 
         base.InitRandomizer();
 
@@ -109,7 +109,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
         CuteRandoCore.UnregisterRandomizer(eventOnSceneLoad);
     }
 
-#if DEBUG && TESTING // Enable Saving Data
+#if TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(sceneMultiplier), out object tempDict))

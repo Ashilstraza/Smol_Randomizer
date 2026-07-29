@@ -15,7 +15,7 @@ namespace Smol_Randomizer.Settings;
 public static class Settings
 {
     #region Settings
-#if DEBUG && TESTING
+#if TESTING
     /// <summary>
     /// If we want to test new things
     /// </summary>
@@ -28,7 +28,7 @@ public static class Settings
     /// <summary>
     /// Default for if we want to test new things
     /// </summary>
-    public static readonly bool defaultTestNewThings = false;
+    public const bool defaultTestNewThings = false;
     /// <summary>
 #endif
     /// Enables the randomization of the various things
@@ -42,7 +42,7 @@ public static class Settings
     /// <summary>
     /// Default if we want to randomize the various things
     /// </summary>
-    public static readonly bool defaultEnableRandomizer = true;
+    public const bool defaultEnableRandomizer = true;
     /// <summary>
     /// Changes the menu button colors of the enabled/disabled randomizers
     /// </summary>
@@ -55,7 +55,7 @@ public static class Settings
     /// <summary>
     /// Default color of the randomizer menu buttons
     /// </summary>
-    public static readonly RandomizerColors defaultEnabledRandomizerColors = RandomizerColors.GreenRed;
+    public const RandomizerColors defaultEnabledRandomizerColors = RandomizerColors.GreenRed;
 
     /// <summary>
     /// Reference to the randomizer's config file to allow adding settings.
@@ -96,7 +96,7 @@ public static class Settings
                 {
                     Order = 3
                 }));
-#if DEBUG && TESTING
+#if TESTING
         testNewThings = config.Bind(
             "Testing",
             "Test new things",
@@ -185,8 +185,8 @@ public static class Settings
         }
         else if (acceptableRange is AcceptableRangeforFloatRange fRange)
         {
-            minVal = (int)fRange.MinValue;
-            maxVal = (int)fRange.MaxValue;
+            minVal = (int)(fRange.MinValue * 100);
+            maxVal = (int)(fRange.MaxValue * 100);
         }
 
         using GUILayout.VerticalScope verticalGroup = new("box");
@@ -284,7 +284,7 @@ public static class Settings
 /// </summary>
 public class RandoPerSaveData
 {
-#if DEBUG && TESTING // Enable Saving Data
+#if TESTING // Enable Saving Data
     /// <summary>
     /// Dictionary containing references to all the data we want to save per-save slot
     /// </summary>
@@ -328,7 +328,7 @@ public class RandoPerSaveData
     internal void Load()
     {
         Settings.loading = true;
-#if DEBUG && TESTING // Enable Saving Data
+#if TESTING // Enable Saving Data
         try
         {
             OnSettingsLoaded?.Invoke(!(SmolSaveDictionary == null));
@@ -348,7 +348,7 @@ public class RandoPerSaveData
         OnSettingsSaved?.Invoke();
     }
 
-#if DEBUG && TESTING // Enable Saving Data
+#if TESTING // Enable Saving Data
     /// <summary>
     /// Returns a dictionary containing all the saved data for the given randomizer. If it does not exists, just returns an empty dictionary.
     /// </summary>
