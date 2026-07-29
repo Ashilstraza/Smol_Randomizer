@@ -7,8 +7,6 @@ using GlobalSettings;
 
 using HarmonyLib;
 
-using MonoMod.Utils;
-
 using Newtonsoft.Json;
 
 using Smol_Randomizer.Settings;
@@ -381,7 +379,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// <summary>
     /// Default setting for how consistant the currency drops should be
     /// </summary>
-    public readonly RandomizerConsistencyA defaultRandomizerConsistency = RandomizerConsistencyA.None;
+    public const RandomizerConsistencyA defaultRandomizerConsistency = RandomizerConsistencyA.None;
     /// <summary>
     /// Randomize quantity of rosaries dropped
     /// </summary>
@@ -394,7 +392,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// <summary>
     /// Default choice for rosary quantity randomizer
     /// </summary>
-    public readonly RandomizeByRangeTypes defaultRosaryRandomizerType = RandomizeByRangeTypes.Disabled;
+    public const RandomizeByRangeTypes defaultRosaryRandomizerType = RandomizeByRangeTypes.Disabled;
     /// <summary>
     /// Percent range for rosary drops
     /// </summary>
@@ -407,7 +405,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// <summary>
     /// Default percent range for rosary drops
     /// </summary>
-    public readonly FloatRange defaultRosaryPercentDropRange = new(0.5f, 2.0f);
+    public static readonly FloatRange defaultRosaryPercentDropRange = new(0.5f, 2.0f);
     /// <summary>
     /// Value range for rosary drops
     /// </summary>
@@ -420,7 +418,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// <summary>
     /// Default value range for rosary drops
     /// </summary>
-    public readonly IntRange defaultRosaryValueDropRange = new(0, 15);
+    public static readonly IntRange defaultRosaryValueDropRange = new(0, 15);
     /// <summary>
     /// Randomize quantity of shards dropped
     /// </summary>
@@ -433,7 +431,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// <summary>
     /// Default choice for shard quantity randomizer
     /// </summary>
-    public readonly RandomizeByRangeTypes defaultShardRandomizerType = RandomizeByRangeTypes.Disabled;
+    public const RandomizeByRangeTypes defaultShardRandomizerType = RandomizeByRangeTypes.Disabled;
     /// <summary>
     /// Percent range for shard drops
     /// </summary>
@@ -446,7 +444,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// <summary>
     /// Default percent range for shard drops
     /// </summary>
-    public readonly FloatRange defaultShardPercentDropRange = new(0.5f, 2.0f);
+    public static readonly FloatRange defaultShardPercentDropRange = new(0.5f, 2.0f);
     /// <summary>
     /// Value range for shard drops
     /// </summary>
@@ -459,7 +457,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// <summary>
     /// Default value range for shard drops
     /// </summary>
-    public readonly IntRange defaultShardValueDropRange = new(0, 15);
+    public static readonly IntRange defaultShardValueDropRange = new(0, 15);
 
     // Used for determining if we need to update
     private RandomizeByRangeTypes currentRosarySetting;

@@ -7,10 +7,6 @@ using HarmonyLib;
 
 using HutongGames.PlayMaker.Actions;
 
-using MonoMod.Utils;
-
-using Newtonsoft.Json;
-
 using Smol_Randomizer.Settings;
 
 using UnityEngine;
@@ -298,7 +294,6 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         currentEnemyHealthManagers.RemoveWhere(x => x == null);
     }
 
-
     private protected override void ResetAllLists()
     {
         currentEnemyHealthManagers.Clear();
@@ -319,7 +314,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// <summary>
     /// Default setting for how consistent the enemy size should be
     /// </summary>
-    public readonly RandomizerConsistencyA defaultRandomizerConsistency = RandomizerConsistencyA.None;
+    public const RandomizerConsistencyA defaultRandomizerConsistency = RandomizerConsistencyA.None;
     /// <summary>
     /// Randomize the size of enemies
     /// </summary>
@@ -332,7 +327,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// <summary>
     /// Default choice for the size randomizer
     /// </summary>
-    public readonly RandomizerEnemyTypeFlags defaultEnemySizeRandomizerSetting = RandomizerEnemyTypeFlags.None;
+    public const RandomizerEnemyTypeFlags defaultEnemySizeRandomizerSetting = RandomizerEnemyTypeFlags.None;
     /// <summary>
     /// Randomize the size of normal enemies
     /// </summary>
@@ -345,7 +340,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// <summary>
     /// Default choice for enemy size randomizer
     /// </summary>
-    public readonly FloatRange defaultEnemySizePercentRange = new(0.35f, 1.6f);
+    public static readonly FloatRange defaultEnemySizePercentRange = new(0.35f, 1.6f);
     /// <summary>
     /// Randomize the size of boss enemies
     /// </summary>
@@ -358,7 +353,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// <summary>
     /// Default choice for boss size randomizer
     /// </summary>
-    public readonly FloatRange defaultBossSizePercentRange = new(0.85f, 1.25f);
+    public static readonly FloatRange defaultBossSizePercentRange = new(0.85f, 1.25f);
 
     // Used for determining if we need to update
     private RandomizerEnemyTypeFlags currentSizeRandomizerSetting;

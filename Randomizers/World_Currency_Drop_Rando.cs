@@ -5,10 +5,6 @@ using BepInEx.Configuration;
 
 using HarmonyLib;
 
-using MonoMod.Utils;
-
-using Newtonsoft.Json;
-
 using Smol_Randomizer.Settings;
 
 using UnityEngine.SceneManagement;
@@ -258,7 +254,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
     /// <summary>
     /// Default setting for how consistant the drop chances are
     /// </summary>
-    public readonly RandomizerConsistencyB defaultConsistencySetting = RandomizerConsistencyB.None;
+    public const RandomizerConsistencyB defaultConsistencySetting = RandomizerConsistencyB.None;
     /// <summary>
     /// Randomize shard drop chance from hitting specific walls
     /// </summary>
@@ -271,7 +267,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
     /// <summary>
     /// Default choice for wall shard drop chance randomizer
     /// </summary>
-    public readonly bool defaultShardChanceEnable = false;
+    public const bool defaultShardChanceEnable = false;
     /// <summary>
     /// Percent range for regular shard drop chance multiplier
     /// </summary>
@@ -284,7 +280,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
     /// <summary>
     /// Default percent range for regular shard drop chance multiplier
     /// </summary>
-    public readonly FloatRange defaultShardChanceMultiplier = new(1f, 3f);
+    public static readonly FloatRange defaultShardChanceMultiplier = new(1f, 3f);
     /// <summary>
     /// Randomize architect crest shard drop chance
     /// </summary>
@@ -297,7 +293,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
     /// <summary>
     /// Default choice for architect crest shard drop chance randomizer
     /// </summary>
-    public readonly bool defaultArchitectChanceEnable = false;
+    public const bool defaultArchitectChanceEnable = false;
     /// <summary>
     /// Percent range for architect crest multiplier
     /// </summary>
@@ -310,7 +306,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
     /// <summary>
     /// Default percent range for architect crest multiplier
     /// </summary>
-    public readonly FloatRange defaultArchitectCrestMultiplier = new(1f, 3f);
+    public static readonly FloatRange defaultArchitectCrestMultiplier = new(1f, 3f);
 
     // Used for determining if we need to update
     private bool architectCrestChanging = false;

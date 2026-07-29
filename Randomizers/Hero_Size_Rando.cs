@@ -8,8 +8,6 @@ using HarmonyLib;
 
 using HutongGames.PlayMaker;
 
-using Newtonsoft.Json;
-
 using Smol_Randomizer.Settings;
 
 using UnityEngine;
@@ -31,57 +29,6 @@ internal class Hero_Size_Rando : Rando_Base
     /// Externally visible instance of this rando
     /// </summary>
     public static Hero_Size_Rando Instance => instance.Value;
-
-    /// <summary>
-    /// True if we need to grab Hornet's base stats
-    /// </summary>
-    private static bool grabVariables = true;
-    private static float hornetBaseDashSpeed;
-    private static float hornetBaseSprintSpeed;
-    private static float hornetBaseSprintStartSpeed;
-    private static float hornetBaseQuickSpeed; // Flea brew?
-    private static float hornetBaseQuickerSpeed; // Anklets?
-    private static float hornetBaseSpeedToEnterUp;
-    private static float hornetBaseSpeedToEnterHor;
-
-    /// <summary>
-    /// The Translate action within the Vault FSM state
-    /// </summary>
-    private static Translate mantleVaultTranslate;
-    /// <summary>
-    /// The YOffset float within Mantle FSM
-    /// </summary>
-    private static FsmFloat baseMantleVaultYOffset;
-
-    /// <summary>
-    /// If we have attempted to apply the transpiler
-    /// </summary>
-    private static bool transpilerAttempted = false;
-
-    /// <summary>
-    /// If we have adjusted Hornet's size
-    /// </summary>
-    private bool heroSizeChanged = false;
-    /// <summary>
-    /// Reference to Hornet's Transform
-    /// </summary>
-    private Transform? heroTransform;
-    /// <summary>
-    /// Reference to Hornet's Collider
-    /// </summary>
-    private Collider2D? heroCollider;
-    /// <summary>
-    /// Hornet's Size
-    /// </summary>
-    internal Vector3 heroSize = new(1f, 1f, 1f);
-    /// <summary>
-    /// Hornet's Size when facing Right
-    /// </summary>
-    internal Vector3 heroSizeFlipped = new(-1f, 1f, 1f);
-
-    #region Randomizer_Info
-    private Randomizer_Info eventOnSceneLoad;
-    #endregion
 
     /// <summary>
     /// The base offset for the near clamber check
@@ -113,7 +60,67 @@ internal class Hero_Size_Rando : Rando_Base
     /// </summary>
     private float heightCheck = HEIGHTCHECK;
 
+    /// <summary>
+    /// True if we need to grab Hornet's base stats
+    /// </summary>
+    private static bool grabVariables = true;
+    private static float hornetBaseDashSpeed;
+    private static float hornetBaseSprintSpeed;
+    private static float hornetBaseSprintStartSpeed;
+    private static float hornetBaseQuickSpeed; // Flea brew?
+    private static float hornetBaseQuickerSpeed; // Anklets?
+    private static float hornetBaseSpeedToEnterUp;
+    private static float hornetBaseSpeedToEnterHor;
+
+    /// <summary>
+    /// If we have adjusted Hornet's size
+    /// </summary>
+    private bool heroSizeChanged = false;
+    /// <summary>
+    /// Reference to Hornet's Transform
+    /// </summary>
+    private Transform? heroTransform;
+    /// <summary>
+    /// Reference to Hornet's Collider
+    /// </summary>
+    private Collider2D? heroCollider;
+    /// <summary>
+    /// Hornet's Size
+    /// </summary>
+    internal Vector3 heroSize = new(1f, 1f, 1f);
+    /// <summary>
+    /// Hornet's Size when facing Right
+    /// </summary>
+    internal Vector3 heroSizeFlipped = new(-1f, 1f, 1f);
+
+    /// <summary>
+    /// The Translate action within the Vault FSM state
+    /// </summary>
+    private static Translate mantleVaultTranslate;
+    /// <summary>
+    /// The YOffset float within Mantle FSM
+    /// </summary>
+    private static FsmFloat baseMantleVaultYOffset;
+    /// <summary>
+    /// Dictionary containing all the waterRegions in the current scene.
+    /// </summary>
     private readonly Dictionary<SurfaceWaterRegion, float> waterRegions = [];
+
+    /// <summary>
+    /// If we have attempted to apply the transpiler
+    /// </summary>
+    private static bool transpilerAttempted = false;
+    /// <summary>
+    /// The current Scene
+    /// </summary>
+    private Scene currentScene;
+
+    private readonly Dictionary<string, float> sceneHeroSize = [];
+    private float saveHeroSize = float.MinValue;
+
+    #region Randomizer_Info
+    private Randomizer_Info eventOnSceneLoad;
+    #endregion
 
     /// <summary>
     /// Constructor for this singleton
@@ -342,7 +349,7 @@ internal class Hero_Size_Rando : Rando_Base
     #region TestingColliders
     // This GameObject and colliders are used to debug the various clamber checks
 
-    private static readonly float colliderRadius = 0.25f;
+    private const float colliderRadius = 0.25f;
     private static GameObject debugPoints;
     private static CircleCollider2D heroVectorCollider;
     private static CircleCollider2D heroVectorAboveCollider;
@@ -474,7 +481,7 @@ internal class Hero_Size_Rando : Rando_Base
 #endif
 
     /// <summary>
-    /// Patches the ledge clamber check to allow for scalling.
+    /// Patches the ledge clamber check to allow for scaling.
     /// </summary>
     /// <param name="instructions"></param>
     /// <param name="ilGenerator"></param>
@@ -811,7 +818,6 @@ internal class Hero_Size_Rando : Rando_Base
 
         mantleVaultTranslate.y = baseMantleVaultYOffset;
 
-
         heroSize = new(1f, 1f, 1f);
 
         nearCheck = NEARCHECK;
@@ -825,6 +831,8 @@ internal class Hero_Size_Rando : Rando_Base
 
     private protected override void ResetAllLists()
     {
+        sceneHeroSize.Clear();
+        saveHeroSize = float.MinValue;
     }
 
     #region Settings
@@ -901,5 +909,4 @@ internal class Hero_Size_Rando : Rando_Base
 #endif
     }
 #endregion
-
 }

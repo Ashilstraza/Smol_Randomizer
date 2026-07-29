@@ -5,10 +5,6 @@ using BepInEx.Configuration;
 
 using HarmonyLib;
 
-using MonoMod.Utils;
-
-using Newtonsoft.Json;
-
 using Smol_Randomizer.Settings;
 
 namespace Smol_Randomizer.Randomizers;
@@ -257,7 +253,7 @@ internal class Enemy_Health_Rando : Rando_Base
     /// <summary>
     /// Default setting for how consistent the enemy health should be
     /// </summary>
-    public readonly RandomizerConsistencyA defaultRandomizerConsistency = RandomizerConsistencyA.None;
+    public const RandomizerConsistencyA defaultRandomizerConsistency = RandomizerConsistencyA.None;
     /// <summary>
     /// Randomize the health of enemies
     /// </summary>
@@ -270,7 +266,7 @@ internal class Enemy_Health_Rando : Rando_Base
     /// <summary>
     /// Default choice for the health randomizer
     /// </summary>
-    public readonly RandomizerEnemyTypeFlags defaultEnemyHealthRandomizerSetting = RandomizerEnemyTypeFlags.None;
+    public const RandomizerEnemyTypeFlags defaultEnemyHealthRandomizerSetting = RandomizerEnemyTypeFlags.None;
     /// <summary>
     /// Randomize the health of normal enemies
     /// </summary>
@@ -283,7 +279,7 @@ internal class Enemy_Health_Rando : Rando_Base
     /// <summary>
     /// Default choice for enemy health randomizer
     /// </summary>
-    public readonly FloatRange defaultEnemyHealthPercentRange = new(0.25f, 3.0f);
+    public static readonly FloatRange defaultEnemyHealthPercentRange = new(0.25f, 3.0f);
     /// <summary>
     /// Randomize the health of boss enemies
     /// </summary>
@@ -296,7 +292,7 @@ internal class Enemy_Health_Rando : Rando_Base
     /// <summary>
     /// Default choice for boss health randomizer
     /// </summary>
-    public readonly FloatRange defaultBossHealthPercentRange = new(0.75f, 1.25f);
+    public static readonly FloatRange defaultBossHealthPercentRange = new(0.75f, 1.25f);
 
     // Used for determining if we need to update
     private RandomizerEnemyTypeFlags currentHealthRandomizerSetting;

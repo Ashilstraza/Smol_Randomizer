@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 
 using BepInEx.Configuration;
 
@@ -112,17 +111,14 @@ public static class Settings
 
     #region BepInEx_Setting_Stuff
     /// <summary>
-    /// Our config file
-    /// </summary>
-    /// <summary>
     /// Max Slider Percentage
     /// </summary>
-    public static readonly int maxSliderPercent = 300;
+    public const int maxSliderPercent = 300;
 
     /// <summary>
     /// Max Slider Value
     /// </summary>
-    public static readonly int maxSliderValue = 100;
+    public const int maxSliderValue = 100;
 
     /// <summary>
     /// Custom Drawer for entering Ranges
@@ -433,6 +429,16 @@ public enum RandomizerConsistencyB
 {
     None,
     Scene,
+    PerSave
+}
+
+/// <summary>
+/// Randomizer Consistency Types; OnDamageTaken, Scene, PerSave
+/// </summary>
+public enum RandomizerConsistencyC
+{
+    OnDamageTaken,
+    OnSceneTransition,
     PerSave
 }
 

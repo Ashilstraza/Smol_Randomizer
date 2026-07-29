@@ -8,10 +8,6 @@ using BepInEx.Configuration;
 
 using HarmonyLib;
 
-using MonoMod.Utils;
-
-using Newtonsoft.Json;
-
 using Smol_Randomizer.Settings;
 
 namespace Smol_Randomizer.Randomizers;
@@ -192,7 +188,7 @@ internal class Hero_Damage_Rando : Rando_Base
     /// <summary>
     /// Default choice for nail damage consistancy
     /// </summary>
-    public readonly PlayerNailDamageConsistancy defaultConsistancySetting = PlayerNailDamageConsistancy.None;
+    public const PlayerNailDamageConsistancy defaultConsistancySetting = PlayerNailDamageConsistancy.None;
     /// <summary>
     /// Setting for if nail damage should be randomized
     /// </summary>
@@ -205,7 +201,7 @@ internal class Hero_Damage_Rando : Rando_Base
     /// <summary>
     /// Default choice for if nail damage should be randomized
     /// </summary>
-    public readonly bool defaultPlayerNailDamageRando = false;
+    public const bool defaultPlayerNailDamageRando = false;
     /// <summary>
     /// Setting for if there should be a minimum damage for the nail
     /// </summary>
@@ -218,7 +214,7 @@ internal class Hero_Damage_Rando : Rando_Base
     /// <summary>
     /// Default choice for minimum nail damage
     /// </summary>
-    public readonly bool defaultPlayerNailDamageMinimum = true;
+    public const bool defaultPlayerNailDamageMinimum = true;
     /// <summary>
     /// Setting for the amount we should shift the nail damage
     /// </summary>
@@ -231,7 +227,7 @@ internal class Hero_Damage_Rando : Rando_Base
     /// <summary>
     /// Default choice for the nail damage shift
     /// </summary>
-    public readonly int defaultPlayerNailDamageShift = 3;
+    public const int defaultPlayerNailDamageShift = 3;
     /// <summary>
     /// Acceptable value range for player nail damage
     /// </summary>

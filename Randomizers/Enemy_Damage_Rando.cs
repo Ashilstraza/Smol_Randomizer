@@ -5,10 +5,6 @@ using BepInEx.Configuration;
 
 using HarmonyLib;
 
-using MonoMod.Utils;
-
-using Newtonsoft.Json;
-
 using Smol_Randomizer.Settings;
 
 namespace Smol_Randomizer.Randomizers;
@@ -262,7 +258,7 @@ internal class Enemy_Damage_Rando : Rando_Base
     /// <summary>
     /// Default setting for how consistant the enemy damage should be
     /// </summary>
-    public readonly RandomizerConsistencyA defaultRandomizerConsistency = RandomizerConsistencyA.None;
+    public const RandomizerConsistencyA defaultRandomizerConsistency = RandomizerConsistencyA.None;
     /// <summary>
     /// Randomize the damage of enemies
     /// </summary>
@@ -275,7 +271,7 @@ internal class Enemy_Damage_Rando : Rando_Base
     /// <summary>
     /// Default choice for the damage randomizer
     /// </summary>
-    public readonly RandomizeByFlatAmount defaultDamageModifierType = RandomizeByFlatAmount.Disabled;
+    public const RandomizeByFlatAmount defaultDamageModifierType = RandomizeByFlatAmount.Disabled;
     /// <summary>
     /// Shift the damage that enemies do by +X or -X
     /// </summary>
@@ -288,7 +284,7 @@ internal class Enemy_Damage_Rando : Rando_Base
     /// <summary>
     /// Default choice for the shift amount
     /// </summary>
-    public readonly int defaultDamageShift = 1;
+    public const int defaultDamageShift = 1;
     /// <summary>
     /// Randomizes the damage between a range of values
     /// </summary>
@@ -301,7 +297,7 @@ internal class Enemy_Damage_Rando : Rando_Base
     /// <summary>
     /// Default range for the damage
     /// </summary>
-    public readonly IntRange defaultDamageRange = new(0, 3);
+    public static readonly IntRange defaultDamageRange = new(0, 3);
     /// <summary>
     /// Locks minimum damage for an enemy to 1
     /// </summary>
@@ -314,7 +310,7 @@ internal class Enemy_Damage_Rando : Rando_Base
     /// <summary>
     /// Default setting if minimum damage should be enabled
     /// </summary>
-    public readonly bool defaultEnemyDamageMinimum = false;
+    public const bool defaultEnemyDamageMinimum = false;
 
     /// <summary>
     /// If each part of an attack is the same damage
@@ -328,7 +324,7 @@ internal class Enemy_Damage_Rando : Rando_Base
     /// <summary>
     /// Default settings if each part of an attack is the same damage
     /// </summary>
-    public readonly bool defaultEnemyAttackConsistancy = true;
+    public const bool defaultEnemyAttackConsistancy = true;
 
     // Used for determining if we need to update and clear the dictionaries
     private RandomizeByFlatAmount currentDamageModifierType;

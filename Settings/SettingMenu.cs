@@ -7,8 +7,6 @@ using BepInEx.Configuration;
 using Silksong.ModMenu.Elements;
 using Silksong.ModMenu.Models;
 
-using Smol_Randomizer.Randomizers;
-
 using UnityEngine;
 
 namespace Smol_Randomizer.Settings;
