@@ -44,6 +44,9 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// </summary>
     private readonly HashSet<HealthManager> currentEnemyHealthManagers = [];
 
+    public readonly HashSet<string> excludedEnemies = ["Splinter Queen Spike"];
+    private readonly Dictionary<string, Action<HealthManager>> enemyActions = [];
+
     #region Randomizer_Info
     /// <summary>
     /// Used for registering this randomizer in the core for when enemies activate
@@ -74,7 +77,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
             AccessTools.Method(
                 typeof(Enemy_Size_Rando),
                 nameof(GameStartup)),
-            this))) return;
+                this))) return;
 
         eventActiveEnemy = new(
             RandomizerName,
@@ -82,16 +85,47 @@ internal sealed class Enemy_Size_Rando : Rando_Base
             AccessTools.Method(
                 typeof(Enemy_Size_Rando),
                 nameof(SetSize)),
-            this);
+                this);
         eventOnFirstSceneFrame = new(
             RandomizerName,
             RandomizerEventType.OnFirstSceneFrame,
             AccessTools.Method(
                 typeof(Enemy_Size_Rando),
                 nameof(OnFirstSceneFrame)),
-            this);
+                this);
 
         base.InitRandomizer();
+    }
+
+    private static void PatchEnemies()
+    {
+        PatchSpecificEnemy("Crowman", delegate (HealthManager healthManger)
+        {
+            PlayMakerFSM fsm = healthManger.gameObject.GetComponent<PlayMakerFSM>();
+            foreach (var state in fsm.FsmStates)
+            {
+                if (state.Name is "Start Rest")
+                {
+                    foreach (var action in state.Actions)
+                    {
+                        if (action.GetType() == typeof(RandomFloatEither))
+                        {
+                            ((RandomFloatEither)action).value1.Value = ((RandomFloatEither)action).value1.Value > 0
+                                ? healthManger.transform.localScale.x
+                                : healthManger.transform.localScale.x * -1;
+                            ((RandomFloatEither)action).value2.Value = ((RandomFloatEither)action).value2.Value > 0
+                                ? healthManger.transform.localScale.x
+                                : healthManger.transform.localScale.x * -1; ;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    public static void PatchSpecificEnemy(string enemyName, Action<HealthManager> patch)
+    {
+        Instance.enemyActions.Add(enemyName, patch);
     }
 
     private protected override void Register()
@@ -136,7 +170,8 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         CuteRandoCore.harmony.Patch(AccessTools.Method(
             typeof(SetScale), "DoSetScale"),
             prefix: new HarmonyMethod(typeof(Enemy_Size_Rando), nameof(SetScaleDoSetScalePrefix)));
-        return;
+
+        PatchEnemies();
     }
 
     /// <summary>
@@ -199,6 +234,9 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         int cullIndex = name.IndexOf('(') - 1;
         if (cullIndex > 0) name = name[..cullIndex];
 
+        if (Instance.excludedEnemies.Contains(name))
+            return;
+
         switch (RandomizerConsistency)
         {
             case RandomizerConsistencyA.EnemyType:
@@ -223,6 +261,11 @@ internal sealed class Enemy_Size_Rando : Rando_Base
                 break;
             default:
                 throw new NotImplementedException();
+        }
+
+        if (enemyActions.TryGetValue(name, out Action<HealthManager>? action))
+        {
+            action.Invoke(thing);
         }
 
         float RandomizeSize(bool boss, Transform transform, Walker walker, int seed = int.MinValue)
