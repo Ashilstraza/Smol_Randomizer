@@ -223,6 +223,8 @@ internal sealed class Enemy_Size_Rando : Rando_Base
 
         if (boss && !EnemySizeRandomizerSetting.HasFlag(RandomizerEnemyTypeFlags.Boss))
             return;
+        if (!boss && EnemySizeRandomizerSetting.Equals(RandomizerEnemyTypeFlags.Boss))
+            return;
 
         string operatingScene = thing.gameObject.scene.name;
 
