@@ -206,6 +206,10 @@ internal class Hero_Size_Rando : Rando_Base
         CuteRandoCore.harmony.Patch(AccessTools.Method(
             typeof(SurfaceWaterRegion), "Start"),
             postfix: new HarmonyMethod(randoType, nameof(SurfaceWaterRegion_Start_Postfix)));
+        CuteRandoCore.harmony.Patch(
+            AccessTools.Method(typeof(DamageHero), "OnEnable"),
+            postfix: new HarmonyMethod(randoType, nameof(DamageHero_OnEnable_Postfix)));
+
 #if !TESTING
         if (PlayerSizeRando) // only patch if rando is enabled
             TryTranspilerPatch();
@@ -269,6 +273,15 @@ internal class Hero_Size_Rando : Rando_Base
         {
             transpilerAttempted = true;
         }
+    }
+
+    /// <summary>
+    /// Patch to watch for when Hornet gets damaged
+    /// </summary>
+    private static void DamageHero_OnEnable_Postfix()
+    {
+        if (Instance.PlayerSizeRando && Instance.HeroSizeConsistency == RandomizerConsistencyC.OnDamageTaken)
+            Instance.SetSize(true);
     }
 
     /// <summary>
@@ -646,6 +659,7 @@ internal class Hero_Size_Rando : Rando_Base
     }
     #endregion
 
+    #region WaterSurfaces
     /// <summary>
     /// Patch that hooks SurfaceWaterRegion's Start method to adjust the collider and adds it to a list so we can update it mid scene if needed
     /// </summary>
@@ -680,18 +694,20 @@ internal class Hero_Size_Rando : Rando_Base
 
         col.offset = col.offset with { y = offset + (1.04f - (1.04f * multiplier)) + (0.4f - (0.4f * multiplier)) };
     }
+    #endregion
 
     private void OnSceneLoad(Scene scene, LoadSceneMode _)
     {
+        currentScene = scene;
         SetSize();
         waterRegions.Clear();
     }
 
-    // TODO: Implement consistancy
+    // TODO: damage from hazard spikes does weird scaling
     /// <summary>
     /// Sets the size of Hornet
     /// </summary>
-    private void SetSize()
+    private void SetSize(bool damageTaken = false)
     {
         if (!PlayerSizeRando)
         {
@@ -710,7 +726,36 @@ internal class Hero_Size_Rando : Rando_Base
             }
         }
 
-        float multiplier = CuteRandoCore.RandoHelper(PlayerSizeRange.AsTuple());
+        float multiplier = 1.0f;
+
+        switch (HeroSizeConsistency)
+        {
+            case RandomizerConsistencyC.OnSceneTransition:
+                if (currentScene == null)
+                    return;
+                if (!sceneHeroSize.TryGetValue(currentScene.name, out multiplier))
+                {
+                    multiplier = CuteRandoCore.RandoHelper(
+                        PlayerSizeRange.AsTuple(),
+                        CuteRandoCore.RNGSeed(currentScene.name));
+                    sceneHeroSize[currentScene.name] = multiplier;
+                }
+                break;
+            case RandomizerConsistencyC.PerSave:
+                if (saveHeroSize.Equals(float.MinValue))
+                {
+                    saveHeroSize = CuteRandoCore.RandoHelper(PlayerSizeRange.AsTuple(), SaveData.SaveSeed);
+                }
+                multiplier = saveHeroSize;
+                break;
+            case RandomizerConsistencyC.OnDamageTaken:
+                if (!damageTaken) break;
+
+                multiplier = CuteRandoCore.RandoHelper(PlayerSizeRange.AsTuple());
+                break;
+            default:
+                throw new NotImplementedException();
+        }
 
         SetVariables(multiplier);
         heroSizeChanged = true;
@@ -848,7 +893,20 @@ internal class Hero_Size_Rando : Rando_Base
     /// <summary>
     /// Default choice for if player size should be randomized
     /// </summary>
-    public readonly bool defaultPlayerSizeRando = false;
+    public const bool defaultPlayerSizeRando = false;
+    /// <summary>
+    /// Setting for how conistent Hornet's size should be
+    /// </summary>
+    public RandomizerConsistencyC HeroSizeConsistency
+    {
+        get => heroSizeConsistency.Value;
+        internal set => heroSizeConsistency.Value = value;
+    }
+    private ConfigEntry<RandomizerConsistencyC> heroSizeConsistency;
+    /// <summary>
+    /// Default consistency of Hornet's size
+    /// </summary>
+    public const RandomizerConsistencyC defaultHeroSizeConsistency = RandomizerConsistencyC.PerSave;
     /// <summary>
     /// Setting for the range that the hero's size can be randomized to
     /// </summary>
@@ -865,7 +923,7 @@ internal class Hero_Size_Rando : Rando_Base
     /// <summary>
     /// Acceptable value range for the hero's size
     /// </summary>
-    public AcceptableRangeforFloatRange acceptablePlayerSizeRange = new(0.25f, 2f);
+    public static readonly AcceptableRangeforFloatRange acceptablePlayerSizeRange = new(0.25f, 2f);
 
     private protected override void InitSettings()
     {
@@ -876,6 +934,16 @@ internal class Hero_Size_Rando : Rando_Base
             defaultValue: defaultPlayerSizeRando,
             configDescription: new ConfigDescription(
                 description: "Enable/Disable Randomization of Hornet's Size.",
+                tags: new ConfigurationManagerAttributes
+                {
+                    Order = 2
+                }));
+        heroSizeConsistency = config.Bind(
+            section: RandomizerName,
+            key: "Size Consistancy",
+            defaultValue: defaultHeroSizeConsistency,
+            configDescription: new ConfigDescription(
+                description: "When Hornet's size will change.",
                 tags: new ConfigurationManagerAttributes
                 {
                     Order = 1
@@ -908,5 +976,5 @@ internal class Hero_Size_Rando : Rando_Base
             TryTranspilerPatch();
 #endif
     }
-#endregion
+    #endregion
 }
