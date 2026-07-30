@@ -210,6 +210,10 @@ internal class Hero_Size_Rando : Rando_Base
             AccessTools.Method(typeof(DamageHero), "OnEnable"),
             postfix: new HarmonyMethod(randoType, nameof(DamageHero_OnEnable_Postfix)));
 
+        CuteRandoCore.harmony.Patch(AccessTools.Method(
+            typeof(SetScale), "DoSetScale"),
+            postfix: new HarmonyMethod(randoType, nameof(SetScale_DoSetScale_Postfix)));
+
 #if !TESTING
         if (PlayerSizeRando) // only patch if rando is enabled
             TryTranspilerPatch();
@@ -264,9 +268,9 @@ internal class Hero_Size_Rando : Rando_Base
             typeof(HeroController), nameof(HeroController.CheckClamberLedge)),
             transpiler: new HarmonyMethod(typeof(Hero_Size_Rando), nameof(HeroController_CheckClamberLedge_Transpiler)));
         }
-        catch
+        catch (Exception ex)
         {
-            CuteRandoCore.Log.LogError("Unable to patch CheckClamberLedge with transpiler, disabling Hero Size Rando. Restart Silksong please and leave it disabled.\nPlease then open a GitHub Issue report for this mod.");
+            CuteRandoCore.Log.LogError($"Unable to patch CheckClamberLedge with transpiler, disabling Hero Size Rando. Restart Silksong please and leave it disabled.\nPlease then open a GitHub Issue report for this mod.\nException: {ex.Message}\nStack Trace:{ex.StackTrace}");
             Instance.PlayerSizeRando = false;
         }
         finally
@@ -275,12 +279,35 @@ internal class Hero_Size_Rando : Rando_Base
         }
     }
 
+
+    /// <summary>
+    /// Patch to hook DeSetScale and fix the Y scale of hornet
+    /// </summary>
+    /// <param name="__instance"></param>
+    private static void SetScale_DoSetScale_Postfix(ref SetScale __instance)
+    {
+        if (__instance.Owner.name.Contains("Knight Spike Death"))
+        {
+            GameObject gameObject = __instance.Fsm.GetOwnerDefaultTarget(__instance.gameObject);
+            gameObject.transform.SetScaleY(gameObject.transform.GetScaleX());
+        }
+    }
+
     /// <summary>
     /// Patch to watch for when Hornet gets damaged
     /// </summary>
-    private static void DamageHero_OnEnable_Postfix()
+    private static void DamageHero_OnEnable_Postfix(ref DamageHero __instance)
     {
         if (Instance.PlayerSizeRando && Instance.HeroSizeConsistency == RandomizerConsistencyC.OnDamageTaken)
+           __instance.OnDamagedHero.AddListener(HeroDamaged);
+
+    }
+
+    /// <summary>
+    /// Called when DamageHero fires OnDamagedHero
+    /// </summary>
+    private static void HeroDamaged()
+    {
             Instance.SetSize(true);
     }
 
@@ -587,7 +614,7 @@ internal class Hero_Size_Rando : Rando_Base
                 playerSizeRandoEnabled[0].MoveLabelsFrom(instruction);
                 foreach (CodeInstruction codeInstruction in playerSizeRandoEnabled)
                 {
-                    if (codeInstruction.opcode == OpCodes.Brtrue_S && codeInstruction.operand == null)
+                    if (codeInstruction.opcode == OpCodes.Brtrue_S)
                     {
                         codeInstruction.operand = instructionList[i + 2].operand;
                     }
@@ -601,7 +628,7 @@ internal class Hero_Size_Rando : Rando_Base
             {
                 if ((float)instructionList[i].operand == 0.77f)
                 {
-                    patchOriginsRight[0].operand = far;
+                    patchOriginsRight[0] = new(OpCodes.Ldloc_S, far);
 
                     foreach (CodeInstruction codeInstruction in patchOriginsRight)
                     {
@@ -610,7 +637,7 @@ internal class Hero_Size_Rando : Rando_Base
                 }
                 else if ((float)instructionList[i].operand == -0.77f)
                 {
-                    patchOriginsLeft[0].operand = far;
+                    patchOriginsLeft[0] = new(OpCodes.Ldloc_S, far);
 
                     foreach (CodeInstruction codeInstruction in patchOriginsLeft)
                     {
@@ -619,7 +646,7 @@ internal class Hero_Size_Rando : Rando_Base
                 }
                 else if ((float)instructionList[i].operand == 0.37f)
                 {
-                    patchOriginsRight[0].operand = near;
+                    patchOriginsRight[0] = new(OpCodes.Ldloc_S, near);
 
                     foreach (CodeInstruction codeInstruction in patchOriginsRight)
                     {
@@ -628,7 +655,7 @@ internal class Hero_Size_Rando : Rando_Base
                 }
                 else if ((float)instructionList[i].operand == -0.37f)
                 {
-                    patchOriginsLeft[0].operand = near;
+                    patchOriginsLeft[0] = new(OpCodes.Ldloc_S, near);
 
                     foreach (CodeInstruction codeInstruction in patchOriginsLeft)
                     {
@@ -652,6 +679,43 @@ internal class Hero_Size_Rando : Rando_Base
             {
                 yield return new(OpCodes.Ldloc_S, height);
                 continue;
+            }
+
+            // Patch short height checks to not exit right away if false
+            if(i< instructionList.Count - 2 && instructionList[i + 2].operand is float f && f == 2.16f)
+            {
+                // Get the instance of Hero_Size_Rando
+                /*if (instruction.labels.Count > 0)
+                {
+                    yield return new CodeInstruction(OpCodes.Call, heroSizeRandoInstance).MoveLabelsFrom(instruction);
+                }
+                else
+                    yield return new(OpCodes.Call, heroSizeRandoInstance);
+                yield return new(OpCodes.Callvirt, playerSizeRando); // Gets the setting if the rando is enabled or not
+                yield return new(OpCodes.Ldc_I4_1); // Load one (true)
+                yield return new(OpCodes.Ceq); // Compare the setting to the loaded value
+                yield return new(OpCodes.Brtrue_S, instructionList[i+5].operand); // Branch to a label that we will grab*/
+
+
+                // Reset List
+                for (int j = 0; j < playerSizeRandoEnabled.Count; j++) {    
+                    playerSizeRandoEnabled[j] = new(playerSizeRandoEnabled[j].opcode, playerSizeRandoEnabled[j].operand);
+                    if (playerSizeRandoEnabled[j].opcode == OpCodes.Brtrue) // No idea why it randomly switches
+                        playerSizeRandoEnabled[j].opcode = OpCodes.Brtrue_S;
+                }
+
+                if (instruction.labels.Count > 0)
+                    playerSizeRandoEnabled[0].MoveLabelsFrom(instruction);
+
+                foreach (CodeInstruction codeInstruction in playerSizeRandoEnabled)
+                {
+                    if (codeInstruction.opcode == OpCodes.Brtrue_S)
+                    {
+                        codeInstruction.operand = instructionList[i + 5].operand;
+                    }
+
+                    yield return codeInstruction;
+                }
             }
 
             yield return instruction;
@@ -726,7 +790,7 @@ internal class Hero_Size_Rando : Rando_Base
             }
         }
 
-        float multiplier = 1.0f;
+        float multiplier;
 
         switch (HeroSizeConsistency)
         {
@@ -741,7 +805,7 @@ internal class Hero_Size_Rando : Rando_Base
                     sceneHeroSize[currentScene.name] = multiplier;
                 }
                 break;
-            case RandomizerConsistencyC.PerSave:
+            case RandomizerConsistencyC.PerSaveFile:
                 if (saveHeroSize.Equals(float.MinValue))
                 {
                     saveHeroSize = CuteRandoCore.RandoHelper(PlayerSizeRange.AsTuple(), SaveData.SaveSeed);
@@ -749,7 +813,7 @@ internal class Hero_Size_Rando : Rando_Base
                 multiplier = saveHeroSize;
                 break;
             case RandomizerConsistencyC.OnDamageTaken:
-                if (!damageTaken) break;
+                if (!damageTaken) return;
 
                 multiplier = CuteRandoCore.RandoHelper(PlayerSizeRange.AsTuple());
                 break;
@@ -899,14 +963,14 @@ internal class Hero_Size_Rando : Rando_Base
     /// </summary>
     public RandomizerConsistencyC HeroSizeConsistency
     {
-        get => heroSizeConsistency.Value;
-        internal set => heroSizeConsistency.Value = value;
+        get => playerSizeConsistency.Value;
+        internal set => playerSizeConsistency.Value = value;
     }
-    private ConfigEntry<RandomizerConsistencyC> heroSizeConsistency;
+    private ConfigEntry<RandomizerConsistencyC> playerSizeConsistency;
     /// <summary>
     /// Default consistency of Hornet's size
     /// </summary>
-    public const RandomizerConsistencyC defaultHeroSizeConsistency = RandomizerConsistencyC.PerSave;
+    public const RandomizerConsistencyC defaultHeroSizeConsistency = RandomizerConsistencyC.PerSaveFile;
     /// <summary>
     /// Setting for the range that the hero's size can be randomized to
     /// </summary>
@@ -938,9 +1002,9 @@ internal class Hero_Size_Rando : Rando_Base
                 {
                     Order = 2
                 }));
-        heroSizeConsistency = config.Bind(
+        playerSizeConsistency = config.Bind(
             section: RandomizerName,
-            key: "Size Consistancy",
+            key: "Size Change Trigger",
             defaultValue: defaultHeroSizeConsistency,
             configDescription: new ConfigDescription(
                 description: "When Hornet's size will change.",
@@ -961,6 +1025,7 @@ internal class Hero_Size_Rando : Rando_Base
                     CustomDrawer = RangeDrawer
                 }));
         playerSizeRando.SettingChanged += OnSettingsUpdated;
+        playerSizeRange.SettingChanged += OnSettingsUpdated;
 
         playerSizeRando.SettingChanged += SettingMenu.OnRandomizerEnable;
         SettingMenu.UpdateSubMenuColor(playerSizeRando);
@@ -968,7 +1033,8 @@ internal class Hero_Size_Rando : Rando_Base
 
     private protected override void OnSettingsUpdated(object sender, EventArgs args)
     {
-        SetSize();
+        ResetAllLists();
+        SetSize(true);
 
 #if !TESTING
         // Try applying transpiler patch mid game if enabled after load
