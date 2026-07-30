@@ -7,7 +7,11 @@ using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 
 using HarmonyLib;
+#if TESTING
+using MonoMod.Utils;
 
+using Newtonsoft.Json;
+#endif
 using Smol_Randomizer.Settings;
 
 namespace Smol_Randomizer.Randomizers;

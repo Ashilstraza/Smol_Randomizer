@@ -6,6 +6,9 @@ using BepInEx.Configuration;
 
 using Silksong.ModMenu.Elements;
 using Silksong.ModMenu.Models;
+#if TESTING
+using Smol_Randomizer.Randomizers;
+#endif
 
 using UnityEngine;
 

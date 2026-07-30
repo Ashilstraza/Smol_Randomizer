@@ -1,5 +1,7 @@
 ﻿using System;
-
+#if TESTING
+using System.Collections.Generic;
+#endif
 using BepInEx.Configuration;
 
 using Newtonsoft.Json;

@@ -7,7 +7,11 @@ using BepInEx.Configuration;
 using HarmonyLib;
 
 using HutongGames.PlayMaker;
+using HutongGames.PlayMaker.Actions;
 
+#if TESTING
+using Newtonsoft.Json;
+#endif
 using Smol_Randomizer.Settings;
 
 using UnityEngine;
@@ -308,7 +312,7 @@ internal class Hero_Size_Rando : Rando_Base
     /// </summary>
     private static void HeroDamaged()
     {
-            Instance.SetSize(true);
+        Instance.SetSize(true);
     }
 
     /// <summary>

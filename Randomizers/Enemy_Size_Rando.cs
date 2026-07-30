@@ -6,7 +6,11 @@ using BepInEx.Configuration;
 using HarmonyLib;
 
 using HutongGames.PlayMaker.Actions;
+#if TESTING
+using MonoMod.Utils;
 
+using Newtonsoft.Json;
+#endif
 using Smol_Randomizer.Settings;
 
 using UnityEngine;
