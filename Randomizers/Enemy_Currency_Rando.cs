@@ -291,11 +291,11 @@ internal class Enemy_Currency_Rando : Rando_Base
             float shardMultiplier;
             if (ShardRandomizerType == RandomizeByRangeTypes.Percent)
             {
-                shardMultiplier = (float)CuteRandoCore.RandoHelper(ShardPercentDropRange.AsTuple(), seed);
+                shardMultiplier = (float)CuteRandoCore.RandomFloat(ShardPercentDropRange.AsTuple(), seed);
                 shards = (int)Math.Round(shardMultiplier * shellShardDrops);
             }
             else if (ShardRandomizerType == RandomizeByRangeTypes.Value)
-                shards = CuteRandoCore.RandoHelper(ShardValueDropRange.AsTuple(), seed);
+                shards = CuteRandoCore.RandomInt(ShardValueDropRange.AsTuple(), seed);
             return shards;
         }
     }
@@ -353,9 +353,9 @@ internal class Enemy_Currency_Rando : Rando_Base
             RandomizedGeoSet geoSet = new(thing);
 
             if (RosaryRandomizerType == RandomizeByRangeTypes.Percent)
-                geoSet.MultiplyGeo(CuteRandoCore.RandoHelper(RosaryPercentDropRange.AsTuple(), seed));
+                geoSet.MultiplyGeo(CuteRandoCore.RandomFloat(RosaryPercentDropRange.AsTuple(), seed));
             else if (RosaryRandomizerType == RandomizeByRangeTypes.Value)
-                geoSet.SetGeoQuantity(CuteRandoCore.RandoHelper(RosaryValueDropRange.AsTuple(), seed));
+                geoSet.SetGeoQuantity(CuteRandoCore.RandomInt(RosaryValueDropRange.AsTuple(), seed));
 
             return geoSet;
         }
@@ -677,9 +677,9 @@ internal record RandomizedGeoSet
     /// </summary>
     /// <param name="thing">HealthManager to extract the geo amounts from</param>
     public RandomizedGeoSet(HealthManager thing)
-        : this((int)CuteRandoCore.TraverseHelper(thing, "smallGeoDrops").GetValue(),
-              (int)CuteRandoCore.TraverseHelper(thing, "mediumGeoDrops").GetValue(),
-              (int)CuteRandoCore.TraverseHelper(thing, "largeGeoDrops").GetValue())
+        : this((int)CuteRandoCore.TraverseCreator(thing, "smallGeoDrops").GetValue(),
+              (int)CuteRandoCore.TraverseCreator(thing, "mediumGeoDrops").GetValue(),
+              (int)CuteRandoCore.TraverseCreator(thing, "largeGeoDrops").GetValue())
     {
     }
 

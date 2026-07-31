@@ -272,7 +272,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
 
         float RandomizeSize(bool boss, Transform transform, Walker walker, int seed = int.MinValue)
         {
-            float multiplier = CuteRandoCore.RandoHelper(boss ? BossSizePercentRange.AsTuple() : EnemySizePercentRange.AsTuple(), seed);
+            float multiplier = CuteRandoCore.RandomFloat(boss ? BossSizePercentRange.AsTuple() : EnemySizePercentRange.AsTuple(), seed);
             ApplySize(transform, multiplier, walker);
             return multiplier;
         }
@@ -283,7 +283,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
 
             if (walker != null)
             {
-                Traverse rightScale = CuteRandoCore.TraverseHelper(walker, "rightScale");
+                Traverse rightScale = CuteRandoCore.TraverseCreator(walker, "rightScale");
                 int direction = (float)rightScale.GetValue() < 0 ? -1 : 1;
                 rightScale.SetValue(Math.Abs(transform.localScale.x) * direction);
             }

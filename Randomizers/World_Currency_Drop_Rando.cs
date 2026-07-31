@@ -171,41 +171,41 @@ internal class World_Currency_Drop_Rando : Rando_Base
             case RandomizerConsistencyB.Scene:
                 if (!sceneMultiplier.TryGetValue(currentScene, out multiplier))
                 {
-                    multiplier = CuteRandoCore.RandoHelper(ShardChanceMultiplier.AsTuple(), CuteRandoCore.RNGSeed(currentScene));
+                    multiplier = CuteRandoCore.RandomFloat(ShardChanceMultiplier.AsTuple(), CuteRandoCore.RNGSeed(currentScene));
                     sceneMultiplier[currentScene] = multiplier;
                 }
 
                 if (!sceneACMultiplier.TryGetValue(currentScene, out multiplierAC))
                 {
-                    multiplierAC = CuteRandoCore.RandoHelper(ArchitectCrestMultiplier.AsTuple(), CuteRandoCore.RNGSeed(currentScene));
+                    multiplierAC = CuteRandoCore.RandomFloat(ArchitectCrestMultiplier.AsTuple(), CuteRandoCore.RNGSeed(currentScene));
                     sceneACMultiplier[currentScene] = multiplierAC;
                 }
 
                 break;
             case RandomizerConsistencyB.None:
-                multiplier = CuteRandoCore.RandoHelper(ShardChanceMultiplier.AsTuple());
-                multiplierAC = CuteRandoCore.RandoHelper(ArchitectCrestMultiplier.AsTuple());
+                multiplier = CuteRandoCore.RandomFloat(ShardChanceMultiplier.AsTuple());
+                multiplierAC = CuteRandoCore.RandomFloat(ArchitectCrestMultiplier.AsTuple());
                 break;
             default:
                 throw new NotImplementedException();
         }
 
-        Array dropChances = (Array)CuteRandoCore.TraverseHelper(region, "dropChances").GetValue();
-        Traverse architectProbabilities = CuteRandoCore.TraverseHelper(region, "architectProbabilities");
+        Array dropChances = (Array)CuteRandoCore.TraverseCreator(region, "dropChances").GetValue();
+        Traverse architectProbabilities = CuteRandoCore.TraverseCreator(region, "architectProbabilities");
         float[] newArchitectProbabilities = new float[dropChances.Length];
 
         int i = 0;
 
         foreach (object o in dropChances)
         {
-            float num = (float)CuteRandoCore.TraverseHelper(o, "Probability").GetValue();
+            float num = (float)CuteRandoCore.TraverseCreator(o, "Probability").GetValue();
 
-            if ((int)CuteRandoCore.TraverseHelper(o, "dropAmount").GetValue() > 0)
+            if ((int)CuteRandoCore.TraverseCreator(o, "dropAmount").GetValue() > 0)
             {
                 if (ShardChanceEnable)
                 {
                     num *= multiplier;
-                    CuteRandoCore.TraverseHelper(o, "Probability").SetValue(num);
+                    CuteRandoCore.TraverseCreator(o, "Probability").SetValue(num);
                 }
 
                 if (ArchitectChanceEnable)
@@ -236,10 +236,10 @@ internal class World_Currency_Drop_Rando : Rando_Base
     private void UpdateConsistantMultipliers()
     {
         if (shardChanceChanging)
-            consistantMultiplier = CuteRandoCore.RandoHelper(ShardChanceMultiplier.AsTuple(), CuteRandoCore.RNGSeed(nameof(consistantMultiplier)));
+            consistantMultiplier = CuteRandoCore.RandomFloat(ShardChanceMultiplier.AsTuple(), CuteRandoCore.RNGSeed(nameof(consistantMultiplier)));
 
         if (architectCrestChanging)
-            consistantACMultiplier = CuteRandoCore.RandoHelper(ArchitectCrestMultiplier.AsTuple(), CuteRandoCore.RNGSeed(nameof(consistantACMultiplier)));
+            consistantACMultiplier = CuteRandoCore.RandomFloat(ArchitectCrestMultiplier.AsTuple(), CuteRandoCore.RNGSeed(nameof(consistantACMultiplier)));
 
         architectCrestChanging = false;
         shardChanceChanging = false;

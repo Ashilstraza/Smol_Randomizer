@@ -169,7 +169,7 @@ internal class Hero_Damage_Rando : Rando_Base
 
         int RollDamage(int seed = int.MinValue)
         {
-            return CuteRandoCore.RandoHelper(PlayerNailDamageShift * (-1), PlayerNailDamageShift, seed);
+            return CuteRandoCore.RandomInt(PlayerNailDamageShift * (-1), PlayerNailDamageShift, seed);
         }
     }
 

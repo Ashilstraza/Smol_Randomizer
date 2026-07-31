@@ -803,7 +803,7 @@ internal class Hero_Size_Rando : Rando_Base
                     return;
                 if (!sceneHeroSize.TryGetValue(currentScene.name, out multiplier))
                 {
-                    multiplier = CuteRandoCore.RandoHelper(
+                    multiplier = CuteRandoCore.RandomFloat(
                         PlayerSizeRange.AsTuple(),
                         CuteRandoCore.RNGSeed(currentScene.name));
                     sceneHeroSize[currentScene.name] = multiplier;
@@ -812,14 +812,14 @@ internal class Hero_Size_Rando : Rando_Base
             case RandomizerConsistencyC.PerSaveFile:
                 if (saveHeroSize.Equals(float.MinValue))
                 {
-                    saveHeroSize = CuteRandoCore.RandoHelper(PlayerSizeRange.AsTuple(), SaveData.SaveSeed);
+                    saveHeroSize = CuteRandoCore.RandomFloat(PlayerSizeRange.AsTuple(), SaveData.SaveSeed);
                 }
                 multiplier = saveHeroSize;
                 break;
             case RandomizerConsistencyC.OnDamageTaken:
                 if (!damageTaken) return;
 
-                multiplier = CuteRandoCore.RandoHelper(PlayerSizeRange.AsTuple());
+                multiplier = CuteRandoCore.RandomFloat(PlayerSizeRange.AsTuple());
                 break;
             default:
                 throw new NotImplementedException();
@@ -849,8 +849,8 @@ internal class Hero_Size_Rando : Rando_Base
 
         mantleVaultTranslate.y = baseMantleVaultYOffset.Value * multiplier;
 
-        CuteRandoCore.TraverseHelper(HeroController.instance, "SPEED_TO_ENTER_SCENE_UP").SetValue((hornetBaseSpeedToEnterHor * Instance.heroSize.x) + (0.2f - (0.2f * Instance.heroSize.x)));
-        CuteRandoCore.TraverseHelper(HeroController.instance, "SPEED_TO_ENTER_SCENE_UP").SetValue((hornetBaseSpeedToEnterUp * Instance.heroSize.y) + (0.2f - (0.2f * Instance.heroSize.y)));
+        CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_UP").SetValue((hornetBaseSpeedToEnterHor * Instance.heroSize.x) + (0.2f - (0.2f * Instance.heroSize.x)));
+        CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_UP").SetValue((hornetBaseSpeedToEnterUp * Instance.heroSize.y) + (0.2f - (0.2f * Instance.heroSize.y)));
 
         heroTransform.localScale = heroTransform.localScale.x > 0f ? Instance.heroSize : Instance.heroSizeFlipped;
 
@@ -869,8 +869,8 @@ internal class Hero_Size_Rando : Rando_Base
     {
         try
         {
-            heroTransform = CuteRandoCore.TraverseHelper(HeroController.instance, "transform").GetValue() as Transform;
-            heroCollider = CuteRandoCore.TraverseHelper(HeroController.instance, "col2d").GetValue() as Collider2D;
+            heroTransform = CuteRandoCore.TraverseCreator(HeroController.instance, "transform").GetValue() as Transform;
+            heroCollider = CuteRandoCore.TraverseCreator(HeroController.instance, "col2d").GetValue() as Collider2D;
 
             if (heroTransform == null || heroCollider == null) return false; // Something is wrong here, abort
 
@@ -882,8 +882,8 @@ internal class Hero_Size_Rando : Rando_Base
                 hornetBaseQuickSpeed = HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Sprint Speed Quick").Value;
                 hornetBaseQuickerSpeed = HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Sprint Speed Quicker").Value;
 
-                hornetBaseSpeedToEnterHor = (float)CuteRandoCore.TraverseHelper(HeroController.instance, "SPEED_TO_ENTER_SCENE_HOR").GetValue();
-                hornetBaseSpeedToEnterUp = (float)CuteRandoCore.TraverseHelper(HeroController.instance, "SPEED_TO_ENTER_SCENE_UP").GetValue();
+                hornetBaseSpeedToEnterHor = (float)CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_HOR").GetValue();
+                hornetBaseSpeedToEnterUp = (float)CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_UP").GetValue();
 
                 foreach (var state in HeroController.instance.mantleFSM.FsmStates)
                 {
@@ -926,8 +926,8 @@ internal class Hero_Size_Rando : Rando_Base
         HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Sprint Speed Quick").Value = hornetBaseQuickSpeed;
         HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Sprint Speed Quicker").Value = hornetBaseQuickerSpeed;
 
-        CuteRandoCore.TraverseHelper(typeof(HeroController), "SPEED_TO_ENTER_SCENE_HOR").SetValue(hornetBaseSpeedToEnterHor);
-        CuteRandoCore.TraverseHelper(typeof(HeroController), "SPEED_TO_ENTER_SCENE_UP").SetValue(hornetBaseSpeedToEnterUp);
+        CuteRandoCore.TraverseCreator(typeof(HeroController), "SPEED_TO_ENTER_SCENE_HOR").SetValue(hornetBaseSpeedToEnterHor);
+        CuteRandoCore.TraverseCreator(typeof(HeroController), "SPEED_TO_ENTER_SCENE_UP").SetValue(hornetBaseSpeedToEnterUp);
 
         mantleVaultTranslate.y = baseMantleVaultYOffset;
 

@@ -225,9 +225,9 @@ internal class Enemy_Damage_Rando : Rando_Base
         void DamageSetter(ref int damage, int seed = int.MinValue)
         {
             if (DamageModifierType == RandomizeByFlatAmount.Shift)
-                damage += CuteRandoCore.RandoHelper(DamageShift * (-1), DamageShift, seed);
+                damage += CuteRandoCore.RandomInt(DamageShift * (-1), DamageShift, seed);
             else if (DamageModifierType == RandomizeByFlatAmount.Range)
-                damage = CuteRandoCore.RandoHelper(DamageRange.AsTuple(), seed);
+                damage = CuteRandoCore.RandomInt(DamageRange.AsTuple(), seed);
 
             if (damage <= 0 && EnemyDamageMinimum) damage = 1;
             else if (damage < 0) damage = 0;

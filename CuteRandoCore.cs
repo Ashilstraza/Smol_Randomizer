@@ -145,7 +145,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         SceneManager.sceneLoaded += OnSceneLoaded;
 
         foreach (KeyValuePair<string, Action> rando in activeGameStartup)
-            rando.Value.Invoke();
+            rando.Value();
     }
 
     /// <summary>
@@ -162,7 +162,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
             foreach (ICurrencyLimitRegion region in (HashSet<ICurrencyLimitRegion>)Traverse.Create<CurrencyObjectLimitRegion>().Field("_activeRegions").GetValue())
             {
                 foreach (KeyValuePair<string, Action<ICurrencyLimitRegion>> randomizer in activeLimitRegions)
-                    randomizer.Value.Invoke(region);
+                    randomizer.Value(region);
             }
 
             updateActiveLimitRegions = false;
@@ -171,7 +171,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         if (updateOnFirstSceneFrame)
         {
             foreach (KeyValuePair<string, Action> randomizer in activeOnFirstSceneFrame)
-                randomizer.Value.Invoke();
+                randomizer.Value();
 
             updateOnFirstSceneFrame = false;
         }
@@ -210,7 +210,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         if (!randomize) return;
 
         foreach (KeyValuePair<string, Action<Scene, LoadSceneMode>> randomizer in activeOnSceneLoad)
-            randomizer.Value.Invoke(scene, mode);
+            randomizer.Value(scene, mode);
 
         updateOnFirstSceneFrame = true;
         updateActiveLimitRegions = true;
@@ -222,7 +222,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     private void OnApplicationQuit()
     {
         foreach (KeyValuePair<string, Action> randomizer in activeGameShutdown)
-            randomizer.Value.Invoke();
+            randomizer.Value();
     }
 
     #region File_Import/Export
@@ -494,7 +494,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <param name="type">The private field's class.</param>
     /// <param name="field">The private field we want.</param>
     /// <returns></returns>
-    public static Traverse TraverseHelper(object type, string field)
+    public static Traverse TraverseCreator(object type, string field)
     {
         return Traverse.Create(type).Field(field);
     }
@@ -505,9 +505,9 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <param name="tuple">The tuple to use as min and max float values</param>
     /// /// <param name="seed">The seed to ensure that we are deterministic, if seed is int's minimum value then we don't use that.</param>
     /// <returns>A random float between the min and max of the tuple</returns>
-    public static float RandoHelper((float min, float max) tuple, int seed = int.MinValue)
+    public static float RandomFloat((float min, float max) tuple, int seed = int.MinValue)
     {
-        return RandoHelper(tuple.min, tuple.max, seed);
+        return RandomFloat(tuple.min, tuple.max, seed);
     }
 
     /// <summary>
@@ -516,9 +516,9 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <param name="tuple">The tuple to use as min and max int values</param>
     /// /// <param name="seed">The seed to ensure that we are deterministic, if seed is int's minimum value then we don't use that.</param>
     /// <returns>A random int between the min and max of the tuple</returns>
-    public static int RandoHelper((int min, int max) tuple, int seed = int.MinValue)
+    public static int RandomInt((int min, int max) tuple, int seed = int.MinValue)
     {
-        return RandoHelper(tuple.min, tuple.max, seed);
+        return RandomInt(tuple.min, tuple.max, seed);
     }
 
     /// <summary>
@@ -528,7 +528,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <param name="max">Maximum random value, is inclusive when seeded, exclusive when it is not.</param>
     /// /// <param name="seed">The seed to ensure that we are deterministic, if seed is int's minimum value then we don't use that.</param>
     /// <returns>A random float between the min and max</returns>
-    public static float RandoHelper(float min, float max, int seed = int.MinValue)
+    public static float RandomFloat(float min, float max, int seed = int.MinValue)
     {
         if (seed > int.MinValue)
         {
@@ -546,7 +546,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <param name="max">Maximum random value, is inclusive</param>
     /// /// <param name="seed">The seed to ensure that we are deterministic, if seed is int's minimum value then we don't use that.</param>
     /// <returns>A random float between the min and max</returns>
-    public static int RandoHelper(int min, int max, int seed = int.MinValue)
+    public static int RandomInt(int min, int max, int seed = int.MinValue)
     {
         if (seed > int.MinValue)
         {
