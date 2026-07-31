@@ -166,7 +166,7 @@ internal class Enemy_Health_Rando : Rando_Base
     /// <exception cref="NotImplementedException"></exception>
     private void SetHealth(HealthManager thing, ref int initHp, ref int hp)
     {
-        if (thing == null) return;
+        if (thing == null || initHp > 5000) return;
 
         bool boss = CuteRandoCore.IsBoss(thing);
 
@@ -211,7 +211,7 @@ internal class Enemy_Health_Rando : Rando_Base
         // Helper to randomize hp
         int RandomizeHp(bool boss, ref int initHp, ref int hp, int seed = int.MinValue)
         {
-            float randFloat = CuteRandoCore.RandoHelper(boss ? BossHealthPercentRange.AsTuple() : EnemyHealthPercentRange.AsTuple(), seed);
+            float randFloat = CuteRandoCore.RandomFloat(boss ? BossHealthPercentRange.AsTuple() : EnemyHealthPercentRange.AsTuple(), seed);
             int tempHp;
 
             if (initHp <= 0)
