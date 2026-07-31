@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection.Emit;
 
 using BepInEx.Configuration;
@@ -769,9 +770,48 @@ internal class Hero_Size_Rando : Rando_Base
         currentScene = scene;
         SetSize();
         waterRegions.Clear();
+        PatchSceneFSMs(scene);
     }
 
-    // TODO: damage from hazard spikes does weird scaling
+    private static readonly Dictionary<string, Dictionary<string, FSMStatePatchSet>> sceneFSMPatches = new()
+    {
+        {
+            "Bonetown",
+            new()
+            {
+                {
+                    "Churchkeeper Intro Scene",
+                    new FSMStatePatchSet("Churchkeeper Intro Scene",
+                        [new("Wait for Hero Grounded",
+                            typeof(FloatCompare),
+                            delegate(FsmStateAction action)
+                            {
+                                ((FloatCompare)action).float2.Value *= Instance.heroSize.x;
+                            },
+                            "Control")
+                        ])
+                }
+            }
+        }
+    };
+
+    /// <summary>
+    /// Patches the FSMs of objects within a scene
+    /// </summary>
+    /// <param name="scene">The scene that was loaded</param>
+    private static void PatchSceneFSMs(Scene scene)
+    {
+        if(sceneFSMPatches.TryGetValue(scene.name, out Dictionary<string, FSMStatePatchSet> patches)){
+            GameObject[] objects = scene.GetRootGameObjects();
+
+            foreach(var patchSet in patches)
+            {
+                patchSet.Value.ApplyPatches(objects.FirstOrDefault(obj => obj.name.Equals(patchSet.Key)).GetComponents<PlayMakerFSM>());
+            }
+        }
+    }
+
+    // TODO: tall hornet breaks some triggers; 
     /// <summary>
     /// Sets the size of Hornet
     /// </summary>

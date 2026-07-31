@@ -5,11 +5,14 @@ using BepInEx.Configuration;
 
 using HarmonyLib;
 
+using HutongGames.PlayMaker;
 using HutongGames.PlayMaker.Actions;
+
 #if TESTING
 using MonoMod.Utils;
 
 using Newtonsoft.Json;
+
 #endif
 using Smol_Randomizer.Settings;
 
@@ -45,7 +48,6 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     private readonly HashSet<HealthManager> currentEnemyHealthManagers = [];
 
     public readonly HashSet<string> excludedEnemies = ["Splinter Queen Spike"];
-    private readonly Dictionary<string, Action<HealthManager>> enemyActions = [];
 
     #region Randomizer_Info
     /// <summary>
@@ -97,35 +99,48 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         base.InitRandomizer();
     }
 
-    private static void PatchEnemies()
+    /// <summary>
+    /// HashSet containing various enemy patches
+    /// </summary>
+    private static readonly Dictionary<string, FSMStatePatchSet> enemyPatchSet = new()
     {
-        PatchSpecificEnemy("Crowman", delegate (HealthManager healthManger)
         {
-            PlayMakerFSM fsm = healthManger.gameObject.GetComponent<PlayMakerFSM>();
-            foreach (var state in fsm.FsmStates)
-            {
-                if (state.Name is "Start Rest")
-                {
-                    foreach (var action in state.Actions)
+            "Crowman",
+            new FSMStatePatchSet("Crowman",
+                [new("Start Rest",
+                    typeof(RandomFloatEither),
+                    delegate (FsmStateAction action)
                     {
-                        if (action.GetType() == typeof(RandomFloatEither))
-                        {
-                            ((RandomFloatEither)action).value1.Value = ((RandomFloatEither)action).value1.Value > 0
-                                ? healthManger.transform.localScale.x
-                                : healthManger.transform.localScale.x * -1;
-                            ((RandomFloatEither)action).value2.Value = ((RandomFloatEither)action).value2.Value > 0
-                                ? healthManger.transform.localScale.x
-                                : healthManger.transform.localScale.x * -1; ;
-                        }
-                    }
-                }
-            }
-        });
-    }
+                        Transform transform = ((GameObject)action.Fsm.OwnerObject).transform;
+                        RandomFloatEither rfe = (RandomFloatEither)action;
 
-    public static void PatchSpecificEnemy(string enemyName, Action<HealthManager> patch)
+                        rfe.value1.Value = rfe.value1.Value > 0
+                            ? transform.localScale.x
+                            : transform.localScale.x * -1;
+                        rfe.value2.Value = rfe.value2.Value > 0
+                            ? transform.localScale.x
+                            : transform.localScale.x * -1; ;
+                    })
+                ])
+        }
+        
+    };
+
+    /// <summary>
+    /// Adds a patch to the given enemy
+    /// </summary>
+    /// <param name="enemyName">String name of the enemy to patch</param>
+    /// <param name="patch">The patch to add</param>
+    public static void PatchSpecificEnemy(string enemyName, FSMStatePatch patch)
     {
-        Instance.enemyActions.Add(enemyName, patch);
+        if(enemyPatchSet.TryGetValue(enemyName, out var patchSet))
+        {
+            patchSet.AddPatch(patch);
+        }
+        else
+        {
+            enemyPatchSet.Add(enemyName, new FSMStatePatchSet(enemyName,[patch]));
+        }
     }
 
     private protected override void Register()
@@ -170,8 +185,6 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         CuteRandoCore.harmony.Patch(AccessTools.Method(
             typeof(SetScale), "DoSetScale"),
             prefix: new HarmonyMethod(typeof(Enemy_Size_Rando), nameof(SetScaleDoSetScalePrefix)));
-
-        PatchEnemies();
     }
 
     /// <summary>
@@ -265,9 +278,9 @@ internal sealed class Enemy_Size_Rando : Rando_Base
                 throw new NotImplementedException();
         }
 
-        if (enemyActions.TryGetValue(name, out Action<HealthManager>? action))
+        if (enemyPatchSet.TryGetValue(name, out FSMStatePatchSet patchList))
         {
-            action.Invoke(thing);
+            patchList.ApplyPatches(thing.gameObject.GetComponent<PlayMakerFSM>());
         }
 
         float RandomizeSize(bool boss, Transform transform, Walker walker, int seed = int.MinValue)
