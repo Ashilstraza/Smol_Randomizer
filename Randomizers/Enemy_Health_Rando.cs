@@ -102,6 +102,9 @@ internal class Enemy_Health_Rando : Rando_Base
         CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
+    // Unused as we don't need
+    private protected override void OnLoaded() { }
+
 #if TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
     {

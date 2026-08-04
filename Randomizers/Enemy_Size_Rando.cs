@@ -13,6 +13,9 @@ using MonoMod.Utils;
 
 using Newtonsoft.Json;
 
+using Smol_Randomizer.FSMThings;
+
+
 #endif
 using Smol_Randomizer.Settings;
 

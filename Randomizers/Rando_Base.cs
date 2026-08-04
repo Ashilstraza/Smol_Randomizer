@@ -52,21 +52,23 @@ internal abstract class Rando_Base
     /// Event hook for when settings are loaded
     /// </summary>
     /// <param name="hasSaveData">If the setting that were loaded had data or not</param>
-    private protected void OnSettingsLoaded(bool hasSaveData)
+    private protected void OnSettingsLoaded()
     {
-        ResetAllLists();
-
 #if TESTING // Enable Saving Data
         Dictionary<string, object> savedData = Settings.Settings.SaveData.GetSavedData(RandomizerName);
 
-        if (hasSaveData)
-        {
-            ApplySaveData(savedData);
-        }
+        ApplySaveData(savedData);
 
         SetSaveData(savedData);
 #endif
+        ResetAllLists();
+        OnLoaded();
     }
+
+    /// <summary>
+    /// Called when 
+    /// </summary>
+    private protected abstract void OnLoaded();
 
     /// <summary>
     /// Clears this Randomizer's lists if the given name matches the RandomizerName

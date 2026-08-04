@@ -122,7 +122,7 @@
     <ItemGroup>
       <Binaries Include="$(TargetPath)" LocalDir="/" PackDir="/" />
       <!--<Binaries Include="$(TargetDir)/$(TargetName).pdb" LocalDir="/" PackDir="/" Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' " />-->
-	  <Binaries Include="$(TargetDir)/$(TargetName).pdb"  LocalDir="/" PackDir="/" Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' or '$(Configuration)|$(Platform)'=='Testing|AnyCPU'" />
+	  <Binaries Include="$(TargetDir)/$(TargetName).pdb" LocalDir="/" PackDir="/" Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' or '$(Configuration)|$(Platform)'=='Testing|AnyCPU'" />
       <!--<Binaries Include="$(TargetDir)/$(TargetName).pdb" Condition="'$(Configuration)|$(Platform)'=='Testing|AnyCPU'">
         <LocalDir>/</LocalDir>
         <PackDir>/</PackDir>

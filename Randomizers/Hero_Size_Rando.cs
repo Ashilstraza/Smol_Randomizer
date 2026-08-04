@@ -168,6 +168,12 @@ internal class Hero_Size_Rando : Rando_Base
         CuteRandoCore.UnregisterRandomizer(eventOnSceneLoad);
     }
 
+    private protected override void OnLoaded()
+    {
+        grabVariables = true;
+        heroSizeChanged = false;
+    }
+
 #if TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
     {

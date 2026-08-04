@@ -251,7 +251,7 @@ public static class Settings
         set
         {
             saveData = value;
-            saveData.Load();
+            RandoPerSaveData.Load();
         }
     }
     private static RandoPerSaveData saveData;
@@ -314,7 +314,7 @@ public class RandoPerSaveData
     /// <summary>
     /// Called on the data being loaded
     /// </summary>
-    internal static event Action<bool> OnSettingsLoaded;
+    internal static event Action OnSettingsLoaded;
     /// <summary>
     /// Called on the data being saved
     /// </summary>
@@ -323,19 +323,17 @@ public class RandoPerSaveData
     /// <summary>
     /// Loads the saved data into the various randomizers that are listening for the load.
     /// </summary>
-    internal void Load()
+    internal static void Load()
     {
         Settings.loading = true;
-#if TESTING // Enable Saving Data
         try
         {
-            OnSettingsLoaded?.Invoke(!(SmolSaveDictionary == null));
+            OnSettingsLoaded?.Invoke();
         }
         catch (Exception ex)
         {
             Console.Error.WriteLineAsync($"[{CuteRandoCore.MODNAME}] Exception encountered when invoking OnSettingsLoaded()\n" + ex.Message);
         }
-#endif
     }
 
     /// <summary>
