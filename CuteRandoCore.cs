@@ -121,7 +121,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// </summary>
     private void Awake()
     {
-        DataLocation = Info.Location.TrimEnd("\\\\Smol_Randomizer.dll".ToCharArray()) + "\\Smol_Randomizer";
+        DataLocation = Info.Location.TrimEnd("\\\\Smol_Randomizer.dll".ToCharArray()) + "Smol_Randomizer\\Smol_Randomizer";
 
         Settings.Settings.Init(Config);
 
