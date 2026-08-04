@@ -619,24 +619,6 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
         return false;
     }
-
-    /// <summary>
-    /// Patches an FSM state action
-    /// </summary>
-    /// <param name="fsm">The PlayMakerFSM to patch</param>
-    /// <param name="stateName">The state name to patch</param>
-    /// <param name="type">The type of action as a string</param>
-    /// <param name="patch">The patch to apply</param>
-    public static void PatchStateAction(PlayMakerFSM fsm, FSMStatePatch patch)
-    {
-        foreach (FsmStateAction action in fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(patch.StateName)).Actions)
-        {
-            if (action.GetType().ToString().Equals(patch.TypeString))
-            {
-                patch.Patch(action);
-            }
-        }
-    }
     #endregion
 }
 
@@ -678,89 +660,4 @@ public class Randomizer_Info(string name, RandomizerEventType randomizerType, Me
     /// The first argument of the method being called.
     /// </summary>
     public object? Object => o;
-}
-
-/// <summary>
-/// Contains a patch for an action in an FSM state
-/// </summary>
-/// <param name="stateName">Name of the state the patch is for</param>
-/// <param name="actionType">The type of the action the patch is for</param>
-/// <param name="patch">The patch for the action</param>
-/// <param name="FSMName">Optional: The name of the FSM the patch is for, used when FSMStatePatchSet.ApplyPatches is called with an array of FSMs</param>
-public class FSMStatePatch(string stateName, Type actionType, Action<FsmStateAction> patch, string FSMName = "")
-{
-    /// <summary>
-    /// Name of the state the patch is for
-    /// </summary>
-    public string StateName { get; } = stateName;
-    /// <summary>
-    /// >The type of the action the patch is for
-    /// </summary>
-    public Type Type { get; } = actionType;
-    /// <summary>
-    /// The patch for the action
-    /// </summary>
-    public Action<FsmStateAction> Patch { get; } = patch;
-    /// <summary>
-    /// The name of the FSM the patch is for, used when FSMStatePatchSet.ApplyPatches is called with an array of FSMs
-    /// </summary>
-    public string FSMName { get; } = FSMName;
-    /// <summary>
-    /// The type of the action the patch is for as a string
-    /// </summary>
-    public string TypeString => Type.ToString();
-}
-
-/// <summary>
-/// Contains a set of patches for an object
-/// </summary>
-/// <param name="objectName">The name of the object the patches are for</param>
-/// <param name="patches">The list of patches for the object</param>
-public class FSMStatePatchSet(string objectName, List<FSMStatePatch> patches)
-{
-    /// <summary>
-    /// The name of the object the patches are for
-    /// </summary>
-    public string ObjectName { get; } = objectName;
-    /// <summary>
-    /// The list of patches for the object
-    /// </summary>
-    public List<FSMStatePatch> Patches { get; } = patches;
-
-    /// <summary>
-    /// Applies the patches to the given FSM when called
-    /// </summary>
-    /// <param name="fsm">The fsm to apply patches to</param>
-    public void ApplyPatches(PlayMakerFSM fsm)
-    {
-        foreach (var patch in Patches)
-        {
-            CuteRandoCore.PatchStateAction(fsm, patch);
-        }
-    }
-
-    /// <summary>
-    /// Applies the patches to the given set of FSMs when called
-    /// </summary>
-    /// <param name="fsmArray">An array of FSMs to patch</param>
-    public void ApplyPatches(PlayMakerFSM[] fsmArray)
-    {
-        foreach(var fsm in fsmArray)
-        {
-            foreach (var patch in Patches)
-            {
-                if (patch.FSMName == fsm.FsmName)
-                    CuteRandoCore.PatchStateAction(fsm, patch);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Adds a new patch to the pre-existing list of patches.
-    /// </summary>
-    /// <param name="patch">The patch to be added</param>
-    public void AddPatch(FSMStatePatch patch)
-    {
-        Patches.Add(patch);
-    }
 }
