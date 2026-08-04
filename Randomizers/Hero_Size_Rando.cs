@@ -6,12 +6,16 @@ using System.Reflection.Emit;
 using BepInEx.Configuration;
 
 using HarmonyLib;
+using HarmonyLib.Tools;
 
 using HutongGames.PlayMaker;
 using HutongGames.PlayMaker.Actions;
 
 #if TESTING
 using Newtonsoft.Json;
+
+using Smol_Randomizer.FSMThings;
+
 #endif
 using Smol_Randomizer.Settings;
 
@@ -36,34 +40,9 @@ internal class Hero_Size_Rando : Rando_Base
     public static Hero_Size_Rando Instance => instance.Value;
 
     /// <summary>
-    /// The base offset for the near clamber check
-    /// </summary>
-    private const float NEARCHECK = 0.37f;
-    /// <summary>
-    /// The base offset for the far clamber check
-    /// </summary>
-    private const float FARCHECK = 0.77f;
-    /// <summary>
-    /// The base offset for the clamber height check
-    /// </summary>
-    private const float HEIGHTCHECK = 0.67f;
-    /// <summary>
     /// The layer mask for checing collisions
     /// </summary>
     private const int LAYERMASK = 8448;
-
-    /// <summary>
-    /// The scaled near check
-    /// </summary>
-    private float nearCheck = NEARCHECK;
-    /// <summary>
-    /// The scaled far check
-    /// </summary>
-    private float farCheck = FARCHECK;
-    /// <summary>
-    /// The scaled height check
-    /// </summary>
-    private float heightCheck = HEIGHTCHECK;
 
     /// <summary>
     /// True if we need to grab Hornet's base stats
@@ -84,19 +63,19 @@ internal class Hero_Size_Rando : Rando_Base
     /// <summary>
     /// Reference to Hornet's Transform
     /// </summary>
-    private Transform? heroTransform;
+    private Transform heroTransform;
     /// <summary>
     /// Reference to Hornet's Collider
     /// </summary>
-    private Collider2D? heroCollider;
+    private BoxCollider2D heroCollider;
     /// <summary>
     /// Hornet's Size
     /// </summary>
-    internal Vector3 heroSize = new(1f, 1f, 1f);
+    internal Vector3 heroScale = new(1f, 1f, 1f);
     /// <summary>
     /// Hornet's Size when facing Right
     /// </summary>
-    internal Vector3 heroSizeFlipped = new(-1f, 1f, 1f);
+    internal Vector3 heroScaleFlipped = new(-1f, 1f, 1f);
 
     /// <summary>
     /// The Translate action within the Vault FSM state
@@ -177,20 +156,20 @@ internal class Hero_Size_Rando : Rando_Base
 #if TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
-        if (savedData.TryGetValue(nameof(heroSize), out object tempDict))
-            heroSize = JsonConvert.DeserializeObject<Vector3>(tempDict.ToString());
+        if (savedData.TryGetValue(nameof(heroScale), out object tempDict))
+            heroScale = JsonConvert.DeserializeObject<Vector3>(tempDict.ToString());
     }
 
     private protected override void SetSaveData(Dictionary<string, object> savedData)
     {
-        savedData[nameof(heroSize)] = heroSize;
+        savedData[nameof(heroScale)] = heroScale;
     }
 
     private protected override void OnSettingsSaved()
     {
-        Dictionary<string, object> savedData = Settings.Settings.SaveData.GetSavedData(RandomizerName);
+        Dictionary<string, object> savedData = SaveData.GetSavedData(RandomizerName);
 
-        savedData[nameof(heroSize)] = heroSize;
+        savedData[nameof(heroScale)] = heroScale;
     }
 #endif
 
@@ -213,13 +192,17 @@ internal class Hero_Size_Rando : Rando_Base
         CuteRandoCore.harmony.Patch(AccessTools.EnumeratorMoveNext(
             AccessTools.Method(
                 typeof(HeroController), "EnterHeroSubHorizontal")),
-            postfix: new HarmonyMethod(randoType, nameof(HeroController_EnterHeroSubHorizontal_Postfix)));
+                postfix: new HarmonyMethod(randoType, nameof(HeroController_EnterHeroSubHorizontal_Postfix)));
         CuteRandoCore.harmony.Patch(AccessTools.Method(
             typeof(SurfaceWaterRegion), "Start"),
             postfix: new HarmonyMethod(randoType, nameof(SurfaceWaterRegion_Start_Postfix)));
         CuteRandoCore.harmony.Patch(
             AccessTools.Method(typeof(DamageHero), "OnEnable"),
             postfix: new HarmonyMethod(randoType, nameof(DamageHero_OnEnable_Postfix)));
+        CuteRandoCore.harmony.Patch(AccessTools.EnumeratorMoveNext(
+            AccessTools.Method(
+                typeof(NPCControlBase), "MovePlayer")),
+                postfix: new HarmonyMethod(randoType, nameof(MovePlayer_NPCControllerBase_Postfix)));
 
         CuteRandoCore.harmony.Patch(AccessTools.Method(
             typeof(SetScale), "DoSetScale"),
@@ -249,6 +232,10 @@ internal class Hero_Size_Rando : Rando_Base
         nearOriginToNearGoodLine = debugPoints.AddComponent<EdgeCollider2D>();
         farHitPointCollider = debugPoints.AddComponent<CircleCollider2D>();
         nearHitPointCollider = debugPoints.AddComponent<CircleCollider2D>();
+        farHPCtoHPCCLine = debugPoints.AddComponent<EdgeCollider2D>();
+        nearHPCtoHPCCLine = debugPoints.AddComponent<EdgeCollider2D>();
+        farHitPointColliderCheck = debugPoints.AddComponent<CircleCollider2D>();
+        nearHitPointColliderCheck = debugPoints.AddComponent<CircleCollider2D>();
 
 
         foreach (Collider2D collider in debugPoints.GetComponents<Collider2D>())
@@ -282,12 +269,22 @@ internal class Hero_Size_Rando : Rando_Base
         catch (Exception ex)
         {
             CuteRandoCore.Log.LogError($"Unable to patch CheckClamberLedge with transpiler, disabling Hero Size Rando. Restart Silksong please and leave it disabled.\nPlease then open a GitHub Issue report for this mod.\nException: {ex.Message}\nStack Trace:{ex.StackTrace}");
-            Instance.PlayerSizeRando = false;
+            //Instance.PlayerSizeRando = false;
         }
         finally
         {
             transpilerAttempted = true;
         }
+    }
+
+    /// <summary>
+    /// Patch to hook MovePlayer in NPCControllerBase to correct usage of using -1 or 1 for setting scale
+    /// </summary>
+    private static void MovePlayer_NPCControllerBase_Postfix()
+    {
+        if (!Instance.PlayerSizeRando || Instance.heroTransform == null) return;
+        float x = Instance.heroTransform.localScale.x;
+        Instance.heroTransform.SetScaleX(x > 0 ? Instance.heroScale.x : Instance.heroScaleFlipped.x);
     }
 
 
@@ -297,7 +294,7 @@ internal class Hero_Size_Rando : Rando_Base
     /// <param name="__instance"></param>
     private static void SetScale_DoSetScale_Postfix(ref SetScale __instance)
     {
-        if (__instance.Owner.name.Contains("Knight Spike Death"))
+        if (Instance.PlayerSizeRando && __instance.Owner.name.Contains("Knight Spike Death"))
         {
             GameObject gameObject = __instance.Fsm.GetOwnerDefaultTarget(__instance.gameObject);
             gameObject.transform.SetScaleY(gameObject.transform.GetScaleX());
@@ -330,7 +327,7 @@ internal class Hero_Size_Rando : Rando_Base
     {
         if (!Instance.PlayerSizeRando) return;
 
-        ___transform.localScale = Instance.heroSizeFlipped;
+        ___transform.localScale = Instance.heroScaleFlipped;
     }
 
     /// <summary>
@@ -342,7 +339,7 @@ internal class Hero_Size_Rando : Rando_Base
         if (!Instance.PlayerSizeRando) return;
 
 
-        ___transform.localScale = Instance.heroSize;
+        ___transform.localScale = Instance.heroScale;
     }
 
     /// <summary>
@@ -353,7 +350,7 @@ internal class Hero_Size_Rando : Rando_Base
     {
         if (!Instance.PlayerSizeRando) return;
 
-        ___transform.SetScaleX(___transform.GetScaleX() > 0 ? Instance.heroSize.x : Instance.heroSizeFlipped.x);
+        ___transform.SetScaleX(___transform.GetScaleX() > 0 ? Instance.heroScale.x : Instance.heroScaleFlipped.x);
     }
 
     // Used for checking where we are in the Enumerator's state
@@ -415,6 +412,14 @@ internal class Hero_Size_Rando : Rando_Base
     private static EdgeCollider2D nearOriginToNearGoodLine;
     private static CircleCollider2D farHitPointCollider;
     private static CircleCollider2D nearHitPointCollider;
+    private static EdgeCollider2D farHPCtoHPCCLine;
+    private static EdgeCollider2D nearHPCtoHPCCLine;
+    private static CircleCollider2D farHitPointColliderCheck;
+    private static CircleCollider2D nearHitPointColliderCheck;
+
+    private static bool debugGoodCollider = true;
+    private static bool debugOriginCollider = true;
+    private static bool debugHitPointCollider = true;
 
     /// <summary>
     /// Set the position of all colliders to 0,0
@@ -434,6 +439,10 @@ internal class Hero_Size_Rando : Rando_Base
         nearOriginToNearGoodLine.points = [];
         farHitPointCollider.offset = Vector2.zero;
         nearHitPointCollider.offset = Vector2.zero;
+        farHPCtoHPCCLine.points = [];
+        nearHPCtoHPCCLine.points = [];
+        farHitPointColliderCheck.offset = Vector2.zero;
+        nearHitPointColliderCheck.offset = Vector2.zero;
     }
     #endregion
 
@@ -458,9 +467,15 @@ internal class Hero_Size_Rando : Rando_Base
 
         bool facingRight = __instance.cState.facingRight;
 
-        float near = Instance.nearCheck;
-        float far = Instance.farCheck;
-        float height = Instance.heightCheck;
+        float multiplier = Instance.heroScale.x;
+        
+        float near = 0.37f * multiplier;
+        float far = 0.77f * multiplier;
+        float height = 0.67f * multiplier;
+        float ceiling = 2.26f * multiplier;
+        float landing = 2.0f * multiplier;
+        float landingHeight = 1.5f * multiplier;
+
         Vector2 vector = Instance.heroTransform.position;
         Vector2 heightOffset = new(0f, height);
         Vector2 facingDirection = facingRight ? Vector2.right : Vector2.left;
@@ -475,26 +490,44 @@ internal class Hero_Size_Rando : Rando_Base
 
         // Hitboxes for initial checks
         heroVectorCollider.offset = vector;
-        heroVectorAboveCollider.offset = vector + heightOffset;
-        heroVectorToAboveLine.points = [heroVectorCollider.offset, heroVectorAboveCollider.offset];
-        farOriginCollider.offset = farOrigin;
-        heroVectorAboveToFarLine.points = [heroVectorAboveCollider.offset, farOriginCollider.offset];
-        nearOriginCollider.offset = nearOrigin;
-        heroVectorAboveToNearLine.points = [heroVectorAboveCollider.offset, nearOriginCollider.offset];
+        
 
+        if (debugOriginCollider)
+        {
+            farOriginCollider.offset = farOrigin;
+            heroVectorAboveToFarLine.points = [vector + heightOffset, farOriginCollider.offset];
+            nearOriginCollider.offset = nearOrigin;
+            heroVectorAboveToNearLine.points = [vector + heightOffset, nearOriginCollider.offset];
+        }
+        
         if (Helper.IsRayHittingNoTriggers(vector + heightOffset, facingDirection, 0.75f, LAYERMASK)) // Directly Above, different than CheckNearRoof, probably allows for clambering through a gap?
             return;
 
-        bool farGood = Helper.IsRayHittingNoTriggers(farOrigin, Vector2.down, 2.26f, LAYERMASK, out var closestFarHit);
-        bool nearGood = Helper.IsRayHittingNoTriggers(nearOrigin, Vector2.down, 2.26f, LAYERMASK, out var closestNearHit);
+        bool farGood = Helper.IsRayHittingNoTriggers(farOrigin, Vector2.down, ceiling, LAYERMASK, out var closestFarHit);
+        bool nearGood = Helper.IsRayHittingNoTriggers(nearOrigin, Vector2.down, ceiling, LAYERMASK, out var closestNearHit);
+
+        bool heightGood = !Helper.IsRayHittingNoTriggers(new(vector.x, closestNearHit.point.y), Vector2.up, ceiling, LAYERMASK, out var heightHit);
+
+        heroVectorAboveCollider.offset = heightHit.point;
+        heroVectorToAboveLine.points = [heroVectorCollider.offset, heroVectorAboveCollider.offset];
 
         // Hitboxes for landing points
-        farGoodCollider.offset = closestFarHit.point;
-        nearGoodCollider.offset = closestNearHit.point;
-        if (farGood)
-            farOriginToFarGoodLine.points = [farOriginCollider.offset, farGoodCollider.offset];
-        if (nearGood)
-            nearOriginToNearGoodLine.points = [nearOriginCollider.offset, nearGoodCollider.offset];
+        if (debugGoodCollider)
+        {
+            farGoodCollider.offset = closestFarHit.point;
+            nearGoodCollider.offset = closestNearHit.point;
+
+            if (debugOriginCollider)
+            {
+                if (farGood)
+                    farOriginToFarGoodLine.points = [farOriginCollider.offset, farGoodCollider.offset];
+                if (nearGood)
+                    nearOriginToNearGoodLine.points = [nearOriginCollider.offset, nearGoodCollider.offset];
+            }
+        }
+
+        if (!heightGood)
+            return;
 
         if (!farGood || !nearGood) // One or both are not good
             return;
@@ -506,11 +539,20 @@ internal class Hero_Size_Rando : Rando_Base
         farHitPoint.y += 0.1f;
         nearHitPoint.y += 0.1f;
 
-        bool farHitPointGood = !Helper.IsRayHittingNoTriggers(farHitPoint, Vector2.up, 2.16f, LAYERMASK, out var closestFarPointHit);
-        bool nearHitPointGood = !Helper.IsRayHittingNoTriggers(nearHitPoint, Vector2.up, 2.16f, LAYERMASK, out var closestNearPointHit);
+        bool farHitPointGood = !Helper.IsRayHittingNoTriggers(farHitPoint, Vector2.up, ceiling - 0.1f, LAYERMASK, out var closestFarPointHit);
+        bool nearHitPointGood = !Helper.IsRayHittingNoTriggers(nearHitPoint, Vector2.up, ceiling - 0.1f, LAYERMASK, out var closestNearPointHit);
 
-        farHitPointCollider.offset = closestFarPointHit.point;
-        nearHitPointCollider.offset = closestNearPointHit.point;
+        if (debugHitPointCollider)
+        {
+            farHitPointCollider.offset = closestFarPointHit.point;
+            nearHitPointCollider.offset = closestNearPointHit.point;
+            farHitPointColliderCheck.offset = farHitPoint with { y = farHitPoint.y + ceiling - 0.1f };
+            nearHitPointColliderCheck.offset = nearHitPoint with { y = nearHitPoint.y + ceiling - 0.1f };
+            if(!farHitPointGood)
+                farHPCtoHPCCLine.points = [farHitPointCollider.offset, farHitPointColliderCheck.offset];
+            if (!nearHitPointGood)
+                nearHPCtoHPCCLine.points = [nearHitPointCollider.offset, nearHitPointColliderCheck.offset];
+        }
 
         if (!farHitPointGood || !nearHitPointGood) // Above Landing Spot
             return;
@@ -522,7 +564,7 @@ internal class Hero_Size_Rando : Rando_Base
 
         Vector2 n = new(vector.x, ___col2d.bounds.min.y + 0.2f);
 
-        if (Helper.IsRayHittingNoTriggers(n, Vector2.down, 2f, LAYERMASK, out var closestHit3) && farHitPoint.y - closestHit3.point.y < 1.5f)
+        if (Helper.IsRayHittingNoTriggers(n, Vector2.down, landing , LAYERMASK, out var closestHit3) && farHitPoint.y - closestHit3.point.y < landingHeight)
         {
             return;
         }
@@ -541,15 +583,17 @@ internal class Hero_Size_Rando : Rando_Base
     {
         var playerSizeRando = AccessTools.Method(typeof(Hero_Size_Rando), "get_PlayerSizeRando");
         var heroSizeRandoInstance = AccessTools.Method(typeof(Hero_Size_Rando), "get_Instance");
+        var heroSizeRandoHeroSize = AccessTools.Field(typeof(Hero_Size_Rando), "heroSize");
+        var heroSizeRandoHeroSizeX = AccessTools.Field(heroSizeRandoHeroSize.FieldType, "x");
         var checkNearRoof = AccessTools.Method(typeof(HeroController), "CheckNearRoof");
 
-        var nearCheck = AccessTools.Field(typeof(Hero_Size_Rando), "nearCheck");
-        var farCheck = AccessTools.Field(typeof(Hero_Size_Rando), "farCheck");
-        var heightCheck = AccessTools.Field(typeof(Hero_Size_Rando), "heightCheck");
-
+        LocalBuilder multiplier = ilGenerator.DeclareLocal(typeof(float));
         LocalBuilder near = ilGenerator.DeclareLocal(typeof(float));
         LocalBuilder far = ilGenerator.DeclareLocal(typeof(float));
         LocalBuilder height = ilGenerator.DeclareLocal(typeof(float));
+        LocalBuilder ceiling = ilGenerator.DeclareLocal(typeof(float));
+        LocalBuilder landing = ilGenerator.DeclareLocal(typeof(float));
+        LocalBuilder landingHeight = ilGenerator.DeclareLocal(typeof(float));
 
         List<CodeInstruction> instructionList = [.. instructions];
 
@@ -565,27 +609,48 @@ internal class Hero_Size_Rando : Rando_Base
                 new(OpCodes.Callvirt, playerSizeRando), // Gets the setting if the rando is enabled or not
                 new(OpCodes.Ldc_I4_1), // Load one (true)
                 new(OpCodes.Ceq), // Compare the setting to the loaded value
-                new(OpCodes.Brtrue_S) // Branch to a label that we will grab later if the two values were the same
+                new(OpCodes.Brtrue_S, null) // Branch to a label that we will grab later if the two values were the same
             ];
 
         /* Setup our local variables
-         * 
-         * float near = Instance.nearCheck;
-         * float far = Instance.farCheck;
-         * float height = Instance.heightCheck;
-         * Vector2 heightOffset = new(0f, height);
+         * float multiplier = Instance.heroSize.x;
+         * float near = 0.37f * multiplier;
+         * float far = 0.77f * multiplier;
+         * float height = 0.67f * multiplier;
+         * float ceiling = 2.26f * multiplier;
+         * float landing = 2.0f * multiplier;
+         * float landingHeight = 1.5f * multiplier;
          */
         List<CodeInstruction> createVariables =
             [
                 new(OpCodes.Call, heroSizeRandoInstance), // Get the instance of Hero_Size_Rando
-                new(OpCodes.Ldfld, nearCheck), // Get the value of nearCheck
-                new(OpCodes.Stloc_S, near), // Saves the value to a local variable
-                new(OpCodes.Call, heroSizeRandoInstance), // Get the instance of Hero_Size_Rando
-                new(OpCodes.Ldfld, farCheck), // Get the value of farCheck
-                new(OpCodes.Stloc_S, far), // Saves the value to a local variable
-                new(OpCodes.Call, heroSizeRandoInstance), // Get the instance of Hero_Size_Rando
-                new(OpCodes.Ldfld, heightCheck), // Get the value of heightCheck
-                new(OpCodes.Stloc_S, height) // Saves the value to a local variable
+                new(OpCodes.Ldflda, heroSizeRandoHeroSize), // Get the field heroSize
+                new(OpCodes.Ldfld, heroSizeRandoHeroSizeX), // Grab x from that field
+                new(OpCodes.Stloc_S, multiplier), // Save the value to multiplier
+                new(OpCodes.Ldc_R4, 0.37f), // Load the near value
+                new(OpCodes.Ldloc_S, multiplier), // Load the multiplier
+                new(OpCodes.Mul), // Multiply them together
+                new(OpCodes.Stloc_S, near), // Save the value to near
+                new(OpCodes.Ldc_R4, 0.77f), // Load the far value
+                new(OpCodes.Ldloc_S, multiplier), // Load the multiplier
+                new(OpCodes.Mul), // Multiply them together
+                new(OpCodes.Stloc_S, far), // Save the value to far
+                new(OpCodes.Ldc_R4, 0.67f), // Load the height value
+                new(OpCodes.Ldloc_S, multiplier), // Load the multiplier
+                new(OpCodes.Mul), // Multiply them together
+                new(OpCodes.Stloc_S, height), // Save the value to height
+                new(OpCodes.Ldc_R4, 2.26f), // Load the ceiling value
+                new(OpCodes.Ldloc_S, multiplier), // Load the multiplier
+                new(OpCodes.Mul), // Multiply them together
+                new(OpCodes.Stloc_S, ceiling), // Save the value to ceiling
+                new(OpCodes.Ldc_R4, 2f), // Load the landing value
+                new(OpCodes.Ldloc_S, multiplier), // Load the multiplier
+                new(OpCodes.Mul), // Multiply them together
+                new(OpCodes.Stloc_S, landing), // Save the value to landing
+                new(OpCodes.Ldc_R4, 1.5f), // Load the landingHeight value
+                new(OpCodes.Ldloc_S, multiplier), // Load the multiplier
+                new(OpCodes.Mul), // Multiply them together
+                new(OpCodes.Stloc_S, landingHeight) // Save the value to landingHeight
             ];
 
         // Substitution to use our own values
@@ -618,7 +683,7 @@ internal class Hero_Size_Rando : Rando_Base
                     yield return codeInstruction;
                 }
             }
-
+            
             // Patch so that CheckNearRoof is only called when the rando is disabled
             if (i < instructionList.Count - 2 && instructionList[i + 1].OperandIs(checkNearRoof))
             {
@@ -693,21 +758,8 @@ internal class Hero_Size_Rando : Rando_Base
             }
 
             // Patch short height checks to not exit right away if false
-            if(i< instructionList.Count - 2 && instructionList[i + 2].operand is float f && f == 2.16f)
+            if(i < instructionList.Count - 2 && instructionList[i + 2].operand is float f && f == 2.16f)
             {
-                // Get the instance of Hero_Size_Rando
-                /*if (instruction.labels.Count > 0)
-                {
-                    yield return new CodeInstruction(OpCodes.Call, heroSizeRandoInstance).MoveLabelsFrom(instruction);
-                }
-                else
-                    yield return new(OpCodes.Call, heroSizeRandoInstance);
-                yield return new(OpCodes.Callvirt, playerSizeRando); // Gets the setting if the rando is enabled or not
-                yield return new(OpCodes.Ldc_I4_1); // Load one (true)
-                yield return new(OpCodes.Ceq); // Compare the setting to the loaded value
-                yield return new(OpCodes.Brtrue_S, instructionList[i+5].operand); // Branch to a label that we will grab*/
-
-
                 // Reset List
                 for (int j = 0; j < playerSizeRandoEnabled.Count; j++) {    
                     playerSizeRandoEnabled[j] = new(playerSizeRandoEnabled[j].opcode, playerSizeRandoEnabled[j].operand);
@@ -728,6 +780,37 @@ internal class Hero_Size_Rando : Rando_Base
                     yield return codeInstruction;
                 }
             }
+            
+            // Replace 2.26f with scaled version
+            if(instruction.operand is float f1 && f1 == 2.26f)
+            {
+                yield return new(OpCodes.Ldloc_S, ceiling);
+                continue;
+            }
+
+            // Replace 2.16f with scaled version
+            if (instruction.operand is float f2 && f2 == 2.16f)
+            {
+                // ceiling - 0.1f;
+                yield return new(OpCodes.Ldloc_S, ceiling);
+                yield return new(OpCodes.Ldc_R4, 0.1f);
+                yield return new(OpCodes.Sub);
+                continue;
+            }
+
+            // Replace 2f with scaled version
+            if (instruction.operand is float f3 && f3 == 2f)
+            {
+                yield return new(OpCodes.Ldloc_S, landing);
+                continue;
+            }
+            
+            // Replace 1.5f with scaled version
+            if (instruction.operand is float f4 && f4 == 1.5f)
+            {
+                yield return new(OpCodes.Ldloc_S, landingHeight);
+                continue;
+            }
 
             yield return instruction;
         }
@@ -743,7 +826,7 @@ internal class Hero_Size_Rando : Rando_Base
     {
         float offset = __instance.GetComponent<BoxCollider2D>().offset.y;
         Instance.waterRegions.Add(__instance, offset);
-        UpdateWaterSurface(__instance, Instance.heroSize.x, offset);
+        UpdateWaterSurface(__instance, Instance.heroScale.x, offset);
     }
 
     /// <summary>
@@ -753,7 +836,7 @@ internal class Hero_Size_Rando : Rando_Base
     {
         foreach (var region in Instance.waterRegions)
         {
-            UpdateWaterSurface(region.Key, Instance.heroSize.x, region.Value);
+            UpdateWaterSurface(region.Key, Instance.heroScale.x, region.Value);
         }
     }
 
@@ -779,7 +862,7 @@ internal class Hero_Size_Rando : Rando_Base
         PatchSceneFSMs(scene);
     }
 
-    private static readonly Dictionary<string, Dictionary<string, FSMStatePatchSet>> sceneFSMPatches = new()
+    private static readonly Dictionary<string, Dictionary<string, FSMStateActionPatchSet>> sceneFSMPatches = new()
     {
         {
             "Bonetown",
@@ -787,12 +870,13 @@ internal class Hero_Size_Rando : Rando_Base
             {
                 {
                     "Churchkeeper Intro Scene",
-                    new FSMStatePatchSet("Churchkeeper Intro Scene",
+                    new FSMStateActionPatchSet(
+                        "Churchkeeper Intro Scene",
                         [new("Wait for Hero Grounded",
                             typeof(FloatCompare),
                             delegate(FsmStateAction action)
                             {
-                                ((FloatCompare)action).float2.Value *= Instance.heroSize.x;
+                                ((FloatCompare)action).float2.Value *= Instance.heroScale.x;
                             },
                             "Control")
                         ])
@@ -807,7 +891,7 @@ internal class Hero_Size_Rando : Rando_Base
     /// <param name="scene">The scene that was loaded</param>
     private static void PatchSceneFSMs(Scene scene)
     {
-        if(sceneFSMPatches.TryGetValue(scene.name, out Dictionary<string, FSMStatePatchSet> patches)){
+        if(sceneFSMPatches.TryGetValue(scene.name, out Dictionary<string, FSMStateActionPatchSet> patches)){
             GameObject[] objects = scene.GetRootGameObjects();
 
             foreach(var patchSet in patches)
@@ -832,7 +916,7 @@ internal class Hero_Size_Rando : Rando_Base
         }
 
         // Get the base stats and stash them for later
-        if (heroTransform == null || heroCollider == null)
+        if (grabVariables || heroTransform == null || heroCollider == null)
         {
             if (!SaveVariables())
             {
@@ -883,26 +967,27 @@ internal class Hero_Size_Rando : Rando_Base
     {
         if (heroTransform == null) return;
 
-        Instance.heroSize = new(multiplier, multiplier, 1f);
-        Instance.heroSizeFlipped = Instance.heroSize with { x = Instance.heroSize.x * -1 };
+        Instance.heroScale = new(multiplier, multiplier, 1f);
+        Instance.heroScaleFlipped = Instance.heroScale with { x = Instance.heroScale.x * -1 };
+        FsmVariables sprintFSMVariables = HeroController.instance.sprintFSM.FsmVariables;
 
         // Divide so that when scaled, Hornet runs the same speed as her normal size
-        HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Dash Speed").Value = hornetBaseDashSpeed / multiplier;
-        HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Sprint Speed Regular").Value = hornetBaseSprintSpeed / multiplier;
-        HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Sprint Start Speed").Value = hornetBaseSprintStartSpeed / multiplier;
-        HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Sprint Speed Quick").Value = hornetBaseQuickSpeed / multiplier;
-        HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Sprint Speed Quicker").Value = hornetBaseQuickerSpeed / multiplier;
+        sprintFSMVariables.FindFsmFloat("Dash Speed").Value = hornetBaseDashSpeed / multiplier;
+        sprintFSMVariables.FindFsmFloat("Sprint Speed Regular").Value = hornetBaseSprintSpeed / multiplier;
+        sprintFSMVariables.FindFsmFloat("Sprint Start Speed").Value = hornetBaseSprintStartSpeed / multiplier;
+        sprintFSMVariables.FindFsmFloat("Sprint Speed Quick").Value = hornetBaseQuickSpeed / multiplier;
+        sprintFSMVariables.FindFsmFloat("Sprint Speed Quicker").Value = hornetBaseQuickerSpeed / multiplier;
 
         mantleVaultTranslate.y = baseMantleVaultYOffset.Value * multiplier;
 
-        CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_UP").SetValue((hornetBaseSpeedToEnterHor * Instance.heroSize.x) + (0.2f - (0.2f * Instance.heroSize.x)));
-        CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_UP").SetValue((hornetBaseSpeedToEnterUp * Instance.heroSize.y) + (0.2f - (0.2f * Instance.heroSize.y)));
+        squishBox.size = new Vector2(heroCollider.size.x * 2, heroCollider.size.y / 2);
+        unsquishBox.size = new Vector2(heroCollider.size.x, heroCollider.size.y);
+        unsquishBox.offset = new Vector2(heroCollider.offset.x, heroCollider.offset.y);
 
-        heroTransform.localScale = heroTransform.localScale.x > 0f ? Instance.heroSize : Instance.heroSizeFlipped;
+        CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_UP").SetValue((hornetBaseSpeedToEnterHor * Instance.heroScale.x) + (0.2f - (0.2f * Instance.heroScale.x)));
+        CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_UP").SetValue((hornetBaseSpeedToEnterUp * Instance.heroScale.y) + (0.2f - (0.2f * Instance.heroScale.y)));
 
-        nearCheck = NEARCHECK * multiplier;
-        farCheck = FARCHECK * multiplier;
-        heightCheck = HEIGHTCHECK * multiplier;
+        heroTransform.localScale = heroTransform.localScale.x > 0f ? Instance.heroScale : Instance.heroScaleFlipped;
 
         UpdateWaterSurfaces();
     }
@@ -915,18 +1000,20 @@ internal class Hero_Size_Rando : Rando_Base
     {
         try
         {
-            heroTransform = CuteRandoCore.TraverseCreator(HeroController.instance, "transform").GetValue() as Transform;
-            heroCollider = CuteRandoCore.TraverseCreator(HeroController.instance, "col2d").GetValue() as Collider2D;
+            heroTransform = (Transform)CuteRandoCore.TraverseCreator(HeroController.instance, "transform").GetValue();
+            heroCollider = (BoxCollider2D)CuteRandoCore.TraverseCreator(HeroController.instance, "col2d").GetValue();
 
             if (heroTransform == null || heroCollider == null) return false; // Something is wrong here, abort
 
             if (grabVariables)
             {
-                hornetBaseDashSpeed = HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Dash Speed").Value;
-                hornetBaseSprintSpeed = HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Sprint Speed Regular").Value;
-                hornetBaseSprintStartSpeed = HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Sprint Start Speed").Value;
-                hornetBaseQuickSpeed = HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Sprint Speed Quick").Value;
-                hornetBaseQuickerSpeed = HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Sprint Speed Quicker").Value;
+                FsmVariables sprintFSMVariables = HeroController.instance.sprintFSM.FsmVariables;
+
+                hornetBaseDashSpeed = sprintFSMVariables.FindFsmFloat("Dash Speed").Value;
+                hornetBaseSprintSpeed = sprintFSMVariables.FindFsmFloat("Sprint Speed Regular").Value;
+                hornetBaseSprintStartSpeed = sprintFSMVariables.FindFsmFloat("Sprint Start Speed").Value;
+                hornetBaseQuickSpeed = sprintFSMVariables.FindFsmFloat("Sprint Speed Quick").Value;
+                hornetBaseQuickerSpeed = sprintFSMVariables.FindFsmFloat("Sprint Speed Quicker").Value;
 
                 hornetBaseSpeedToEnterHor = (float)CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_HOR").GetValue();
                 hornetBaseSpeedToEnterUp = (float)CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_UP").GetValue();
@@ -946,7 +1033,6 @@ internal class Hero_Size_Rando : Rando_Base
 
                 grabVariables = false;
             }
-            return true;
         }
         catch (Exception ex)
         {
@@ -955,6 +1041,56 @@ internal class Hero_Size_Rando : Rando_Base
             grabVariables = false;
             return false;
         }
+
+        PatchMantleFSM();
+        return true;
+    }
+
+    private static SetBoxCollider2DSizeVector squishBox;
+    private static SetBoxCollider2DSizeVector unsquishBox;
+    private static readonly FSMStatePatchSet mantleFSMPatchSet = new(
+        "Mantle",
+        [new FSMStatePatch(
+            "Vault",
+            delegate (FsmState state)
+            {
+                state.Actions = [.. state.Actions.AddItem(squishBox)];
+            }),
+        new FSMStatePatch(
+            ["Land", "Jump Cancel", "Attack Cancel", "Toolthrow Cancel", "Sprint Cancel"],
+            delegate (FsmState state)
+            {
+                state.Actions = [.. state.Actions.AddItem(unsquishBox)];
+            })]);
+
+    private void PatchMantleFSM()
+    {
+        squishBox = new SetBoxCollider2DSizeVector
+        {
+            gameObject1 = new FsmOwnerDefault
+            {
+                GameObject = HeroController.instance.gameObject
+
+            },
+            size = new Vector2(heroCollider.size.x * 2, heroCollider.size.y / 2),
+            offset = new FsmVector2()
+            {
+                UseVariable = false
+            }
+        };
+
+        unsquishBox = new SetBoxCollider2DSizeVector
+        {
+            gameObject1 = new FsmOwnerDefault
+            {
+                GameObject = HeroController.instance.gameObject
+
+            },
+            size = new Vector2(heroCollider.size.x, heroCollider.size.y),
+            offset = new Vector2(heroCollider.offset.x, heroCollider.offset.y)
+        };
+
+        mantleFSMPatchSet.ApplyPatches(HeroController.instance.mantleFSM);
     }
 
     /// <summary>
@@ -965,23 +1101,26 @@ internal class Hero_Size_Rando : Rando_Base
         if (!heroSizeChanged || heroTransform == null)
             return;
 
+        FsmVariables sprintFSMVariables = HeroController.instance.sprintFSM.FsmVariables;
+
         heroTransform.localScale = heroTransform.localScale.x > 0f ? new(1f, 1f, 1f) : new(-1f, 1f, 1f);
-        HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Dash Speed").Value = hornetBaseDashSpeed;
-        HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Sprint Speed Regular").Value = hornetBaseSprintSpeed;
-        HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Sprint Start Speed").Value = hornetBaseSprintStartSpeed;
-        HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Sprint Speed Quick").Value = hornetBaseQuickSpeed;
-        HeroController.instance.sprintFSM.FsmVariables.FindFsmFloat("Sprint Speed Quicker").Value = hornetBaseQuickerSpeed;
+        sprintFSMVariables.FindFsmFloat("Dash Speed").Value = hornetBaseDashSpeed;
+        sprintFSMVariables.FindFsmFloat("Sprint Speed Regular").Value = hornetBaseSprintSpeed;
+        sprintFSMVariables.FindFsmFloat("Sprint Start Speed").Value = hornetBaseSprintStartSpeed;
+        sprintFSMVariables.FindFsmFloat("Sprint Speed Quick").Value = hornetBaseQuickSpeed;
+        sprintFSMVariables.FindFsmFloat("Sprint Speed Quicker").Value = hornetBaseQuickerSpeed;
 
         CuteRandoCore.TraverseCreator(typeof(HeroController), "SPEED_TO_ENTER_SCENE_HOR").SetValue(hornetBaseSpeedToEnterHor);
         CuteRandoCore.TraverseCreator(typeof(HeroController), "SPEED_TO_ENTER_SCENE_UP").SetValue(hornetBaseSpeedToEnterUp);
 
         mantleVaultTranslate.y = baseMantleVaultYOffset;
 
-        heroSize = new(1f, 1f, 1f);
+        squishBox.size = new Vector2(heroCollider.size.x, heroCollider.size.y);
+        squishBox.offset = Vector2.down;
+        unsquishBox.size = new Vector2(heroCollider.size.x, heroCollider.size.y);
+        unsquishBox.offset = new Vector2(heroCollider.offset.x, heroCollider.offset.y);
 
-        nearCheck = NEARCHECK;
-        farCheck = FARCHECK;
-        heightCheck = HEIGHTCHECK;
+        heroScale = new(1f, 1f, 1f);
 
         UpdateWaterSurfaces();
 

@@ -105,11 +105,11 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// <summary>
     /// HashSet containing various enemy patches
     /// </summary>
-    private static readonly Dictionary<string, FSMStatePatchSet> enemyPatchSet = new()
+    private static readonly Dictionary<string, FSMStateActionPatchSet> enemyPatchSet = new()
     {
         {
             "Crowman",
-            new FSMStatePatchSet("Crowman",
+            new FSMStateActionPatchSet("Crowman",
                 [new("Start Rest",
                     typeof(RandomFloatEither),
                     delegate (FsmStateAction action)
@@ -134,7 +134,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// </summary>
     /// <param name="enemyName">String name of the enemy to patch</param>
     /// <param name="patch">The patch to add</param>
-    public static void PatchSpecificEnemy(string enemyName, FSMStatePatch patch)
+    public static void PatchSpecificEnemy(string enemyName, FSMStateActionPatch patch)
     {
         if(enemyPatchSet.TryGetValue(enemyName, out var patchSet))
         {
@@ -142,7 +142,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         }
         else
         {
-            enemyPatchSet.Add(enemyName, new FSMStatePatchSet(enemyName,[patch]));
+            enemyPatchSet.Add(enemyName, new FSMStateActionPatchSet(enemyName,[patch]));
         }
     }
 
@@ -157,6 +157,9 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         CuteRandoCore.UnregisterRandomizer(eventActiveEnemy);
         CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
+
+    // Unused as we don't need
+    private protected override void OnLoaded() { }
 
 #if TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
@@ -281,7 +284,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
                 throw new NotImplementedException();
         }
 
-        if (enemyPatchSet.TryGetValue(name, out FSMStatePatchSet patchList))
+        if (enemyPatchSet.TryGetValue(name, out FSMStateActionPatchSet patchList))
         {
             patchList.ApplyPatches(thing.gameObject.GetComponent<PlayMakerFSM>());
         }
