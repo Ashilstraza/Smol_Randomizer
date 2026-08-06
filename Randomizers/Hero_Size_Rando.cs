@@ -6,17 +6,15 @@ using System.Reflection.Emit;
 using BepInEx.Configuration;
 
 using HarmonyLib;
-using HarmonyLib.Tools;
 
 using HutongGames.PlayMaker;
 using HutongGames.PlayMaker.Actions;
 
 #if TESTING
 using Newtonsoft.Json;
+#endif
 
 using Smol_Randomizer.FSMThings;
-
-#endif
 using Smol_Randomizer.Settings;
 
 using UnityEngine;
@@ -69,13 +67,21 @@ internal class Hero_Size_Rando : Rando_Base
     /// </summary>
     private BoxCollider2D heroCollider;
     /// <summary>
-    /// Hornet's Size
+    /// Hornet's Scale
     /// </summary>
     internal Vector3 heroScale = new(1f, 1f, 1f);
     /// <summary>
-    /// Hornet's Size when facing Right
+    /// Hornet's Scale when facing Right
     /// </summary>
     internal Vector3 heroScaleFlipped = new(-1f, 1f, 1f);
+    /// <summary>
+    /// Hornet's default Collider Size
+    /// </summary>
+    internal Vector2 defaultColliderSize;
+    /// <summary>
+    /// Hornet's default Collider Offset
+    /// </summary>
+    internal Vector2 defaultColliderOffset;
 
     /// <summary>
     /// The Translate action within the Vault FSM state
@@ -179,23 +185,22 @@ internal class Hero_Size_Rando : Rando_Base
     private void GameStartup()
     {
         Type randoType = typeof(Hero_Size_Rando);
+        Type heroControllerType = typeof(HeroController);
 
+        // Basic Scale Patches
         CuteRandoCore.harmony.Patch(AccessTools.Method(
-            typeof(HeroController), nameof(HeroController.FaceRight)),
+            heroControllerType, nameof(HeroController.FaceRight)),
             postfix: new HarmonyMethod(randoType, nameof(HeroController_FaceRight_Postfix)));
         CuteRandoCore.harmony.Patch(AccessTools.Method(
-            typeof(HeroController), nameof(HeroController.FaceLeft)),
+            heroControllerType, nameof(HeroController.FaceLeft)),
             postfix: new HarmonyMethod(randoType, nameof(HeroController_FaceLeft_Postfix)));
         CuteRandoCore.harmony.Patch(AccessTools.Method(
-            typeof(HeroController), "Update10"),
+            heroControllerType, "Update10"),
             postfix: new HarmonyMethod(randoType, nameof(HeroController_Update10_Postfix)));
         CuteRandoCore.harmony.Patch(AccessTools.EnumeratorMoveNext(
             AccessTools.Method(
-                typeof(HeroController), "EnterHeroSubHorizontal")),
+                heroControllerType, "EnterHeroSubHorizontal")),
                 postfix: new HarmonyMethod(randoType, nameof(HeroController_EnterHeroSubHorizontal_Postfix)));
-        CuteRandoCore.harmony.Patch(AccessTools.Method(
-            typeof(SurfaceWaterRegion), "Start"),
-            postfix: new HarmonyMethod(randoType, nameof(SurfaceWaterRegion_Start_Postfix)));
         CuteRandoCore.harmony.Patch(
             AccessTools.Method(typeof(DamageHero), "OnEnable"),
             postfix: new HarmonyMethod(randoType, nameof(DamageHero_OnEnable_Postfix)));
@@ -203,11 +208,21 @@ internal class Hero_Size_Rando : Rando_Base
             AccessTools.Method(
                 typeof(NPCControlBase), "MovePlayer")),
                 postfix: new HarmonyMethod(randoType, nameof(MovePlayer_NPCControllerBase_Postfix)));
-
         CuteRandoCore.harmony.Patch(AccessTools.Method(
             typeof(SetScale), "DoSetScale"),
             postfix: new HarmonyMethod(randoType, nameof(SetScale_DoSetScale_Postfix)));
 
+        // Water Surfaces
+        CuteRandoCore.harmony.Patch(AccessTools.Method(
+            typeof(SurfaceWaterRegion), "Start"),
+            postfix: new HarmonyMethod(randoType, nameof(SurfaceWaterRegion_Start_Postfix)));
+
+        // Sprint and Dash FSM Patches
+        CuteRandoCore.harmony.Patch(AccessTools.Method(
+            heroControllerType, "HeroDash"),
+            prefix: new HarmonyMethod(randoType, nameof(HeroController_HeroDash_Prefix)));
+
+        // Ledge Clambering
 #if !TESTING
         if (PlayerSizeRando) // only patch if rando is enabled
             TryTranspilerPatch();
@@ -215,7 +230,7 @@ internal class Hero_Size_Rando : Rando_Base
 
 #if TESTING
         CuteRandoCore.harmony.Patch(AccessTools.Method(
-            typeof(HeroController), nameof(HeroController.CheckClamberLedge)),
+            heroControllerType, nameof(HeroController.CheckClamberLedge)),
             postfix: new HarmonyMethod(typeof(Hero_Size_Rando), nameof(HeroController_CheckClamberLedge_Postfix)));
         debugPoints = new GameObject("CuteRandoDebugPoints", []);
 
@@ -253,30 +268,7 @@ internal class Hero_Size_Rando : Rando_Base
 #endif
     }
 
-    /// <summary>
-    /// Attempts to apply the transpiler patch. Can only be called once, otherwise silently aborts.
-    /// </summary>
-    private static void TryTranspilerPatch()
-    {
-        if (transpilerAttempted) return;
-
-        try
-        {
-            CuteRandoCore.harmony.Patch(AccessTools.Method(
-            typeof(HeroController), nameof(HeroController.CheckClamberLedge)),
-            transpiler: new HarmonyMethod(typeof(Hero_Size_Rando), nameof(HeroController_CheckClamberLedge_Transpiler)));
-        }
-        catch (Exception ex)
-        {
-            CuteRandoCore.Log.LogError($"Unable to patch CheckClamberLedge with transpiler, disabling Hero Size Rando. Restart Silksong please and leave it disabled.\nPlease then open a GitHub Issue report for this mod.\nException: {ex.Message}\nStack Trace:{ex.StackTrace}");
-            //Instance.PlayerSizeRando = false;
-        }
-        finally
-        {
-            transpilerAttempted = true;
-        }
-    }
-
+    #region Basic Scale Patches
     /// <summary>
     /// Patch to hook MovePlayer in NPCControllerBase to correct usage of using -1 or 1 for setting scale
     /// </summary>
@@ -307,7 +299,7 @@ internal class Hero_Size_Rando : Rando_Base
     private static void DamageHero_OnEnable_Postfix(ref DamageHero __instance)
     {
         if (Instance.PlayerSizeRando && Instance.HeroSizeConsistency == RandomizerConsistencyC.OnDamageTaken)
-           __instance.OnDamagedHero.AddListener(HeroDamaged);
+            __instance.OnDamagedHero.AddListener(HeroDamaged);
 
     }
 
@@ -391,10 +383,12 @@ internal class Hero_Size_Rando : Rando_Base
 
         transitionHandled = true;
     }
-    #region LedgeClambering
+    #endregion
+
+    #region Ledge Clambering
 #if TESTING
 
-    #region TestingColliders
+    #region Testing Colliders
     // This GameObject and colliders are used to debug the various clamber checks
 
     private const float colliderRadius = 0.25f;
@@ -456,7 +450,7 @@ internal class Hero_Size_Rando : Rando_Base
     /// <param name="clamberedCollider">What Hornet is clambering onto</param>
     private static void HeroController_CheckClamberLedge_Postfix(ref HeroController __instance, ref bool __result, ref Collider2D ___col2d, ref float y, ref Collider2D clamberedCollider)
     {
-        if (/*__result || */!Instance.PlayerSizeRando) return; // We are already going to clamber, or we aren't randomizing
+        if (__result || !Instance.PlayerSizeRando || !Instance.PatchHeroFSMs) return; // We are already going to clamber, or we aren't randomizing
         // Don't check for roof, other checks cover that later in method
         if (Instance.heroTransform == null || NoClamberRegion.IsClamberBlocked/* || __instance.CheckNearRoof()*/)
             return;
@@ -574,6 +568,30 @@ internal class Hero_Size_Rando : Rando_Base
 #endif
 
     /// <summary>
+    /// Attempts to apply the transpiler patch. Can only be called once, otherwise silently aborts.
+    /// </summary>
+    private static void TryTranspilerPatch()
+    {
+        if (transpilerAttempted) return;
+
+        try
+        {
+            CuteRandoCore.harmony.Patch(AccessTools.Method(
+            typeof(HeroController), nameof(HeroController.CheckClamberLedge)),
+            transpiler: new HarmonyMethod(typeof(Hero_Size_Rando), nameof(HeroController_CheckClamberLedge_Transpiler)));
+        }
+        catch (Exception ex)
+        {
+            CuteRandoCore.Log.LogError($"Unable to patch CheckClamberLedge with transpiler, disabling Hero Size Rando. Restart Silksong please and leave it disabled.\nPlease then open a GitHub Issue report for this mod.\nException: {ex.Message}\nStack Trace:{ex.StackTrace}");
+            Instance.PlayerSizeRando = false;
+        }
+        finally
+        {
+            transpilerAttempted = true;
+        }
+    }
+
+    /// <summary>
     /// Patches the ledge clamber check to allow for scaling.
     /// </summary>
     /// <param name="instructions"></param>
@@ -582,8 +600,9 @@ internal class Hero_Size_Rando : Rando_Base
     private static IEnumerable<CodeInstruction> HeroController_CheckClamberLedge_Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
     {
         var playerSizeRando = AccessTools.Method(typeof(Hero_Size_Rando), "get_PlayerSizeRando");
+        var patchHeroFSMs = AccessTools.Method(typeof(Hero_Size_Rando), "get_PatchHeroFSMs");
         var heroSizeRandoInstance = AccessTools.Method(typeof(Hero_Size_Rando), "get_Instance");
-        var heroSizeRandoHeroSize = AccessTools.Field(typeof(Hero_Size_Rando), "heroSize");
+        var heroSizeRandoHeroSize = AccessTools.Field(typeof(Hero_Size_Rando), nameof(heroScale));
         var heroSizeRandoHeroSizeX = AccessTools.Field(heroSizeRandoHeroSize.FieldType, "x");
         var checkNearRoof = AccessTools.Method(typeof(HeroController), "CheckNearRoof");
 
@@ -594,26 +613,42 @@ internal class Hero_Size_Rando : Rando_Base
         LocalBuilder ceiling = ilGenerator.DeclareLocal(typeof(float));
         LocalBuilder landing = ilGenerator.DeclareLocal(typeof(float));
         LocalBuilder landingHeight = ilGenerator.DeclareLocal(typeof(float));
+        Label vanilla = ilGenerator.DefineLabel();
+        Label saveMultiplier = ilGenerator.DefineLabel();
+        Label notPatchingFSMs = ilGenerator.DefineLabel();
+        Label doCheck1 = ilGenerator.DefineLabel();
+        Label doCheck2 = ilGenerator.DefineLabel();
 
         List<CodeInstruction> instructionList = [.. instructions];
 
         /* Check to see if player size rando is enabled, if so we want to skip the roof check
          * 
-         * if (Instance.PlayerSizeRando) {
-         *     goto [AfterCheckNearRoof]
+         * if (!Instance.PatchHeroFSMs) {
+         *     if (Instance.PlayerSizeRando) {
+         *         goto [AfterCheckNearRoof]
+         *     }
          * }
          */
         List<CodeInstruction> playerSizeRandoEnabled =
             [
                 new(OpCodes.Call, heroSizeRandoInstance), // Get the instance of Hero_Size_Rando
+                new(OpCodes.Callvirt, patchHeroFSMs), // Gets the setting if the patching FSMs is enabled or not
+                new(OpCodes.Ldc_I4_1), // Load one (true)
+                new(OpCodes.Ceq), // Compare the setting to the loaded value
+                new(OpCodes.Brfalse_S, notPatchingFSMs), // Branch to a label that we will grab later if the two values were the same
+                new(OpCodes.Call, heroSizeRandoInstance), // Get the instance of Hero_Size_Rando
                 new(OpCodes.Callvirt, playerSizeRando), // Gets the setting if the rando is enabled or not
                 new(OpCodes.Ldc_I4_1), // Load one (true)
                 new(OpCodes.Ceq), // Compare the setting to the loaded value
-                new(OpCodes.Brtrue_S, null) // Branch to a label that we will grab later if the two values were the same
+                new(OpCodes.Brtrue_S, null), // Branch to a label that we will grab later if the two values were the same
+                new CodeInstruction(OpCodes.Nop).WithLabels(notPatchingFSMs)
             ];
 
         /* Setup our local variables
-         * float multiplier = Instance.heroSize.x;
+         * if (Instance.PatchHeroFSMs)
+         *     float multiplier = Instance.heroSize.x;
+         * else
+         *     float multiplier = 1f;
          * float near = 0.37f * multiplier;
          * float far = 0.77f * multiplier;
          * float height = 0.67f * multiplier;
@@ -623,10 +658,18 @@ internal class Hero_Size_Rando : Rando_Base
          */
         List<CodeInstruction> createVariables =
             [
+
+                new(OpCodes.Call, heroSizeRandoInstance), // Get the instance of Hero_Size_Rando
+                new(OpCodes.Callvirt, patchHeroFSMs), // Gets the setting if the rando is enabled or not
+                new(OpCodes.Ldc_I4_1), // Load one (true)
+                new(OpCodes.Ceq), // Compare the setting to the loaded value
+                new(OpCodes.Brfalse_S, vanilla), // Branch to loading the value of 1f if we are not patching FSMs
                 new(OpCodes.Call, heroSizeRandoInstance), // Get the instance of Hero_Size_Rando
                 new(OpCodes.Ldflda, heroSizeRandoHeroSize), // Get the field heroSize
                 new(OpCodes.Ldfld, heroSizeRandoHeroSizeX), // Grab x from that field
-                new(OpCodes.Stloc_S, multiplier), // Save the value to multiplier
+                new(OpCodes.Br_S, saveMultiplier), // goto saving the value to multiplier
+                new CodeInstruction(OpCodes.Ldc_R4, 1f).WithLabels(vanilla), // Load value of 1f
+                new CodeInstruction(OpCodes.Stloc_S, multiplier).WithLabels(saveMultiplier), // Save the value to multiplier
                 new(OpCodes.Ldc_R4, 0.37f), // Load the near value
                 new(OpCodes.Ldloc_S, multiplier), // Load the multiplier
                 new(OpCodes.Mul), // Multiply them together
@@ -683,9 +726,9 @@ internal class Hero_Size_Rando : Rando_Base
                     yield return codeInstruction;
                 }
             }
-            
-            // Patch so that CheckNearRoof is only called when the rando is disabled
-            if (i < instructionList.Count - 2 && instructionList[i + 1].OperandIs(checkNearRoof))
+
+            // Patch so that CheckNearRoof is only called when the rando is disabled or when we are not patching FSMs
+            if (i < instructionList.Count - 1 && instructionList[i + 1].OperandIs(checkNearRoof))
             {
                 playerSizeRandoEnabled[0].MoveLabelsFrom(instruction);
                 foreach (CodeInstruction codeInstruction in playerSizeRandoEnabled)
@@ -758,13 +801,32 @@ internal class Hero_Size_Rando : Rando_Base
             }
 
             // Patch short height checks to not exit right away if false
-            if(i < instructionList.Count - 2 && instructionList[i + 2].operand is float f && f == 2.16f)
+            if (i < instructionList.Count - 2 && instructionList[i + 2].operand is float f && f == 2.16f)
             {
                 // Reset List
-                for (int j = 0; j < playerSizeRandoEnabled.Count; j++) {    
-                    playerSizeRandoEnabled[j] = new(playerSizeRandoEnabled[j].opcode, playerSizeRandoEnabled[j].operand);
+                for (int j = 0; j < playerSizeRandoEnabled.Count; j++)
+                {
+                    playerSizeRandoEnabled[j] = new CodeInstruction(playerSizeRandoEnabled[j].opcode, playerSizeRandoEnabled[j].operand).WithLabels(playerSizeRandoEnabled[j].labels);
                     if (playerSizeRandoEnabled[j].opcode == OpCodes.Brtrue) // No idea why it randomly switches
                         playerSizeRandoEnabled[j].opcode = OpCodes.Brtrue_S;
+                    if (playerSizeRandoEnabled[j].opcode == OpCodes.Brfalse)
+                        playerSizeRandoEnabled[j].opcode = OpCodes.Brfalse_S;
+
+                    if (playerSizeRandoEnabled[j].opcode == OpCodes.Brfalse_S)
+                    {
+                        if ((Label)playerSizeRandoEnabled[j].operand == notPatchingFSMs)
+                            playerSizeRandoEnabled[j].operand = doCheck1;
+                        else if ((Label)playerSizeRandoEnabled[j].operand == doCheck1)
+                            playerSizeRandoEnabled[j].operand = doCheck2;
+                    }
+
+                    if (playerSizeRandoEnabled[j].opcode == OpCodes.Nop)
+                    {
+                        if (playerSizeRandoEnabled[j].labels.Contains(notPatchingFSMs))
+                            playerSizeRandoEnabled[j].labels = [doCheck1];
+                        else if (playerSizeRandoEnabled[j].labels.Contains(doCheck1))
+                            playerSizeRandoEnabled[j].labels = [doCheck2];
+                    }
                 }
 
                 if (instruction.labels.Count > 0)
@@ -780,9 +842,9 @@ internal class Hero_Size_Rando : Rando_Base
                     yield return codeInstruction;
                 }
             }
-            
+
             // Replace 2.26f with scaled version
-            if(instruction.operand is float f1 && f1 == 2.26f)
+            if (instruction.operand is float f1 && f1 == 2.26f)
             {
                 yield return new(OpCodes.Ldloc_S, ceiling);
                 continue;
@@ -804,7 +866,7 @@ internal class Hero_Size_Rando : Rando_Base
                 yield return new(OpCodes.Ldloc_S, landing);
                 continue;
             }
-            
+
             // Replace 1.5f with scaled version
             if (instruction.operand is float f4 && f4 == 1.5f)
             {
@@ -815,9 +877,94 @@ internal class Hero_Size_Rando : Rando_Base
             yield return instruction;
         }
     }
+
+    /// <summary>
+    /// FSMAction to squish Hornet's hitbox to allow her to clamber normal spots when large
+    /// </summary>
+    private static SetBoxCollider2DSizeVector clamberSquishBox;
+    /// <summary>
+    /// FSMAction to unsquish Hornet's hitbox after clambering normal spots when large
+    /// </summary>
+    private static SetBoxCollider2DSizeVector clamberUnsquishBox;
+    /// <summary>
+    /// Set of States to patch Actions into 
+    /// </summary>
+    private static readonly FSMStatePatchSet mantleFSMPatchSet = new(
+        "Mantle",
+        [new FSMStatePatch(
+            "Vault",
+            delegate (FsmState state, object[]? extra)
+            {
+                state.Actions = state.Actions.AddToArray(clamberSquishBox);
+
+            }),
+        new FSMStatePatch(
+            "Idle",
+            delegate(FsmState state, object[]? extra)
+            {
+                state.Actions = state.Actions.AddToArray(clamberUnsquishBox);
+            })
+        ]);
+
+    /// <summary>
+    /// Patches the Mantle FSM to shrink Hornet's hitbox when Clambering
+    /// </summary>
+    private void PatchMantleFSM()
+    {
+        clamberSquishBox = new SetBoxCollider2DSizeVector
+        {
+            gameObject1 = new FsmOwnerDefault
+            {
+                GameObject = HeroController.instance.gameObject
+
+            },
+            size = new Vector2(defaultColliderSize.x * 2, defaultColliderSize.y / 2),
+            offset = Vector2.down
+        };
+
+        clamberUnsquishBox = new SetBoxCollider2DSizeVector
+        {
+            gameObject1 = new FsmOwnerDefault
+            {
+                GameObject = HeroController.instance.gameObject
+
+            },
+            size = new Vector2(defaultColliderSize.x, defaultColliderSize.y),
+            offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y)
+        };
+
+        mantleFSMPatchSet.ApplyPatches(HeroController.instance.mantleFSM);
+    }
+
+    /// <summary>
+    /// Updates the Mantle squish sizes when called
+    /// </summary>
+    private void UpdateMantleFSMSizes()
+    {
+        if (!PatchHeroFSMs) // Don't change the FSMs
+        {
+            ResetMantleFSMSizes();
+            return;
+        }
+        clamberSquishBox.size = new Vector2(defaultColliderSize.x * 2, defaultColliderSize.y / 2);
+        clamberSquishBox.offset = Vector2.down;
+        clamberUnsquishBox.size = new Vector2(defaultColliderSize.x, defaultColliderSize.y);
+        clamberUnsquishBox.offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y);
+    }
+
+    /// <summary>
+    /// Resets the Mantle squish sizes to default when called
+    /// </summary>
+    private void ResetMantleFSMSizes()
+    {
+        clamberSquishBox.size = new Vector2(defaultColliderSize.x, defaultColliderSize.y);
+        clamberSquishBox.offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y);
+        clamberUnsquishBox.size = new Vector2(defaultColliderSize.x, defaultColliderSize.y);
+        clamberUnsquishBox.offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y);
+    }
     #endregion
 
-    #region WaterSurfaces
+    #region Water Surfaces
     /// <summary>
     /// Patch that hooks SurfaceWaterRegion's Start method to adjust the collider and adds it to a list so we can update it mid scene if needed
     /// </summary>
@@ -850,18 +997,15 @@ internal class Hero_Size_Rando : Rando_Base
     {
         BoxCollider2D col = region.GetComponent<BoxCollider2D>();
 
-        col.offset = col.offset with { y = offset + (1.04f - (1.04f * multiplier)) + (0.4f - (0.4f * multiplier)) };
+        //col.offset = col.offset with { y = offset + (1.04f - (1.04f * multiplier)) + (0.4f - (0.4f * multiplier)) };
+        col.offset = col.offset with { y = offset - (1.44f * multiplier) + 1.44f };
     }
     #endregion
 
-    private void OnSceneLoad(Scene scene, LoadSceneMode _)
-    {
-        currentScene = scene;
-        SetSize();
-        waterRegions.Clear();
-        PatchSceneFSMs(scene);
-    }
-
+    #region Scene Patches
+    /// <summary>
+    /// Dictionary containing the various scene patches
+    /// </summary>
     private static readonly Dictionary<string, Dictionary<string, FSMStateActionPatchSet>> sceneFSMPatches = new()
     {
         {
@@ -874,12 +1018,31 @@ internal class Hero_Size_Rando : Rando_Base
                         "Churchkeeper Intro Scene",
                         [new("Wait for Hero Grounded",
                             typeof(FloatCompare),
-                            delegate(FsmStateAction action)
+                            delegate(FsmStateAction action, object[]? extra)
                             {
-                                ((FloatCompare)action).float2.Value *= Instance.heroScale.x;
+                                ((FloatCompare)action).float2.Value *= Instance.heroScale.y;
                             },
-                            "Control")
-                        ])
+                            "Control")]
+                        )
+                }
+            }
+        },
+        {
+            "Greymoor_01",
+            new()
+            {
+                {
+                    "Floor Control Scene",
+                    new FSMStateActionPatchSet(
+                        "Floor Control Scene",
+                        [new("Flip",
+                            typeof(CheckYPosition),
+                            delegate(FsmStateAction action, object[]? extra)
+                            {
+                                ((CheckYPosition)action).compareTo.Value *= Instance.heroScale.y;
+                            },
+                            "Control")]
+                        )
                 }
             }
         }
@@ -891,14 +1054,158 @@ internal class Hero_Size_Rando : Rando_Base
     /// <param name="scene">The scene that was loaded</param>
     private static void PatchSceneFSMs(Scene scene)
     {
-        if(sceneFSMPatches.TryGetValue(scene.name, out Dictionary<string, FSMStateActionPatchSet> patches)){
+        if (sceneFSMPatches.TryGetValue(scene.name, out Dictionary<string, FSMStateActionPatchSet> patches))
+        {
             GameObject[] objects = scene.GetRootGameObjects();
 
-            foreach(var patchSet in patches)
+            foreach (var patchSet in patches)
             {
                 patchSet.Value.ApplyPatches(objects.FirstOrDefault(obj => obj.name.Equals(patchSet.Key)).GetComponents<PlayMakerFSM>());
             }
         }
+    }
+    #endregion
+
+    #region Sprint and Dash Patches
+    /// <summary>
+    /// FSMAction to squish Hornet's hitbox to allow her to sprint through normal spots when large
+    /// </summary>
+    private static SetBoxCollider2DSizeVector sprintSquishBox;
+    /// <summary>
+    /// FSMAction to unsquish Hornet's hitbox after sprinting through normal spots when large
+    /// </summary>
+    private static SetBoxCollider2DSizeVector sprintUnsquishBox;
+    /// <summary>
+    /// Set of States to patch Actions into 
+    /// </summary>
+    private static readonly FSMStatePatchSet sprintFSMPatchSet = new(
+        "Sprint",
+        [new FSMStatePatch(
+            ["Dashed", "Start Sprint"],
+            delegate (FsmState state, object[]? extra)
+            {
+                if(sprintSquishBox == null) return;
+
+                FsmStateAction[] bassAckwards = [sprintSquishBox];
+                state.Actions = bassAckwards.AddRangeToArray(state.Actions);
+            }),
+        new FSMStatePatch(
+            ["Idle", "Dash Stab Dir"],
+            delegate(FsmState state, object[]? extra)
+            {
+                if(sprintUnsquishBox == null) return;
+
+                FsmStateAction[] bassAckwards = [sprintUnsquishBox];
+                state.Actions = bassAckwards.AddRangeToArray(state.Actions);
+            })
+        ]);
+
+    /// <summary>
+    /// Patches the Sprint FSM to adjust Hornet's hitbox when dashing
+    /// </summary>
+    private void PatchSprintFSM()
+    {
+        sprintSquishBox = new SetBoxCollider2DSizeVector
+        {
+            gameObject1 = new FsmOwnerDefault
+            {
+                GameObject = HeroController.instance.gameObject
+
+            },
+        };
+
+        SquishSize(false);
+
+        sprintUnsquishBox = new SetBoxCollider2DSizeVector
+        {
+            gameObject1 = new FsmOwnerDefault
+            {
+                GameObject = HeroController.instance.gameObject
+
+            },
+            size = new Vector2(defaultColliderSize.x, defaultColliderSize.y),
+            offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y)
+        };
+
+        sprintFSMPatchSet.ApplyPatches(HeroController.instance.sprintFSM);
+    }
+
+    /// <summary>
+    /// Patch to listen for if we are air dashing and adjust the collider accordingly
+    /// </summary>
+    private static bool HeroController_HeroDash_Prefix()
+    {
+        if (Instance.PlayerSizeRando)
+        {
+            Instance.UpdateSprintFSMSizes();
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Sets the sprint squish size and offset
+    /// </summary>
+    /// <param name="dashingDown">If hornet is dashing down</param>
+    private void SquishSize(bool dashingDown)
+    {
+        if (dashingDown)
+        {
+            sprintSquishBox.size = new Vector2(defaultColliderSize.x, defaultColliderSize.y);
+            sprintSquishBox.offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y);
+        }
+        else
+        {
+            sprintSquishBox.size = new Vector2(defaultColliderSize.x * 3.25f, defaultColliderSize.y / 1.5f);
+            sprintSquishBox.offset = new Vector2(defaultColliderOffset.x, -0.3464352f + defaultColliderOffset.y);
+        }
+    }
+
+    /// <summary>
+    /// Updates the Sprint squish sizes when called
+    /// </summary>
+    private void UpdateSprintFSMSizes()
+    {
+        if (!PatchHeroFSMs) // Don't change the FSMs
+        {
+            ResetSprintFSMSizes();
+            return;
+        }
+
+        HeroActions inputActions = InputHandler.Instance.inputActions;
+        bool dashingDown = inputActions.Down.IsPressed
+            && !HeroController.instance.cState.onGround
+            && !inputActions.Left.IsPressed
+            && !inputActions.Right.IsPressed;
+
+        SquishSize(dashingDown);
+
+        sprintUnsquishBox.size = new Vector2(defaultColliderSize.x, defaultColliderSize.y);
+        sprintUnsquishBox.offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y);
+    }
+
+    /// <summary>
+    /// Resets the Sprint squish sizes to default when called
+    /// </summary>
+    private void ResetSprintFSMSizes()
+    {
+        sprintSquishBox.size = new Vector2(defaultColliderSize.x, defaultColliderSize.y);
+        sprintSquishBox.offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y);
+        sprintUnsquishBox.size = new Vector2(defaultColliderSize.x, defaultColliderSize.y);
+        sprintUnsquishBox.offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y);
+    }
+    #endregion
+
+    /// <summary>
+    /// On Scene Load, save current loading scene
+    /// </summary>
+    /// <param name="scene">The new scene that is loading</param>
+    /// <param name="mode">?</param>
+    private void OnSceneLoad(Scene scene, LoadSceneMode _)
+    {
+        currentScene = scene;
+        SetSize();
+        waterRegions.Clear();
+        PatchSceneFSMs(scene);
     }
 
     // TODO: tall hornet breaks some triggers; 
@@ -967,8 +1274,8 @@ internal class Hero_Size_Rando : Rando_Base
     {
         if (heroTransform == null) return;
 
-        Instance.heroScale = new(multiplier, multiplier, 1f);
-        Instance.heroScaleFlipped = Instance.heroScale with { x = Instance.heroScale.x * -1 };
+        heroScale = new(multiplier, multiplier, 1f);
+        heroScaleFlipped = heroScale with { x = heroScale.x * -1 };
         FsmVariables sprintFSMVariables = HeroController.instance.sprintFSM.FsmVariables;
 
         // Divide so that when scaled, Hornet runs the same speed as her normal size
@@ -980,14 +1287,13 @@ internal class Hero_Size_Rando : Rando_Base
 
         mantleVaultTranslate.y = baseMantleVaultYOffset.Value * multiplier;
 
-        squishBox.size = new Vector2(heroCollider.size.x * 2, heroCollider.size.y / 2);
-        unsquishBox.size = new Vector2(heroCollider.size.x, heroCollider.size.y);
-        unsquishBox.offset = new Vector2(heroCollider.offset.x, heroCollider.offset.y);
-
         CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_UP").SetValue((hornetBaseSpeedToEnterHor * Instance.heroScale.x) + (0.2f - (0.2f * Instance.heroScale.x)));
         CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_UP").SetValue((hornetBaseSpeedToEnterUp * Instance.heroScale.y) + (0.2f - (0.2f * Instance.heroScale.y)));
 
-        heroTransform.localScale = heroTransform.localScale.x > 0f ? Instance.heroScale : Instance.heroScaleFlipped;
+        heroTransform.localScale = heroTransform.localScale.x > 0f ? heroScale : heroScaleFlipped;
+
+        UpdateMantleFSMSizes();
+        UpdateSprintFSMSizes();
 
         UpdateWaterSurfaces();
     }
@@ -1014,6 +1320,9 @@ internal class Hero_Size_Rando : Rando_Base
                 hornetBaseSprintStartSpeed = sprintFSMVariables.FindFsmFloat("Sprint Start Speed").Value;
                 hornetBaseQuickSpeed = sprintFSMVariables.FindFsmFloat("Sprint Speed Quick").Value;
                 hornetBaseQuickerSpeed = sprintFSMVariables.FindFsmFloat("Sprint Speed Quicker").Value;
+
+                defaultColliderSize = new(heroCollider.size.x, heroCollider.size.y);
+                defaultColliderOffset = new(heroCollider.offset.x, heroCollider.offset.y);
 
                 hornetBaseSpeedToEnterHor = (float)CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_HOR").GetValue();
                 hornetBaseSpeedToEnterUp = (float)CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_UP").GetValue();
@@ -1043,54 +1352,9 @@ internal class Hero_Size_Rando : Rando_Base
         }
 
         PatchMantleFSM();
+        PatchSprintFSM();
+
         return true;
-    }
-
-    private static SetBoxCollider2DSizeVector squishBox;
-    private static SetBoxCollider2DSizeVector unsquishBox;
-    private static readonly FSMStatePatchSet mantleFSMPatchSet = new(
-        "Mantle",
-        [new FSMStatePatch(
-            "Vault",
-            delegate (FsmState state)
-            {
-                state.Actions = [.. state.Actions.AddItem(squishBox)];
-            }),
-        new FSMStatePatch(
-            ["Land", "Jump Cancel", "Attack Cancel", "Toolthrow Cancel", "Sprint Cancel"],
-            delegate (FsmState state)
-            {
-                state.Actions = [.. state.Actions.AddItem(unsquishBox)];
-            })]);
-
-    private void PatchMantleFSM()
-    {
-        squishBox = new SetBoxCollider2DSizeVector
-        {
-            gameObject1 = new FsmOwnerDefault
-            {
-                GameObject = HeroController.instance.gameObject
-
-            },
-            size = new Vector2(heroCollider.size.x * 2, heroCollider.size.y / 2),
-            offset = new FsmVector2()
-            {
-                UseVariable = false
-            }
-        };
-
-        unsquishBox = new SetBoxCollider2DSizeVector
-        {
-            gameObject1 = new FsmOwnerDefault
-            {
-                GameObject = HeroController.instance.gameObject
-
-            },
-            size = new Vector2(heroCollider.size.x, heroCollider.size.y),
-            offset = new Vector2(heroCollider.offset.x, heroCollider.offset.y)
-        };
-
-        mantleFSMPatchSet.ApplyPatches(HeroController.instance.mantleFSM);
     }
 
     /// <summary>
@@ -1115,10 +1379,11 @@ internal class Hero_Size_Rando : Rando_Base
 
         mantleVaultTranslate.y = baseMantleVaultYOffset;
 
-        squishBox.size = new Vector2(heroCollider.size.x, heroCollider.size.y);
-        squishBox.offset = Vector2.down;
-        unsquishBox.size = new Vector2(heroCollider.size.x, heroCollider.size.y);
-        unsquishBox.offset = new Vector2(heroCollider.offset.x, heroCollider.offset.y);
+        ResetMantleFSMSizes();
+        ResetSprintFSMSizes();
+
+        heroCollider.size = defaultColliderSize;
+        heroCollider.offset = defaultColliderOffset;
 
         heroScale = new(1f, 1f, 1f);
 
@@ -1177,6 +1442,19 @@ internal class Hero_Size_Rando : Rando_Base
     /// Acceptable value range for the hero's size
     /// </summary>
     public static readonly AcceptableRangeforFloatRange acceptablePlayerSizeRange = new(0.25f, 2f);
+    /// <summary>
+    /// Setting for if the hero's FSMs should be patched for quality of life
+    /// </summary>
+    public bool PatchHeroFSMs
+    {
+        get => patchHeroFSMs.Value;
+        internal set => patchHeroFSMs.Value = value;
+    }
+    private ConfigEntry<bool> patchHeroFSMs;
+    /// <summary>
+    /// Default option for patching the FSMs
+    /// </summary>
+    public const bool defaultPatchHeroFSMs = true;
 
     private protected override void InitSettings()
     {
@@ -1189,7 +1467,7 @@ internal class Hero_Size_Rando : Rando_Base
                 description: "Enable/Disable Randomization of Hornet's Size.",
                 tags: new ConfigurationManagerAttributes
                 {
-                    Order = 2
+                    Order = 3
                 }));
         playerSizeConsistency = config.Bind(
             section: RandomizerName,
@@ -1199,7 +1477,7 @@ internal class Hero_Size_Rando : Rando_Base
                 description: "When Hornet's size will change.",
                 tags: new ConfigurationManagerAttributes
                 {
-                    Order = 1
+                    Order = 2
                 }));
         playerSizeRange = config.Bind(
             section: RandomizerName,
@@ -1210,8 +1488,18 @@ internal class Hero_Size_Rando : Rando_Base
                 acceptableValues: acceptablePlayerSizeRange,
                 tags: new ConfigurationManagerAttributes
                 {
-                    Order = 0,
+                    Order = 1,
                     CustomDrawer = RangeDrawer
+                }));
+        patchHeroFSMs = config.Bind(
+            section: RandomizerName,
+            key: "Patch FSMs",
+            defaultValue: defaultPatchHeroFSMs,
+            configDescription: new ConfigDescription(
+                description: "Enables QoL features for non-standard Hornet sizes.",
+                tags: new ConfigurationManagerAttributes
+                {
+                    Order = 0
                 }));
         playerSizeRando.SettingChanged += OnSettingsUpdated;
         playerSizeRange.SettingChanged += OnSettingsUpdated;
