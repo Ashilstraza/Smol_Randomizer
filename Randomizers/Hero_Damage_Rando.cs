@@ -7,6 +7,7 @@ using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 
 using HarmonyLib;
+
 #if TESTING
 using MonoMod.Utils;
 
@@ -105,27 +106,27 @@ internal class Hero_Damage_Rando : Rando_Base
         if (Harmony.GetPatchInfo(AccessTools.Method(typeof(PlayerData), "get_nailDamage"))?.Postfixes?.FirstOrDefault(patch => patch.owner == "io.github.hk-speedrunning.debugmod") != null)
             CuteRandoCore.harmony.Patch(
                 AccessTools.Method(DebugMod.Instance.GetType(), "Get_NailDamage"),
-                postfix: new HarmonyMethod(typeof(Hero_Damage_Rando), nameof(DebugModGetNailDamagePostfix)));
+                postfix: new HarmonyMethod(typeof(Hero_Damage_Rando), nameof(DebugMod_Get_NailDamage_Postfix)));
         else
             CuteRandoCore.harmony.Patch(
                 AccessTools.Method(typeof(PlayerData), "get_nailDamage"),
-                postfix: new HarmonyMethod(typeof(Hero_Damage_Rando), nameof(PlayerDataGetNailDamagePostfix)));
+                postfix: new HarmonyMethod(typeof(Hero_Damage_Rando), nameof(PlayerData_Get_NailDamage_Postfix)));
     }
 
     /// <summary>
-    /// Patch that hooks onto the DebugMod's Get_NailDamage postfix since for some reason Harmony isn't able to put our own version after DebugMod's
+    /// Patch that hooks onto the DebugMod's Get_NailDamage postfix since for some reason HarmonyX isn't able to put our own version after DebugMod's
     /// </summary>
     /// <param name="__result">The to-be returned nail damage amount</param>
-    private static void DebugModGetNailDamagePostfix(ref int __result)
+    private static void DebugMod_Get_NailDamage_Postfix(ref int __result)
     {
-        PlayerDataGetNailDamagePostfix(ref __result);
+        PlayerData_Get_NailDamage_Postfix(ref __result);
     }
 
     /// <summary>
     /// Patch that hooks get_NailDamage to tweak the nail's damage
     /// </summary>
     /// <param name="__result">The to-be returned nail damage amount</param>
-    private static void PlayerDataGetNailDamagePostfix(ref int __result)
+    private static void PlayerData_Get_NailDamage_Postfix(ref int __result)
     {
         if (!Instance.coreEnableRandomization || __result == 0 || !Instance.PlayerNailDamageRando) return;
 

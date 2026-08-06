@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using BepInEx.Configuration;
 
 using HarmonyLib;
+
 #if TESTING
 using MonoMod.Utils;
 
@@ -131,7 +132,7 @@ internal class Enemy_Health_Rando : Rando_Base
     {
         CuteRandoCore.harmony.Patch(
             AccessTools.Method(typeof(HealthManager), "OnEnable"),
-            postfix: new HarmonyMethod(typeof(Enemy_Health_Rando), nameof(HealthManagerOnEnablePostfix)));
+            postfix: new HarmonyMethod(typeof(Enemy_Health_Rando), nameof(HealthManager_OnEnable_Postfix)));
     }
 
     /// <summary>
@@ -148,7 +149,7 @@ internal class Enemy_Health_Rando : Rando_Base
     /// <param name="__instance">The HealthManager that we want to adjust</param>
     /// <param name="___initHp">Private field for initHp</param>
     /// <param name="___hp">Private field for hp</param>
-    internal static void HealthManagerOnEnablePostfix(
+    internal static void HealthManager_OnEnable_Postfix(
         ref HealthManager __instance,
         ref int ___initHp,
         ref int ___hp)

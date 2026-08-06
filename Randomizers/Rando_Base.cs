@@ -66,7 +66,7 @@ internal abstract class Rando_Base
     }
 
     /// <summary>
-    /// Called when 
+    /// Called when the settings are loaded
     /// </summary>
     private protected abstract void OnLoaded();
 

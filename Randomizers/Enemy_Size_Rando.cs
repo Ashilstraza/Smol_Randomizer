@@ -12,11 +12,9 @@ using HutongGames.PlayMaker.Actions;
 using MonoMod.Utils;
 
 using Newtonsoft.Json;
+#endif
 
 using Smol_Randomizer.FSMThings;
-
-
-#endif
 using Smol_Randomizer.Settings;
 
 using UnityEngine;
@@ -103,7 +101,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     }
 
     /// <summary>
-    /// HashSet containing various enemy patches
+    /// Dictionary containing various enemy patches
     /// </summary>
     private static readonly Dictionary<string, FSMStateActionPatchSet> enemyPatchSet = new()
     {
@@ -112,9 +110,10 @@ internal sealed class Enemy_Size_Rando : Rando_Base
             new FSMStateActionPatchSet("Crowman",
                 [new("Start Rest",
                     typeof(RandomFloatEither),
-                    delegate (FsmStateAction action)
+                    delegate (FsmStateAction action, object[]? extra)
                     {
-                        Transform transform = ((GameObject)action.Fsm.OwnerObject).transform;
+                        if(extra?.Length != 1) return;
+                        Transform transform = ((GameObject)extra[0]).transform;
                         RandomFloatEither rfe = (RandomFloatEither)action;
 
                         rfe.value1.Value = rfe.value1.Value > 0
@@ -125,8 +124,21 @@ internal sealed class Enemy_Size_Rando : Rando_Base
                             : transform.localScale.x * -1; ;
                     })
                 ])
+        },
+        {
+            "Farmer Scissors",
+            new FSMStateActionPatchSet("Farmer Scissors",
+                [new("Do Step",
+                    typeof(RayCast2dV2),
+                    delegate (FsmStateAction action, object[]? extra)
+                    {
+                        if(extra?.Length != 1) return;
+                        GameObject obj = (GameObject)extra[0];
+                        ((RayCast2dV2)action).distance.Value *= obj.transform.localScale.x;
+                    })
+                ])
         }
-        
+
     };
 
     /// <summary>
@@ -136,13 +148,13 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// <param name="patch">The patch to add</param>
     public static void PatchSpecificEnemy(string enemyName, FSMStateActionPatch patch)
     {
-        if(enemyPatchSet.TryGetValue(enemyName, out var patchSet))
+        if (enemyPatchSet.TryGetValue(enemyName, out var patchSet))
         {
             patchSet.AddPatch(patch);
         }
         else
         {
-            enemyPatchSet.Add(enemyName, new FSMStateActionPatchSet(enemyName,[patch]));
+            enemyPatchSet.Add(enemyName, new FSMStateActionPatchSet(enemyName, [patch]));
         }
     }
 
@@ -187,10 +199,10 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     {
         CuteRandoCore.harmony.Patch(AccessTools.Method(
             typeof(HealthManager), "OnEnable"),
-            postfix: new HarmonyMethod(typeof(Enemy_Size_Rando), nameof(HealthManagerOnEnablePostfix)));
+            postfix: new HarmonyMethod(typeof(Enemy_Size_Rando), nameof(HealthManager_OnEnable_Postfix)));
         CuteRandoCore.harmony.Patch(AccessTools.Method(
             typeof(SetScale), "DoSetScale"),
-            prefix: new HarmonyMethod(typeof(Enemy_Size_Rando), nameof(SetScaleDoSetScalePrefix)));
+            prefix: new HarmonyMethod(typeof(Enemy_Size_Rando), nameof(SetScale_DoSetScale_Prefix)));
     }
 
     /// <summary>
@@ -205,7 +217,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// Patch that hooks the end of OnEnable of objects that have a HealthManager to adjust their size
     /// </summary>
     /// <param name="__instance">The HealthManager of the enemy that we want to adjust the size of</param>
-    private static void HealthManagerOnEnablePostfix(ref HealthManager __instance)
+    private static void HealthManager_OnEnable_Postfix(ref HealthManager __instance)
     {
         if (__instance == null || !Instance.coreEnableRandomization || Instance.EnemySizeRandomizerSetting == RandomizerEnemyTypeFlags.None)
             return;
@@ -219,12 +231,21 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// </summary>
     /// <param name="__instance">The SetScale Action of the enemy</param>
     /// <returns>always true to continue processing SetScale</returns>
-    private static bool SetScaleDoSetScalePrefix(ref SetScale __instance)
+    private static bool SetScale_DoSetScale_Prefix(ref SetScale __instance)
     {
-        if (__instance.x.Value is not -1f and not 1f) return true;
-        if (__instance.Owner != null && Instance.currentEnemyHealthManagers.Contains(__instance.Owner.GetComponent<HealthManager>()))
+        if (__instance.x.Value is -1f or 1f)
         {
-            __instance.x = __instance.Owner.transform.GetScaleX();
+            if (__instance.Owner != null && Instance.currentEnemyHealthManagers.Contains(__instance.Owner.GetComponent<HealthManager>()))
+            {
+                __instance.x = __instance.Owner.transform.GetScaleX();
+            }
+        }
+        if (__instance.y.Value is -1f or 1f)
+        {
+            if (__instance.Owner != null && Instance.currentEnemyHealthManagers.Contains(__instance.Owner.GetComponent<HealthManager>()))
+            {
+                __instance.y = __instance.Owner.transform.GetScaleY();
+            }
         }
         return true;
     }
@@ -286,7 +307,7 @@ internal sealed class Enemy_Size_Rando : Rando_Base
 
         if (enemyPatchSet.TryGetValue(name, out FSMStateActionPatchSet patchList))
         {
-            patchList.ApplyPatches(thing.gameObject.GetComponent<PlayMakerFSM>());
+            patchList.ApplyPatches(thing.gameObject.GetComponent<PlayMakerFSM>(), [thing.gameObject]);
         }
 
         float RandomizeSize(bool boss, Transform transform, Walker walker, int seed = int.MinValue)

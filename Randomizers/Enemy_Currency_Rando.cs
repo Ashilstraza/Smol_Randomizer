@@ -166,7 +166,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     {
         CuteRandoCore.harmony.Patch(
             AccessTools.Method(typeof(HealthManager), "OnEnable"),
-            postfix: new HarmonyMethod(typeof(Enemy_Currency_Rando), nameof(HealthManagerOnEnablePostfix)));
+            postfix: new HarmonyMethod(typeof(Enemy_Currency_Rando), nameof(HealthManager_OnEnable_Postfix)));
     }
 
     /// <summary>
@@ -185,7 +185,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// <param name="___mediumGeoDrops">Private field for mediumGeoDrops</param>
     /// <param name="___largeGeoDrops">Private field for largeGeoDrops</param>
     /// <param name="___shellShardDrops">Private field for shellShardDrops</param>
-    private static void HealthManagerOnEnablePostfix(
+    private static void HealthManager_OnEnable_Postfix(
         ref HealthManager __instance,
         ref int ___smallGeoDrops,
         ref int ___mediumGeoDrops,

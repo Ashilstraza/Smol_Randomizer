@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using BepInEx.Configuration;
 
 using HarmonyLib;
+
 #if TESTING
 using MonoMod.Utils;
 
@@ -131,7 +132,7 @@ internal class Enemy_Damage_Rando : Rando_Base
     {
         CuteRandoCore.harmony.Patch(
             AccessTools.Method(typeof(DamageHero), "OnEnable"),
-            postfix: new HarmonyMethod(typeof(Enemy_Damage_Rando), nameof(DamageHeroOnEnablePostfix)));
+            postfix: new HarmonyMethod(typeof(Enemy_Damage_Rando), nameof(DamageHero_OnEnable_Postfix)));
     }
 
     /// <summary>
@@ -146,7 +147,7 @@ internal class Enemy_Damage_Rando : Rando_Base
     /// Patch that hooks the end of OnEnable of damage hero objects to adjust how much damage they do
     /// </summary>
     /// <param name="__instance"></param>
-    private static void DamageHeroOnEnablePostfix(ref DamageHero __instance, ref HealthManager ___healthManager)
+    private static void DamageHero_OnEnable_Postfix(ref DamageHero __instance, ref HealthManager ___healthManager)
     {
         if (!Instance.coreEnableRandomization || Instance.DamageModifierType == RandomizeByFlatAmount.Disabled)
             return;
