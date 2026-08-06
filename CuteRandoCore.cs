@@ -74,7 +74,13 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <summary>
     /// If we are testing new things
     /// </summary>
-    internal static bool testing = false;
+    public static bool Testing
+    {
+        get => testing;
+        internal set => testing = value;
+    }
+    private static bool testing = false;
+
     /// <summary>
     /// If we actually want to randomize
     /// </summary>
@@ -87,8 +93,13 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// The ModMenu settings menu window 
     /// </summary>
     internal static SettingMenu cuteRandomizerSettingWindow;
+    /// <summary>
+    /// The supplier of RNG when no seed is wanted
+    /// </summary>
     internal static Random noSeedRNG = new();
-
+    /// <summary>
+    /// Reference to our log source
+    /// </summary>
     internal static ManualLogSource Log;
 
     /// <summary>
@@ -275,9 +286,10 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// </summary>
     /// <param name="fileName">the file's name without extension</param>
     /// <param name="importTarget">string of the object to load into</param>
-    internal static void ImportJsonFile(string fileName, out string importTarget)
+    /// <param name="dataLocation">string of custom location to read data; if not supplied, it will be read from the default Smol Rando folder</param>
+    public static void ImportJsonFile(string fileName, out string importTarget, string dataLocation = "")
     {
-        if (!File.Exists(DataLocation + "\\\\" + fileName + ".json"))
+        if (!File.Exists(dataLocation.Equals("") ? DataLocation : dataLocation + "\\\\" + fileName + ".json"))
         {
             importTarget = "";
             return;
@@ -285,7 +297,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
         try
         {
-            importTarget = File.ReadAllText(DataLocation + "\\\\" + fileName + ".json");
+            importTarget = File.ReadAllText(dataLocation.Equals("") ? DataLocation : dataLocation + "\\\\" + fileName + ".json");
         }
         catch (Exception ex)
         {
@@ -299,12 +311,13 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// </summary>
     /// <param name="fileName">the file's name without extension</param>
     /// <param name="exportTarget">the object to save</param>
-    internal static void ExportJsonFile(string fileName, object exportTarget)
+    /// <param name="dataLocation">string of custom location to place data; if not supplied, it will be placed in the default Smol Rando folder</param>
+    public static void ExportJsonFile(string fileName, object exportTarget, string dataLocation = "")
     {
         string json = JsonConvert.SerializeObject(exportTarget, Formatting.Indented);
         try
         {
-            File.WriteAllText(DataLocation + "\\\\" + fileName + ".json", json);
+            File.WriteAllText(dataLocation.Equals("") ? DataLocation : dataLocation + "\\\\" + fileName + ".json", json);
         }
         catch (Exception ex)
         {

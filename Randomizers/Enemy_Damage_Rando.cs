@@ -91,20 +91,20 @@ internal class Enemy_Damage_Rando : Rando_Base
         base.InitRandomizer();
     }
 
-    private protected override void Register()
+    protected override void Register()
     {
         CuteRandoCore.RegisterRandomizer(eventActiveHeroDamager);
         CuteRandoCore.RegisterRandomizer(eventOnFirstSceneFrame);
     }
 
-    private protected override void Unregister()
+    protected override void Unregister()
     {
         CuteRandoCore.UnregisterRandomizer(eventActiveHeroDamager);
         CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
     // Unused as we don't need
-    private protected override void OnLoaded() { }
+    protected override void OnLoaded() { }
 
 #if TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
@@ -246,7 +246,7 @@ internal class Enemy_Damage_Rando : Rando_Base
         currentHeroDamagers.RemoveWhere(x => x == null);
     }
 
-    private protected override void ResetAllLists()
+    protected override void ResetAllLists()
     {
         currentHeroDamagers.Clear();
         enemyDamageNumbers.Clear();
@@ -337,7 +337,7 @@ internal class Enemy_Damage_Rando : Rando_Base
     // Used for determining if we need to update and clear the dictionaries
     private RandomizeByFlatAmount currentDamageModifierType;
 
-    private protected override void InitSettings()
+    protected override void InitSettings()
     {
         ConfigFile config = Settings.Settings.ConfigFile;
         damageModifierType = config.Bind(
@@ -415,7 +415,7 @@ internal class Enemy_Damage_Rando : Rando_Base
         SettingMenu.UpdateSubMenuColor(damageModifierType);
     }
 
-    private protected override void OnSettingsUpdated(object sender, EventArgs args)
+    protected override void OnSettingsUpdated(object sender, EventArgs args)
     {
         if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is RandomizeByFlatAmount dm && !dm.Equals(currentDamageModifierType))
         {

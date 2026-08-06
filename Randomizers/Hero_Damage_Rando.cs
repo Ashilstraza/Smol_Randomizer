@@ -88,9 +88,9 @@ internal class Hero_Damage_Rando : Rando_Base
 #endif
 
     // Unused as we don't need
-    private protected override void Register() { }
-    private protected override void Unregister() { }
-    private protected override void OnLoaded() { }
+    protected override void Register() { }
+    protected override void Unregister() { }
+    protected override void OnLoaded() { }
 
     /// <summary>
     /// Patch the nail damage getter for either the base game, or debug mod if that is loaded.
@@ -175,7 +175,7 @@ internal class Hero_Damage_Rando : Rando_Base
         }
     }
 
-    private protected override void ResetAllLists()
+    protected override void ResetAllLists()
     {
         nailUpgradeDamages.Clear();
         saveNailDamageOffset = int.MinValue;
@@ -239,7 +239,7 @@ internal class Hero_Damage_Rando : Rando_Base
     /// </summary>
     public AcceptableValueRange<int> acceptablePlayerNailDamageShift = new(0, 20);
 
-    private protected override void InitSettings()
+    protected override void InitSettings()
     {
         ConfigFile config = Settings.Settings.ConfigFile;
         playerNailDamageRando = config.Bind(
@@ -290,7 +290,7 @@ internal class Hero_Damage_Rando : Rando_Base
         SettingMenu.UpdateSubMenuColor(playerNailDamageRando);
     }
 
-    private protected override void OnSettingsUpdated(object sender, EventArgs args)
+    protected override void OnSettingsUpdated(object sender, EventArgs args)
     {
         ResetAllLists();
     }

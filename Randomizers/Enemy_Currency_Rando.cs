@@ -119,20 +119,20 @@ internal class Enemy_Currency_Rando : Rando_Base
         base.InitRandomizer();
     }
 
-    private protected override void Register()
+    protected override void Register()
     {
         CuteRandoCore.RegisterRandomizer(eventActiveEnemy);
         CuteRandoCore.RegisterRandomizer(eventOnFirstSceneFrame);
     }
 
-    private protected override void Unregister()
+    protected override void Unregister()
     {
         CuteRandoCore.UnregisterRandomizer(eventActiveEnemy);
         CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
     }
 
     // Unused as we don't need
-    private protected override void OnLoaded() { }
+    protected override void OnLoaded() { }
 
 #if TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
@@ -364,7 +364,7 @@ internal class Enemy_Currency_Rando : Rando_Base
         }
     }
 
-    private protected override void ResetAllLists()
+    protected override void ResetAllLists()
     {
         currentEnemyHealthManagers.Clear();
         enemyGeoSets.Clear();
@@ -470,7 +470,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     private RandomizeByRangeTypes currentRosarySetting;
     private RandomizeByRangeTypes currentShardSetting;
 
-    private protected override void InitSettings()
+    protected override void InitSettings()
     {
         ConfigFile config = Settings.Settings.ConfigFile;
 
@@ -578,7 +578,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     }
 
     // Unused, using separate ones for rosaries and shards
-    private protected override void OnSettingsUpdated(object sender, EventArgs args) { }
+    protected override void OnSettingsUpdated(object sender, EventArgs args) { }
 
     /// <summary>
     /// Clears the rosary lists if needed

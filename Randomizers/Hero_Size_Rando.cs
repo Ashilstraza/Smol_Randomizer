@@ -143,17 +143,17 @@ internal class Hero_Size_Rando : Rando_Base
         base.InitRandomizer();
     }
 
-    private protected override void Register()
+    protected override void Register()
     {
         CuteRandoCore.RegisterRandomizer(eventOnSceneLoad);
     }
 
-    private protected override void Unregister()
+    protected override void Unregister()
     {
         CuteRandoCore.UnregisterRandomizer(eventOnSceneLoad);
     }
 
-    private protected override void OnLoaded()
+    protected override void OnLoaded()
     {
         grabVariables = true;
         heroSizeChanged = false;
@@ -1392,7 +1392,7 @@ internal class Hero_Size_Rando : Rando_Base
         heroSizeChanged = false;
     }
 
-    private protected override void ResetAllLists()
+    protected override void ResetAllLists()
     {
         sceneHeroSize.Clear();
         saveHeroSize = float.MinValue;
@@ -1456,7 +1456,7 @@ internal class Hero_Size_Rando : Rando_Base
     /// </summary>
     public const bool defaultPatchHeroFSMs = true;
 
-    private protected override void InitSettings()
+    protected override void InitSettings()
     {
         ConfigFile config = Settings.Settings.ConfigFile;
         playerSizeRando = config.Bind(
@@ -1508,7 +1508,7 @@ internal class Hero_Size_Rando : Rando_Base
         SettingMenu.UpdateSubMenuColor(playerSizeRando);
     }
 
-    private protected override void OnSettingsUpdated(object sender, EventArgs args)
+    protected override void OnSettingsUpdated(object sender, EventArgs args)
     {
         ResetAllLists();
         SetSize(true);

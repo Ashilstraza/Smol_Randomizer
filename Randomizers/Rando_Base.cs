@@ -7,7 +7,7 @@ using BepInEx.Configuration;
 
 namespace Smol_Randomizer.Randomizers;
 
-internal abstract class Rando_Base
+public abstract class Rando_Base
 {
     /// <summary>
     /// If the core of the randomizer is enabled
@@ -41,12 +41,12 @@ internal abstract class Rando_Base
     /// <summary>
     /// Registers the various events we want to watch for
     /// </summary>
-    private protected abstract void Register();
+    protected abstract void Register();
 
     /// <summary>
     /// Unregisters the various events we want to watch for
     /// </summary>
-    private protected abstract void Unregister();
+    protected abstract void Unregister();
 
     /// <summary>
     /// Event hook for when settings are loaded
@@ -68,7 +68,7 @@ internal abstract class Rando_Base
     /// <summary>
     /// Called when the settings are loaded
     /// </summary>
-    private protected abstract void OnLoaded();
+    protected abstract void OnLoaded();
 
     /// <summary>
     /// Clears this Randomizer's lists if the given name matches the RandomizerName
@@ -102,19 +102,19 @@ internal abstract class Rando_Base
     /// <summary>
     /// Add the randomizer's settings into the core
     /// </summary>
-    private protected abstract void InitSettings();
+    protected abstract void InitSettings();
 
     /// <summary>
     /// Event Hook for when registered settings are updated
     /// </summary>
     /// <param name="sender">?</param>
     /// <param name="args">The setting that was changed</param>
-    private protected abstract void OnSettingsUpdated(object sender, EventArgs args);
+    protected abstract void OnSettingsUpdated(object sender, EventArgs args);
 
     /// <summary>
     /// Reset all tracked lists
     /// </summary>
-    private protected abstract void ResetAllLists();
+    protected abstract void ResetAllLists();
 
     /// <summary>
     /// Add the randomizer's description into the core

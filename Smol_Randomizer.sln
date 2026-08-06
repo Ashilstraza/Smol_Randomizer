@@ -1,13 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.7.11925.98 stable
+VisualStudioVersion = 18.7.11925.98
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Smol_Randomizer", "Smol_Randomizer.csproj", "{EFDFDB26-27F7-4D32-A2F9-B62969CFF794}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assembly-CSharp", "..\..\..\..\..\..\SteamLibrary\steamapps\common\Hollow Knight Silksong\Hollow Knight Silksong_Data\Managed\Assembly-CSharp 1.0.29926\Assembly-CSharp.csproj", "{4983A0B1-4F45-2038-C118-084BC03BE59F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlayMaker", "..\..\..\..\..\..\SteamLibrary\steamapps\common\Hollow Knight Silksong\Hollow Knight Silksong_Data\Managed\PlayMaker 1.6.0.0\PlayMaker.csproj", "{A0582707-2765-C31E-1EB7-434061213720}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Smol Item Rando", "..\Smol Item Rando\Smol Item Rando.csproj", "{6F2F464B-CA36-491F-80C2-977E5ECF86E1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -28,6 +30,12 @@ Global
 		{A0582707-2765-C31E-1EB7-434061213720}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A0582707-2765-C31E-1EB7-434061213720}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A0582707-2765-C31E-1EB7-434061213720}.Testing|Any CPU.ActiveCfg = Testing|Any CPU
+		{6F2F464B-CA36-491F-80C2-977E5ECF86E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F2F464B-CA36-491F-80C2-977E5ECF86E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6F2F464B-CA36-491F-80C2-977E5ECF86E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6F2F464B-CA36-491F-80C2-977E5ECF86E1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6F2F464B-CA36-491F-80C2-977E5ECF86E1}.Testing|Any CPU.ActiveCfg = Debug|Any CPU
+		{6F2F464B-CA36-491F-80C2-977E5ECF86E1}.Testing|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

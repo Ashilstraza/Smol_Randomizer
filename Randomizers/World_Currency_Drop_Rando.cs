@@ -98,20 +98,20 @@ internal class World_Currency_Drop_Rando : Rando_Base
         }
     }
 
-    private protected override void Register()
+    protected override void Register()
     {
         CuteRandoCore.RegisterRandomizer(eventActiveLimitRegion);
         CuteRandoCore.RegisterRandomizer(eventOnSceneLoad);
     }
 
-    private protected override void Unregister()
+    protected override void Unregister()
     {
         CuteRandoCore.UnregisterRandomizer(eventActiveLimitRegion);
         CuteRandoCore.UnregisterRandomizer(eventOnSceneLoad);
     }
 
     // Unused as we don't need
-    private protected override void OnLoaded() { }
+    protected override void OnLoaded() { }
 
 #if TESTING // Enable Saving Data
     private protected override void ApplySaveData(Dictionary<string, object> savedData)
@@ -225,7 +225,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
             architectProbabilities.SetValue(newArchitectProbabilities);
     }
 
-    private protected override void ResetAllLists()
+    protected override void ResetAllLists()
     {
         shardChanceChanging = true;
         architectCrestChanging = true;
@@ -320,7 +320,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
     private bool architectCrestChanging = false;
     private bool shardChanceChanging = false;
 
-    private protected override void InitSettings()
+    protected override void InitSettings()
     {
         ConfigFile config = Settings.Settings.ConfigFile;
 
@@ -392,7 +392,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
         }
     }
 
-    private protected override void OnSettingsUpdated(object sender, EventArgs args)
+    protected override void OnSettingsUpdated(object sender, EventArgs args)
     {
         if (!shardChanceEnable.Value && !architectChanceEnable.Value)
         {
