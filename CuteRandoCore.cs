@@ -80,7 +80,6 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         internal set => testing = value;
     }
     private static bool testing = false;
-
     /// <summary>
     /// If we actually want to randomize
     /// </summary>
@@ -214,7 +213,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// On Scene Transition, get ready to process the new scene
     /// </summary>
     /// <param name="scene">The new scene</param>
-    /// <param name="mode">TODO: dunno</param>
+    /// <param name="mode">We don't really care about it, but still pass it on</param>
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
 
@@ -225,6 +224,29 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
         updateOnFirstSceneFrame = true;
         updateActiveLimitRegions = true;
+    /// <summary>
+    /// We be supportin Hot Reload bois!
+    /// </summary>
+    void OnDestroy()
+    {
+        // First Call each modules' Unload
+        foreach (KeyValuePair<string, Action> randomizer in activeOnUnload){
+            randomizer.Value();
+        }
+
+        // Remove any FSM patches
+        FSMPatcher.RemoveScenePatches(currentScene);
+        FSMPatcher.RemoveEnemyPatches();
+
+        // Remove any Object patches
+        ObjectPatcher.RemoveScenePatches(currentScene);
+        ObjectPatcher.RemoveEnemyPatches();
+
+        // Then Unhook Ourself
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+
+        // Finally Unpatch
+        harmony.UnpatchSelf();
     }
 
     /// <summary>
@@ -646,7 +668,8 @@ public enum RandomizerEventType : byte
     OnFirstSceneFrame,
     GameStartup,
     GameShutdown,
-    ActiveHeroDamager
+    ActiveHeroDamager,
+    OnUnload
 }
 
 /// <summary>

@@ -172,9 +172,10 @@ internal sealed class Enemy_Size_Rando : Rando_Base
 
     // Unused as we don't need
     protected override void OnLoaded() { }
+    protected override void OnUnload() { }
 
 #if TESTING // Enable Saving Data
-    private protected override void ApplySaveData(Dictionary<string, object> savedData)
+    protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(enemySizes), out object tempDict))
             enemySizes.AddRange(JsonConvert.DeserializeObject<Dictionary<string, float>>(tempDict.ToString()));
@@ -182,14 +183,14 @@ internal sealed class Enemy_Size_Rando : Rando_Base
             sceneEnemySizes.AddRange(JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, float>>>(tempDict.ToString()));
     }
 
-    private protected override void SetSaveData(Dictionary<string, object> savedData)
+    protected override void SetSaveData(Dictionary<string, object> savedData)
     {
         savedData[nameof(enemySizes)] = enemySizes;
         savedData[nameof(sceneEnemySizes)] = sceneEnemySizes;
     }
 
     // Unneeded for this Randomizer
-    private protected override void OnSettingsSaved() { }
+    protected override void OnSettingsSaved() { }
 #endif
 
     /// <summary>

@@ -91,6 +91,7 @@ internal class Hero_Damage_Rando : Rando_Base
     protected override void Register() { }
     protected override void Unregister() { }
     protected override void OnLoaded() { }
+    protected override void OnUnload() { }
 
     /// <summary>
     /// Patch the nail damage getter for either the base game, or debug mod if that is loaded.

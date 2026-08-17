@@ -160,18 +160,18 @@ internal class Hero_Size_Rando : Rando_Base
     }
 
 #if TESTING // Enable Saving Data
-    private protected override void ApplySaveData(Dictionary<string, object> savedData)
+    protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(heroScale), out object tempDict))
             heroScale = JsonConvert.DeserializeObject<Vector3>(tempDict.ToString());
     }
 
-    private protected override void SetSaveData(Dictionary<string, object> savedData)
+    protected override void SetSaveData(Dictionary<string, object> savedData)
     {
         savedData[nameof(heroScale)] = heroScale;
     }
 
-    private protected override void OnSettingsSaved()
+    protected override void OnSettingsSaved()
     {
         Dictionary<string, object> savedData = SaveData.GetSavedData(RandomizerName);
 
@@ -1205,7 +1205,14 @@ internal class Hero_Size_Rando : Rando_Base
         currentScene = scene;
         SetSize();
         waterRegions.Clear();
-        PatchSceneFSMs(scene);
+    }
+
+    protected override void OnUnload()
+    {
+#if TESTING
+        if (debugPoints) UnityEngine.Object.Destroy(debugPoints);
+#endif
+
     }
 
     // TODO: tall hornet breaks some triggers; 

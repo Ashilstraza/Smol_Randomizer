@@ -71,6 +71,11 @@ public abstract class Rando_Base
     protected abstract void OnLoaded();
 
     /// <summary>
+    /// Called when the mod is unloading (probably from a Hot Reload)
+    /// </summary>
+    protected abstract void OnUnload();
+
+    /// <summary>
     /// Clears this Randomizer's lists if the given name matches the RandomizerName
     /// </summary>
     /// <param name="randoName">The randomizer being cleared</param>

@@ -105,6 +105,7 @@ internal class Enemy_Damage_Rando : Rando_Base
 
     // Unused as we don't need
     protected override void OnLoaded() { }
+    protected override void OnUnload() { }
 
 #if TESTING // Enable Saving Data
     protected override void ApplySaveData(Dictionary<string, object> savedData)
