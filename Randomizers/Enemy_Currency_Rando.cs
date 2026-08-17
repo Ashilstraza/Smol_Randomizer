@@ -91,14 +91,6 @@ internal class Enemy_Currency_Rando : Rando_Base
         RandomizerName = "Enemy Currency Randomizer";
         RandomizerDescription = "Randomizes the quantity of Rosaries and Shards dropped by enemies.";
 
-        if (!CuteRandoCore.RegisterRandomizer(new(
-            RandomizerName,
-            RandomizerEventType.GameStartup,
-            AccessTools.Method(
-                typeof(Enemy_Currency_Rando),
-                nameof(GameStartup)),
-            this))) return;
-
         eventActiveEnemy = new(
             RandomizerName,
             RandomizerEventType.ActiveEnemy,
@@ -163,47 +155,12 @@ internal class Enemy_Currency_Rando : Rando_Base
 #endif
 
     /// <summary>
-    /// Patch HealthManager.OnEnable on game startup
-    /// </summary>
-    private void GameStartup()
-    {
-        CuteRandoCore.harmony.Patch(
-            AccessTools.Method(typeof(HealthManager), "OnEnable"),
-            postfix: new HarmonyMethod(typeof(Enemy_Currency_Rando), nameof(HealthManager_OnEnable_Postfix)));
-    }
-
-    /// <summary>
     /// On First Frame, clean the active health manager list. This is done on the first frame since some health managers get added before the scene is loaded, and some afterwards.
     /// </summary>
     /// <param name="scene">The scene we are in</param>
     private void OnFirstSceneFrame(Scene scene)
     {
         currentEnemyHealthManagers.RemoveWhere(x => x == null);
-    }
-
-    /// <summary>
-    /// Patch that hooks the end of OnEnable of objects that have a HealthManager to adjust their currency
-    /// </summary>
-    /// <param name="__instance">The HealthManager that we want to adjust</param>
-    /// <param name="___smallGeoDrops">Private field for smallGeoDrops</param>
-    /// <param name="___mediumGeoDrops">Private field for mediumGeoDrops</param>
-    /// <param name="___largeGeoDrops">Private field for largeGeoDrops</param>
-    /// <param name="___shellShardDrops">Private field for shellShardDrops</param>
-    private static void HealthManager_OnEnable_Postfix(
-        ref HealthManager __instance,
-        ref int ___smallGeoDrops,
-        ref int ___mediumGeoDrops,
-        ref int ___largeGeoDrops,
-        ref int ___shellShardDrops)
-    {
-        if (!Instance.coreEnableRandomization) return;
-
-        if (Instance.currentEnemyHealthManagers.Add(__instance))
-            Instance.SetCurrency(__instance,
-                ref ___smallGeoDrops,
-                ref ___mediumGeoDrops,
-                ref ___largeGeoDrops,
-                ref ___shellShardDrops);
     }
 
     /// <summary>

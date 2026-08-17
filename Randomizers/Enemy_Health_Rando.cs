@@ -67,14 +67,6 @@ internal class Enemy_Health_Rando : Rando_Base
         RandomizerName = "Enemy Health Randomizer";
         RandomizerDescription = "Randomizes the health of enemies and bosses.";
 
-        if (!CuteRandoCore.RegisterRandomizer(new(
-            RandomizerName,
-            RandomizerEventType.GameStartup,
-            AccessTools.Method(
-                typeof(Enemy_Health_Rando),
-                nameof(GameStartup)),
-            this))) return;
-
         eventActiveEnemy = new(
             RandomizerName,
             RandomizerEventType.ActiveEnemy,
@@ -127,16 +119,6 @@ internal class Enemy_Health_Rando : Rando_Base
     // Unneeded for this Randomizer
     protected override void OnSettingsSaved() { }
 #endif
-
-    /// <summary>
-    /// Patch HealthManager.OnEnable on game startup
-    /// </summary>
-    private void GameStartup()
-    {
-        CuteRandoCore.harmony.Patch(
-            AccessTools.Method(typeof(HealthManager), "OnEnable"),
-            postfix: new HarmonyMethod(typeof(Enemy_Health_Rando), nameof(HealthManager_OnEnable_Postfix)));
-    }
 
     /// <summary>
     /// On First Frame, clean the active health manager list. This is done on the first frame since some health managers get added before the scene is loaded, and some afterwards.

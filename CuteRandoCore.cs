@@ -105,6 +105,14 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// Reference to our log source
     /// </summary>
     internal static ManualLogSource Log;
+    /// <summary>
+    /// If we have patched the HealthManager's OnEnable
+    /// </summary>
+    private static bool patchedHealthManager = false;
+    /// <summary>
+    /// If we have patched the DamageHero's OnEnable
+    /// </summary>
+    private static bool patchedDamageHero = false;
 
     /// <summary>
     /// Dictionary containing the randomizers that want to update the active limit regions
@@ -125,7 +133,19 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <summary>
     /// Dictionary containing the randomizers that want to update on first frame of a new scene
     /// </summary>
-    private static readonly Dictionary<string, Action> activeOnFirstSceneFrame = [];
+    private static readonly Dictionary<string, Action<Scene>> activeOnFirstSceneFrame = [];
+    /// <summary>
+    /// Dictionary containing the randomizers that want to update on unload
+    /// </summary>
+    private static readonly Dictionary<string, Action> activeOnUnload = [];
+    /// <summary>
+    /// Dictionary containing the randomizers that want to update when an enemy is enabled
+    /// </summary>
+    private static readonly Dictionary<string, Action<HealthManager>> activeEnemy = [];
+    /// <summary>
+    /// Dictionary containing the randomizers that want to update when the hero is damaged
+    /// </summary>
+    private static readonly Dictionary<string, Action<DamageHero, HealthManager>> activeHeroDamager = [];
     /// <summary>
     /// Dictionary containing the descriptions of all the randomizers
     /// </summary>
@@ -293,6 +313,34 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
             randomizer.Value();
     }
 
+    /// <summary>
+    /// Patch that hooks the end of OnEnable of objects that have a HealthManager
+    /// </summary>
+    /// <param name="__instance">The HealthManager that we may want to adjust</param>
+    private static void HealthManager_OnEnable_Postfix(ref HealthManager __instance)
+    {
+        if (!randomize) return;
+
+        foreach (KeyValuePair<string, Action<HealthManager>> randomizer in activeEnemy)
+            randomizer.Value(__instance);
+
+        FSMPatcher.ApplyEnemyPatches(__instance);
+        ObjectPatcher.ApplyEnemyPatches(__instance);
+    }
+
+    /// <summary>
+    /// Patch that hooks the end of OnEnable of damage hero objects
+    /// </summary>
+    /// <param name="__instance">The hero damager</param>
+    /// <param name="___healthManager">The HealthManager of the hero damager if it was an enemy</param>
+    private static void DamageHero_OnEnable_Postfix(ref DamageHero __instance, ref HealthManager ___healthManager)
+    {
+        if (!randomize) return;
+
+        foreach (KeyValuePair<string, Action<DamageHero, HealthManager>> randomizer in activeHeroDamager)
+            randomizer.Value(__instance, ___healthManager);
+    }
+
     #region File_Import/Export
     /// <summary>
     /// Writes the save data for the current save slot.
@@ -444,8 +492,38 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         switch (randomizer.RandomizerType)
         {
             case RandomizerEventType.ActiveHeroDamager:
+                activeHeroDamager.Add(
+                    randomizer.Name,
+                    (Action<DamageHero, HealthManager>)DelegateHelper(
+                        typeof(Action<DamageHero, HealthManager>),
+                        randomizer.Method,
+                        randomizer.Object));
+
+                if (!patchedDamageHero)
+                {
+                    harmony.Patch(
+                        AccessTools.Method(typeof(DamageHero), "OnEnable"),
+                        postfix: new HarmonyMethod(typeof(CuteRandoCore), nameof(DamageHero_OnEnable_Postfix)));
+                    patchedDamageHero = true;
+                }
+
+                break;
             case RandomizerEventType.ActiveEnemy:
-                // Handled by Harmony Patches
+                activeEnemy.Add(
+                    randomizer.Name,
+                    (Action<HealthManager>)DelegateHelper(
+                        typeof(Action<HealthManager>),
+                        randomizer.Method,
+                        randomizer.Object));
+
+                if (!patchedHealthManager)
+                {
+                    harmony.Patch(
+                        AccessTools.Method(typeof(HealthManager), "OnEnable"),
+                        postfix: new HarmonyMethod(typeof(CuteRandoCore), nameof(HealthManager_OnEnable_Postfix)));
+                    patchedHealthManager = true;
+                }
+
                 break;
             case RandomizerEventType.ActiveLimitRegion:
                 activeLimitRegions.Add(
@@ -527,8 +605,10 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         switch (randomizer.RandomizerType)
         {
             case RandomizerEventType.ActiveHeroDamager:
+                activeHeroDamager.Remove(randomizer.Name);
+                break;
             case RandomizerEventType.ActiveEnemy:
-                // Handled by Harmony Patches
+                activeEnemy.Remove(randomizer.Name);
                 break;
             case RandomizerEventType.ActiveLimitRegion:
                 activeLimitRegions.Remove(randomizer.Name);

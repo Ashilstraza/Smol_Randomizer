@@ -16,7 +16,6 @@ using Smol_Randomizer.Patchers;
 using Newtonsoft.Json;
 #endif
 
-using Smol_Randomizer.FSMThings;
 using Smol_Randomizer.Settings;
 
 using UnityEngine;
@@ -107,6 +106,14 @@ internal class Hero_Size_Rando : Rando_Base
     private float saveHeroSize = float.MinValue;
 
     #region Randomizer_Info
+
+    /// <summary>
+    /// Used for registering this randomizer in the core for when the hero damager gets enabled
+    /// </summary>
+    private Randomizer_Info eventActiveHeroDamager;
+    /// <summary>
+    /// Used for registeromg tjos randomizer in the core for when a scene is loaded
+    /// </summary>
     private Randomizer_Info eventOnSceneLoad;
     #endregion
 
@@ -136,6 +143,13 @@ internal class Hero_Size_Rando : Rando_Base
             RandomizerEventType.OnSceneLoad,
             AccessTools.Method(typeof(Hero_Size_Rando),
             nameof(OnSceneLoad)),
+            this);
+        eventActiveHeroDamager = new(
+            RandomizerName,
+            RandomizerEventType.ActiveHeroDamager,
+            AccessTools.Method(
+                typeof(Hero_Size_Rando),
+                nameof(DamageHero_OnEnable)),
             this);
 
         base.InitRandomizer();
@@ -1143,14 +1157,14 @@ internal class Hero_Size_Rando : Rando_Base
     }
 
     private static void OnDoorCloseTrigger(TriggerEnterEvent doorCloseTrigger)
-        {
+    {
         if (!Instance.PlayerSizeRando) return;
 
         var position = Instance.heroTransform.position;
         var width = doorCloseTrigger.GetComponent<BoxCollider2D>().size.x / 3;
         var heroWidth = Instance.heroCollider.size.x / 3;
         Instance.heroTransform.position = position with
-            {
+        {
             x = position.x > doorCloseTrigger.transform.position.x ? position.x - width - heroWidth : position.x + width + heroWidth
         };
     }

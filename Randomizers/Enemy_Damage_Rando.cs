@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using Smol_Randomizer.Settings;
 
 using UnityEngine.SceneManagement;
+
 namespace Smol_Randomizer.Randomizers;
 
 /// <summary>
@@ -65,14 +66,6 @@ internal class Enemy_Damage_Rando : Rando_Base
     {
         RandomizerName = "Enemy Damage Randomizer";
         RandomizerDescription = "Randomizes the damage delt to Hornet by enemies and bosses.";
-
-        if (!CuteRandoCore.RegisterRandomizer(new(
-            RandomizerName,
-            RandomizerEventType.GameStartup,
-            AccessTools.Method(
-                typeof(Enemy_Damage_Rando),
-                nameof(GameStartup)),
-            this))) return;
 
         eventActiveHeroDamager = new(
             RandomizerName,
@@ -128,35 +121,12 @@ internal class Enemy_Damage_Rando : Rando_Base
 #endif
 
     /// <summary>
-    /// Patch DamageHero.OnEnable on game startup
-    /// </summary>
-    private void GameStartup()
-    {
-        CuteRandoCore.harmony.Patch(
-            AccessTools.Method(typeof(DamageHero), "OnEnable"),
-            postfix: new HarmonyMethod(typeof(Enemy_Damage_Rando), nameof(DamageHero_OnEnable_Postfix)));
-    }
-
-    /// <summary>
     /// On first frame, clean the hero damagers list. This is done the first frame because some of them activate before the scene is loaded, and some afterward
     /// </summary>
     /// <param name="scene">The scene we are in</param>
     private void OnFirstSceneFrame(Scene scene)
     {
         CleanCurrentHeroDamagers();
-    }
-
-    /// <summary>
-    /// Patch that hooks the end of OnEnable of damage hero objects to adjust how much damage they do
-    /// </summary>
-    /// <param name="__instance"></param>
-    private static void DamageHero_OnEnable_Postfix(ref DamageHero __instance, ref HealthManager ___healthManager)
-    {
-        if (!Instance.coreEnableRandomization || Instance.DamageModifierType == RandomizeByFlatAmount.Disabled)
-            return;
-
-        if (Instance.currentHeroDamagers.Add(__instance))
-            Instance.SetDamage(__instance, ___healthManager);
     }
 
     /// <summary>

@@ -151,9 +151,6 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     private void GameStartup()
     {
         CuteRandoCore.harmony.Patch(AccessTools.Method(
-            typeof(HealthManager), "OnEnable"),
-            postfix: new HarmonyMethod(typeof(Enemy_Size_Rando), nameof(HealthManager_OnEnable_Postfix)));
-        CuteRandoCore.harmony.Patch(AccessTools.Method(
             typeof(SetScale), "DoSetScale"),
             prefix: new HarmonyMethod(typeof(Enemy_Size_Rando), nameof(SetScale_DoSetScale_Prefix)));
     }
@@ -165,19 +162,6 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     private void OnFirstSceneFrame(Scene scene)
     {
         CleanCurrentHealthManagerList();
-    }
-
-    /// <summary>
-    /// Patch that hooks the end of OnEnable of objects that have a HealthManager to adjust their size
-    /// </summary>
-    /// <param name="__instance">The HealthManager of the enemy that we want to adjust the size of</param>
-    private static void HealthManager_OnEnable_Postfix(ref HealthManager __instance)
-    {
-        if (__instance == null || !Instance.coreEnableRandomization || Instance.EnemySizeRandomizerSetting == RandomizerEnemyTypeFlags.None)
-            return;
-
-        if (Instance.currentEnemyHealthManagers.Add(__instance))
-            Instance.SetSize(__instance);
     }
 
     /// <summary>
