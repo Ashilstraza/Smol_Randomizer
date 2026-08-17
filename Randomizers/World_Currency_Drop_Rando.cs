@@ -114,7 +114,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
     protected override void OnLoaded() { }
 
 #if TESTING // Enable Saving Data
-    private protected override void ApplySaveData(Dictionary<string, object> savedData)
+    protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(sceneMultiplier), out object tempDict))
             sceneMultiplier.AddRange(JsonConvert.DeserializeObject<Dictionary<string, float>>(tempDict.ToString()));
@@ -126,7 +126,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
             consistantACMultiplier = JsonConvert.DeserializeObject<float>(tempDict.ToString());
     }
 
-    private protected override void SetSaveData(Dictionary<string, object> savedData)
+    protected override void SetSaveData(Dictionary<string, object> savedData)
     {
         savedData[nameof(sceneMultiplier)] = sceneMultiplier;
         savedData[nameof(sceneACMultiplier)] = sceneACMultiplier;
@@ -134,7 +134,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
         savedData[nameof(consistantACMultiplier)] = consistantACMultiplier;
     }
 
-    private protected override void OnSettingsSaved()
+    protected override void OnSettingsSaved()
     {
         Dictionary<string, object> savedData = Settings.Settings.SaveData.GetSavedData(RandomizerName);
 

@@ -107,7 +107,7 @@ internal class Enemy_Health_Rando : Rando_Base
     protected override void OnLoaded() { }
 
 #if TESTING // Enable Saving Data
-    private protected override void ApplySaveData(Dictionary<string, object> savedData)
+    protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(enemyHealthNumbers), out object tempDict))
             enemyHealthNumbers.AddRange(JsonConvert.DeserializeObject<Dictionary<string, int>>(tempDict.ToString()));
@@ -115,14 +115,14 @@ internal class Enemy_Health_Rando : Rando_Base
             sceneHealthNumbers.AddRange(JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, int>>>(tempDict.ToString()));
     }
 
-    private protected override void SetSaveData(Dictionary<string, object> savedData)
+    protected override void SetSaveData(Dictionary<string, object> savedData)
     {
         savedData[nameof(enemyHealthNumbers)] = enemyHealthNumbers;
         savedData[nameof(sceneHealthNumbers)] = sceneHealthNumbers;
     }
 
     // Unneeded for this Randomizer
-    private protected override void OnSettingsSaved() { }
+    protected override void OnSettingsSaved() { }
 #endif
 
     /// <summary>

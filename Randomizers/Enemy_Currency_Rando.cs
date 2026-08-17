@@ -135,7 +135,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     protected override void OnLoaded() { }
 
 #if TESTING // Enable Saving Data
-    private protected override void ApplySaveData(Dictionary<string, object> savedData)
+    protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(enemyGeoSets), out object tempDict))
             enemyGeoSets.AddRange(JsonConvert.DeserializeObject<Dictionary<string, RandomizedGeoSet>>(tempDict.ToString()));
@@ -147,7 +147,7 @@ internal class Enemy_Currency_Rando : Rando_Base
             sceneShards.AddRange(JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, int>>>(tempDict.ToString()));
     }
 
-    private protected override void SetSaveData(Dictionary<string, object> savedData)
+    protected override void SetSaveData(Dictionary<string, object> savedData)
     {
         savedData[nameof(enemyGeoSets)] = enemyGeoSets;
         savedData[nameof(sceneGeoSets)] = sceneGeoSets;
@@ -156,7 +156,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     }
 
     // Unneeded for this Randomizer
-    private protected override void OnSettingsSaved() { }
+    protected override void OnSettingsSaved() { }
 #endif
 
     /// <summary>

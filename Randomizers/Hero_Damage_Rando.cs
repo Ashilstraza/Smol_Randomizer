@@ -65,7 +65,7 @@ internal class Hero_Damage_Rando : Rando_Base
     }
 
 #if TESTING // Enable Saving Data
-    private protected override void ApplySaveData(Dictionary<string, object> savedData)
+    protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(nailUpgradeDamages), out object tempDict))
             nailUpgradeDamages.AddRange(JsonConvert.DeserializeObject<Dictionary<int, int>>(tempDict.ToString()));
@@ -73,13 +73,13 @@ internal class Hero_Damage_Rando : Rando_Base
             saveNailDamageOffset = JsonConvert.DeserializeObject<int>(tempDict.ToString());
     }
 
-    private protected override void SetSaveData(Dictionary<string, object> savedData)
+    protected override void SetSaveData(Dictionary<string, object> savedData)
     {
         savedData[nameof(nailUpgradeDamages)] = nailUpgradeDamages;
         savedData[nameof(saveNailDamageOffset)] = saveNailDamageOffset;
     }
 
-    private protected override void OnSettingsSaved()
+    protected override void OnSettingsSaved()
     {
         Dictionary<string, object> savedData = Settings.Settings.SaveData.GetSavedData(RandomizerName);
 

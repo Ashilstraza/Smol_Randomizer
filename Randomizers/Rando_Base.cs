@@ -85,18 +85,18 @@ public abstract class Rando_Base
     /// Apply the given per-slot data to the Randomizer's various saved settings
     /// </summary>
     /// <param name="savedData"></param>
-    private protected abstract void ApplySaveData(Dictionary<string, object> savedData);
+    protected abstract void ApplySaveData(Dictionary<string, object> savedData);
 
     /// <summary>
     /// Apply references to the various saved Randomizer's per-slot settings to the saveData
     /// </summary>
     /// <param name="savedData"></param>
-    private protected abstract void SetSaveData(Dictionary<string, object> savedData);
+    protected abstract void SetSaveData(Dictionary<string, object> savedData);
 
     /// <summary>
     /// Event hook for when settings are saved
     /// </summary>
-    private protected abstract void OnSettingsSaved();
+    protected abstract void OnSettingsSaved();
 #endif
 
     /// <summary>

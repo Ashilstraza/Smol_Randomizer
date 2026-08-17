@@ -17,12 +17,14 @@ namespace Smol_Randomizer.Settings;
 /// <summary>
 /// Creates a custom scroll based menu for the randomizer
 /// </summary>
-internal class SettingMenu : SmolRandomizerMenuBuilder
+public class SettingMenu : SmolRandomizerMenuBuilder
 {
     /// <summary>
     /// Set of all the randomizer menu buttons
     /// </summary>
     private readonly HashSet<TextButton> randoMenuButtons = [];
+
+    private readonly HashSet<MenuElement> additionalElements = [];
     /// <summary>
     /// Dictionary for the initial randomizer menu button enabled/disabled setting
     /// </summary>
@@ -30,7 +32,7 @@ internal class SettingMenu : SmolRandomizerMenuBuilder
     /// <summary>
     /// If the setting menu has been initialized
     /// </summary>
-    internal static SettingMenu thisSettingMenu;
+    public static SettingMenu thisSettingMenu;
 
     /// <summary>
     /// Main randomizer menu
@@ -40,26 +42,39 @@ internal class SettingMenu : SmolRandomizerMenuBuilder
     {
         Content.VerticalSpacing = VSPACE_TIGHT;
         GenerateMainPage();
-#if TESTING // Basic Item Rando
-        BlankSpace();
-        Label("World Objects", FontSizes.Medium);
-        Button("Export World Objects",
-            delegate
-            {
-                Console.WriteLine("Exporting World Objects");
-                Basic_Item_Rando.ExportWorldObjectsFile();
-            },
-            fontSize: FontSizes.Small);
-        Button("Import World Objects",
-            delegate
-            {
-                Console.WriteLine("Import World Objects");
-                Basic_Item_Rando.ImportWorldObjectsFile();
-            },
-            fontSize: FontSizes.Small);
-#endif
+        AddExternalElements();
         thisSettingMenu = this;
         UpdateAllSubMenuColors();
+    }
+
+    private void AddExternalElements()
+    {
+        foreach (var element in additionalElements)
+        {
+            Add(element);
+        }
+    }
+
+    public void AddAdditionalElement(MenuElement menuElement)
+    {
+        additionalElements.Add(menuElement);
+    }
+
+    public void AddAdditionalElements(MenuElement[] menuElements)
+    {
+        foreach(MenuElement menuElement in menuElements)
+            additionalElements.Add(menuElement);
+    }
+
+    public void RemoveAdditionalElement(MenuElement menuElement)
+    {
+        additionalElements.Remove(menuElement);
+    }
+
+    public void RemoveAdditionalElements(MenuElement[] menuElements)
+    {
+        foreach(MenuElement menuElement in menuElements)
+            additionalElements.Remove(menuElement);
     }
 
     /// <summary>
@@ -196,6 +211,8 @@ internal class SettingMenu : SmolRandomizerMenuBuilder
 #endif
         }
     }
+
+    static OnScreenDebugInfo debugInfo = new OnScreenDebugInfo();
 
     private static void ResetAllSavedData()
     {
