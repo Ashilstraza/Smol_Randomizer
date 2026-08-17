@@ -73,7 +73,6 @@
     <PackageReference Include="BepInEx.Analyzers" Version="1.0.8" PrivateAssets="all" />
     <PackageReference Include="BepInEx.Core" Version="5.4.21" />
     <PackageReference Include="HarmonyX" Version="2.9.0" />
-    <PackageReference Include="Hamunii.BepInEx.AutoPlugin" Version="2.1.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Unity.Analyzers" Version="1.27.0" PrivateAssets="all" />
     <PackageReference Include="Newtonsoft.Json">
       <Version>13.0.4</Version>
@@ -132,7 +131,8 @@
       <ThunderstoreDir>$(ProjectDir)/thunderstore</ThunderstoreDir>
     </PropertyGroup>
     <!-- Local install -->
-	<RemoveDir Directories="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)" />
+	<Delete Files="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)/$(AssemblyTitle).pdb" TreatErrorsAsWarnings="true" />
+	<!--<RemoveDir Directories="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)" />-->
     <Copy SourceFiles="@(Binaries)" DestinationFolder="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)/%(Binaries.LocalDir)" Condition="'$(SilksongPluginsFolder)' != '' And Exists('$(SilksongPluginsFolder)')" />
     <!-- Thunderstore packaging -->
     <RemoveDir Directories="$(ThunderstoreDir)/temp;$(ThunderstoreDir)/dist" />

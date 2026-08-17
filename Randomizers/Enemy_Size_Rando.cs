@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using BepInEx.Configuration;
 
@@ -14,10 +15,11 @@ using MonoMod.Utils;
 using Newtonsoft.Json;
 #endif
 
-using Smol_Randomizer.FSMThings;
+using Smol_Randomizer.Patchers;
 using Smol_Randomizer.Settings;
 
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Smol_Randomizer.Randomizers;
 
@@ -100,74 +102,24 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         base.InitRandomizer();
     }
 
-    /// <summary>
-    /// Dictionary containing various enemy patches
-    /// </summary>
-    private static readonly Dictionary<string, FSMStateActionPatchSet> enemyPatchSet = new()
-    {
-        {
-            "Crowman",
-            new FSMStateActionPatchSet("Crowman",
-                [new("Start Rest",
-                    typeof(RandomFloatEither),
-                    delegate (FsmStateAction action, object[]? extra)
-                    {
-                        if(extra?.Length != 1) return;
-                        Transform transform = ((GameObject)extra[0]).transform;
-                        RandomFloatEither rfe = (RandomFloatEither)action;
-
-                        rfe.value1.Value = rfe.value1.Value > 0
-                            ? transform.localScale.x
-                            : transform.localScale.x * -1;
-                        rfe.value2.Value = rfe.value2.Value > 0
-                            ? transform.localScale.x
-                            : transform.localScale.x * -1; ;
-                    })
-                ])
-        },
-        {
-            "Farmer Scissors",
-            new FSMStateActionPatchSet("Farmer Scissors",
-                [new("Do Step",
-                    typeof(RayCast2dV2),
-                    delegate (FsmStateAction action, object[]? extra)
-                    {
-                        if(extra?.Length != 1) return;
-                        GameObject obj = (GameObject)extra[0];
-                        ((RayCast2dV2)action).distance.Value *= obj.transform.localScale.x;
-                    })
-                ])
-        }
-
-    };
-
-    /// <summary>
-    /// Adds a patch to the given enemy
-    /// </summary>
-    /// <param name="enemyName">String name of the enemy to patch</param>
-    /// <param name="patch">The patch to add</param>
-    public static void PatchSpecificEnemy(string enemyName, FSMStateActionPatch patch)
-    {
-        if (enemyPatchSet.TryGetValue(enemyName, out var patchSet))
-        {
-            patchSet.AddPatch(patch);
-        }
-        else
-        {
-            enemyPatchSet.Add(enemyName, new FSMStateActionPatchSet(enemyName, [patch]));
-        }
-    }
-
     protected override void Register()
     {
         CuteRandoCore.RegisterRandomizer(eventActiveEnemy);
         CuteRandoCore.RegisterRandomizer(eventOnFirstSceneFrame);
+
+        FSMPatcher.enemyStateAction.RegisterPatchSets(enemyStateActionPatchSets);
+        FSMPatcher.enemyState.RegisterPatchSets(enemyStatePatchSets);
+        ObjectPatcher.enemyObject.RegisterPatchSets(enemyObjectPatches);
     }
 
     protected override void Unregister()
     {
         CuteRandoCore.UnregisterRandomizer(eventActiveEnemy);
         CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
+
+        FSMPatcher.enemyStateAction.UnregisterPatchSets(enemyStateActionPatchSets);
+        FSMPatcher.enemyState.UnregisterPatchSets(enemyStatePatchSets);
+        ObjectPatcher.enemyObject.UnregisterPatchSets(enemyObjectPatches);
     }
 
     // Unused as we don't need
@@ -209,7 +161,8 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// <summary>
     /// On First Frame, clean the active health manager list. This is done on the first frame since some health managers get added before the scene is loaded, and some afterwards.
     /// </summary>
-    private void OnFirstSceneFrame()
+    /// <param name="scene">The scene we are in</param>
+    private void OnFirstSceneFrame(Scene scene)
     {
         CleanCurrentHealthManagerList();
     }
@@ -252,13 +205,143 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     }
 
     /// <summary>
+    /// Dictionary containing various enemy state action FSM patches
+    /// </summary>
+    private static readonly Dictionary<string, FSMStateActionPatchSet> enemyStateActionPatchSets = new()
+    {
+        {
+            "Crowman",
+            new FSMStateActionPatchSet("Crowman",
+                [new("Start Rest",
+                    typeof(RandomFloatEither),
+                    delegate (FsmStateAction action, object[]? extra)
+                    {
+                        if(extra?.Length != 1) return;
+                        Transform transform = ((GameObject)extra[0]).transform;
+                        RandomFloatEither rfe = (RandomFloatEither)action;
+
+                        rfe.value1.Value = rfe.value1.Value > 0
+                            ? transform.localScale.x
+                            : transform.localScale.x * -1;
+                        rfe.value2.Value = rfe.value2.Value > 0
+                            ? transform.localScale.x
+                            : transform.localScale.x * -1; ;
+                    })
+                ])
+        },
+        {
+            "Farmer Scissors",
+            new FSMStateActionPatchSet("Farmer Scissors",
+                [new("Do Step",
+                    typeof(RayCast2dV2),
+                    delegate (FsmStateAction action, object[]? extra)
+                    {
+                        if(extra?.Length != 1) return;
+                        ((RayCast2dV2)action).distance.Value *= Math.Abs(((GameObject)extra[0]).transform.GetScaleX());
+                    })
+                ])
+        },
+        {
+            "Farmer Centipede",
+            new FSMStateActionPatchSet("Farmer Centipede",
+                [new("Idle Chase",
+                    typeof(DistanceWalk),
+                    delegate (FsmStateAction action, object[]? extra)
+                    {
+                        if(extra?.Length != 1) return;
+                        DistanceWalk dw = (DistanceWalk)action;
+                        dw.distance.Value *= Math.Abs(((GameObject)extra[0]).transform.GetScaleX());
+                    })
+                ])
+        },
+        {
+            "Dustroach",
+            new FSMStateActionPatchSet("Dustroach",
+                [new("ScrabbleJump Air",
+                    typeof(RayCast2dV2),
+                    delegate (FsmStateAction action, object[]? extra){
+                        if(extra?.Length != 1) return;
+                        ((RayCast2dV2)action).distance.Value *= Math.Abs(((GameObject)extra[0]).transform.GetScaleX());
+                    })
+                ])
+        }
+    };
+
+    /// <summary>
+    /// Action to reduce the target height of Bone Worms' dive
+    /// </summary>
+    private static ShiftDownByHalfHeight wormAdjust;
+
+    /// <summary>
+    /// Dictionary containing various patches that add actions to enemy states.
+    /// </summary>
+    private static readonly Dictionary<string, FSMStatePatchSet> enemyStatePatchSets = new()
+    {
+        {
+            "Bone Worm",
+            new FSMStatePatchSet("Bone Worm",
+                [new("Position",
+                    delegate(FsmState state, object[]? extra){
+                        wormAdjust = new()
+                        {
+                            gameObject = new()
+                            {
+                               GameObject = state.Fsm.Owner.gameObject
+                            },
+                            variableName = "Ground Y"
+                        };
+
+                         state.Actions = state.Actions.AddItem(wormAdjust).ToArray();
+                    },
+                    delegate(FsmState state, object[]? extra){
+                        if(wormAdjust ==  null) return;
+
+                        state.Actions = state.Actions.Except([wormAdjust]).ToArray();
+                    })
+                ])
+        }
+    };
+
+    /// <summary>
+    /// Dictionary containing various enemy non-FSM patches
+    /// </summary>
+    private static readonly Dictionary<string, ObjectPatch> enemyObjectPatches = new()
+    {
+        {
+            "Farmer Centipede",
+            new("Farmer Centipede",
+                delegate(GameObject obj, object[]? extra)
+                {
+                    float multiplier = obj.transform.GetScaleY();
+                    BoxCollider2D battleRange = obj.GetComponentsInChildren<BoxCollider2D>().ToList().FirstOrDefault(collider => collider.name == "Battle Range");
+                    battleRange.size = battleRange.size with {y =  battleRange.size.y * 1/multiplier};
+                })
+        },
+        {
+            "Dustroach",
+            new("Dustroach",
+                delegate(GameObject obj, object[]? extra)
+                {
+                    float multiplier = obj.transform.GetScaleY();
+                    List<Transform> allTransform = obj.GetComponentsInChildren<Transform>().ToList();
+                    foreach(var transform in allTransform)
+                    {
+                        if(transform.name is "Force Attack Range" or "Attack Range" or "Above Range")
+                            transform.localScale = transform.localScale * 1/multiplier;
+                    }
+
+                })
+        }
+    };
+
+    /// <summary>
     /// Updates an enemy with a new size
     /// </summary>
     /// <param name="thing">The health manager of the enemy we want to change</param>
     /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
     private void SetSize(HealthManager thing)
     {
-        if (thing.transform == null) return;
+        if (thing.transform == null || !Instance.currentEnemyHealthManagers.Add(thing)) return;
 
         bool boss = CuteRandoCore.IsBoss(thing);
 
@@ -304,11 +387,6 @@ internal sealed class Enemy_Size_Rando : Rando_Base
                 break;
             default:
                 throw new NotImplementedException();
-        }
-
-        if (enemyPatchSet.TryGetValue(name, out FSMStateActionPatchSet patchList))
-        {
-            patchList.ApplyPatches(thing.gameObject.GetComponent<PlayMakerFSM>(), [thing.gameObject]);
         }
 
         float RandomizeSize(bool boss, Transform transform, Walker walker, int seed = int.MinValue)

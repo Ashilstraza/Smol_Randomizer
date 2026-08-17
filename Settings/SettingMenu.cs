@@ -62,7 +62,7 @@ public class SettingMenu : SmolRandomizerMenuBuilder
 
     public void AddAdditionalElements(MenuElement[] menuElements)
     {
-        foreach(MenuElement menuElement in menuElements)
+        foreach (MenuElement menuElement in menuElements)
             additionalElements.Add(menuElement);
     }
 
@@ -73,7 +73,7 @@ public class SettingMenu : SmolRandomizerMenuBuilder
 
     public void RemoveAdditionalElements(MenuElement[] menuElements)
     {
-        foreach(MenuElement menuElement in menuElements)
+        foreach (MenuElement menuElement in menuElements)
             additionalElements.Remove(menuElement);
     }
 

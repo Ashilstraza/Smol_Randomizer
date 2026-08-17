@@ -21,6 +21,7 @@ using Silksong.DataManager;
 using Silksong.ModMenu.Plugin;
 using Silksong.ModMenu.Screens;
 
+using Smol_Randomizer.Patchers;
 using Smol_Randomizer.Randomizers;
 using Smol_Randomizer.Settings;
 
@@ -54,6 +55,10 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// If we should update on next frame
     /// </summary>
     private bool updateOnFirstSceneFrame = false;
+    /// <summary>
+    /// The current scene loaded
+    /// </summary>
+    private Scene currentScene;
     /// <summary>
     /// List of all registered randomizer names
     /// </summary>
@@ -131,7 +136,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// </summary>
     private void Awake()
     {
-        DataLocation = Info.Location.TrimEnd("\\\\Smol_Randomizer.dll".ToCharArray()) + "Smol_Randomizer\\Smol_Randomizer";
+        TrySetDataLocation();
 
         Settings.Settings.Init(Config);
 
@@ -152,10 +157,29 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// </summary>
     private void Start()
     {
+        TrySetDataLocation();
+
         SceneManager.sceneLoaded += OnSceneLoaded;
 
         foreach (KeyValuePair<string, Action> rando in activeGameStartup)
             rando.Value();
+    }
+
+    /// <summary>
+    /// Grabs the data location if it is available
+    /// </summary>
+    /// <returns>True if the DataLocation field is set</returns>
+    private bool TrySetDataLocation()
+    {
+        if (string.IsNullOrEmpty(DataLocation) && !string.IsNullOrEmpty(Info.Location))
+        {
+            DataLocation = Info.Location.TrimEnd("\\\\Smol_Randomizer.dll".ToCharArray()) + "Smol_Randomizer\\Smol_Randomizer";
+            return true;
+        }
+        else if (!string.IsNullOrEmpty(DataLocation))
+            return true;
+
+        return false;
     }
 
     /// <summary>
@@ -180,8 +204,8 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
         if (updateOnFirstSceneFrame)
         {
-            foreach (KeyValuePair<string, Action> randomizer in activeOnFirstSceneFrame)
-                randomizer.Value();
+            foreach (KeyValuePair<string, Action<Scene>> randomizer in activeOnFirstSceneFrame)
+                randomizer.Value(currentScene);
 
             updateOnFirstSceneFrame = false;
         }
@@ -219,18 +243,29 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
         if (!randomize) return;
 
+        currentScene = scene;
+
         foreach (KeyValuePair<string, Action<Scene, LoadSceneMode>> randomizer in activeOnSceneLoad)
             randomizer.Value(scene, mode);
 
         updateOnFirstSceneFrame = true;
         updateActiveLimitRegions = true;
+
+        FSMPatcher.ApplyScenePatches(scene);
+        FSMPatcher.OnSceneLoaded();
+
+        ObjectPatcher.ApplyScenePatches(scene);
+        ObjectPatcher.OnSceneLoaded();
+    }
+
     /// <summary>
     /// We be supportin Hot Reload bois!
     /// </summary>
     void OnDestroy()
     {
         // First Call each modules' Unload
-        foreach (KeyValuePair<string, Action> randomizer in activeOnUnload){
+        foreach (KeyValuePair<string, Action> randomizer in activeOnUnload)
+        {
             randomizer.Value();
         }
 
@@ -431,8 +466,8 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
             case RandomizerEventType.OnFirstSceneFrame:
                 activeOnFirstSceneFrame.Add(
                     randomizer.Name,
-                    (Action)DelegateHelper(
-                        typeof(Action),
+                    (Action<Scene>)DelegateHelper(
+                        typeof(Action<Scene>),
                         randomizer.Method,
                         randomizer.Object));
                 break;

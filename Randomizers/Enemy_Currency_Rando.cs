@@ -15,6 +15,8 @@ using Newtonsoft.Json;
 
 using Smol_Randomizer.Settings;
 
+using UnityEngine.SceneManagement;
+
 namespace Smol_Randomizer.Randomizers;
 
 /// <summary>
@@ -173,7 +175,8 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// <summary>
     /// On First Frame, clean the active health manager list. This is done on the first frame since some health managers get added before the scene is loaded, and some afterwards.
     /// </summary>
-    private void OnFirstSceneFrame()
+    /// <param name="scene">The scene we are in</param>
+    private void OnFirstSceneFrame(Scene scene)
     {
         currentEnemyHealthManagers.RemoveWhere(x => x == null);
     }
@@ -207,30 +210,21 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// Updates an enemy with new currency values
     /// </summary>
     /// <param name="thing">The HealthManager to adjust values in</param>
-    /// <param name="smallGeoDrops">Small rosary drop quantitiy</param>
-    /// <param name="mediumGeoDrops">Medium rosary drop quantitiy</param>
-    /// <param name="largeGeoDrops">Large rosary drop quantitiy</param>
-    /// <param name="shellShardDrops">Shell shard drop quantitiy</param>
-    private void SetCurrency(
-        HealthManager thing,
-        ref int smallGeoDrops,
-        ref int mediumGeoDrops,
-        ref int largeGeoDrops,
-        ref int shellShardDrops)
+    private void SetCurrency(HealthManager thing)
     {
-        if (thing == null) return;
+        if (thing == null || !Instance.currentEnemyHealthManagers.Add(thing)) return;
 
         if (RosaryRandomizerType != RandomizeByRangeTypes.Disabled)
         {
             RandomizeGeo(thing, out RandomizedGeoSet geoSet);
 
-            smallGeoDrops = geoSet.SmallGeo;
-            mediumGeoDrops = geoSet.MediumGeo;
-            largeGeoDrops = geoSet.LargeGeo;
+            CuteRandoCore.TraverseCreator(thing, "smallGeoDrops").SetValue(geoSet.SmallGeo);
+            CuteRandoCore.TraverseCreator(thing, "mediumGeoDrops").SetValue(geoSet.MediumGeo);
+            CuteRandoCore.TraverseCreator(thing, "largeGeoDrops").SetValue(geoSet.LargeGeo);
         }
 
         if (ShardRandomizerType != RandomizeByRangeTypes.Disabled)
-            RandomizeShards(thing, ref shellShardDrops);
+            RandomizeShards(thing);
     }
 
     /// <summary>
@@ -240,9 +234,12 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// <param name="shellShardDrops">Shell shard drop quantitiy</param>
     /// <returns>Nukber of shards for enemy to drop</returns>
     /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
-    private void RandomizeShards(HealthManager thing, ref int shellShardDrops)
+    private void RandomizeShards(HealthManager thing)
     {
         string operatingScene = thing.gameObject.scene.name;
+
+        Traverse shellShardDropTraverse = CuteRandoCore.TraverseCreator(thing, "shellShardDrops");
+        int initialShellShardDrops = (int)shellShardDropTraverse.GetValue();
 
         int shards;
         string name = thing.name;
@@ -255,34 +252,34 @@ internal class Enemy_Currency_Rando : Rando_Base
             case RandomizerConsistencyA.EnemyType:
                 if (!enemyShards.TryGetValue(name, out shards))
                 {
-                    shards = GetRandoTypeShards(shellShardDrops, CuteRandoCore.RNGSeed(name));
+                    shards = GetRandoTypeShards(initialShellShardDrops, CuteRandoCore.RNGSeed(name));
                     enemyShards[name] = shards;
                 }
 
-                shellShardDrops = shards;
+                shellShardDropTraverse.SetValue(shards);
 
                 return;
             case RandomizerConsistencyA.Scene:
 
                 if (!sceneShards.TryGetValue(operatingScene, out Dictionary<string, int> shardSet))
                 {
-                    shards = GetRandoTypeShards(shellShardDrops, CuteRandoCore.RNGSeed(name + operatingScene));
+                    shards = GetRandoTypeShards(initialShellShardDrops, CuteRandoCore.RNGSeed(name + operatingScene));
                     sceneShards[operatingScene] = new() { { name, shards } };
                 }
                 else
                 {
                     if (!shardSet.TryGetValue(name, out shards))
                     {
-                        shards = GetRandoTypeShards(shellShardDrops, CuteRandoCore.RNGSeed(name + operatingScene));
+                        shards = GetRandoTypeShards(initialShellShardDrops, CuteRandoCore.RNGSeed(name + operatingScene));
                         shardSet[name] = shards;
                     }
                 }
 
-                shellShardDrops = shards;
+                shellShardDropTraverse.SetValue(shards);
 
                 return;
             case RandomizerConsistencyA.None:
-                shellShardDrops = GetRandoTypeShards(shellShardDrops);
+                shellShardDropTraverse.SetValue(GetRandoTypeShards(initialShellShardDrops));
                 return;
             default:
                 throw new NotImplementedException();

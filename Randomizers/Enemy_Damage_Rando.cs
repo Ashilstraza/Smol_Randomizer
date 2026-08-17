@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 #endif
 using Smol_Randomizer.Settings;
 
+using UnityEngine.SceneManagement;
 namespace Smol_Randomizer.Randomizers;
 
 /// <summary>
@@ -139,7 +140,8 @@ internal class Enemy_Damage_Rando : Rando_Base
     /// <summary>
     /// On first frame, clean the hero damagers list. This is done the first frame because some of them activate before the scene is loaded, and some afterward
     /// </summary>
-    private void OnFirstSceneFrame()
+    /// <param name="scene">The scene we are in</param>
+    private void OnFirstSceneFrame(Scene scene)
     {
         CleanCurrentHeroDamagers();
     }
@@ -188,7 +190,7 @@ internal class Enemy_Damage_Rando : Rando_Base
             {
             TheresMore: // Soldier: Dear god -- Spy: There's More -- Soldier: No...
                 name = name[..(name.Length - 1)];
-                if (char.IsDigit(name, name.Length - 1)) goto TheresMore; // I am not sure if I should hate myself for goto label usage
+                if (char.IsDigit(name, name.Length - 1)) goto TheresMore; // I am not sure if I should hate myself for goto label usage, it is just a while loop...
                 if (name.LastIndexOf(' ') == name.Length - 1) name = name[..(name.Length - 1)];
             }
         }

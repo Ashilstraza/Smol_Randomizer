@@ -12,6 +12,8 @@ using Newtonsoft.Json;
 #endif
 using Smol_Randomizer.Settings;
 
+using UnityEngine.SceneManagement;
+
 namespace Smol_Randomizer.Randomizers;
 
 /// <summary>
@@ -139,39 +141,26 @@ internal class Enemy_Health_Rando : Rando_Base
     /// <summary>
     /// On First Frame, clean the active health manager list. This is done on the first frame since some health managers get added before the scene is loaded, and some afterwards.
     /// </summary>
-    private void OnFirstSceneFrame()
+    /// <param name="scene">The scene we are in</param>
+    private void OnFirstSceneFrame(Scene scene)
     {
         CleanCurrentHealthManagerList();
-    }
-
-    /// <summary>
-    /// Patch that hooks the end of OnEnable of objects that have a HealthManager to adjust their HP
-    /// </summary>
-    /// <param name="__instance">The HealthManager that we want to adjust</param>
-    /// <param name="___initHp">Private field for initHp</param>
-    /// <param name="___hp">Private field for hp</param>
-    internal static void HealthManager_OnEnable_Postfix(
-        ref HealthManager __instance,
-        ref int ___initHp,
-        ref int ___hp)
-    {
-        if (!Instance.coreEnableRandomization || Instance.EnemyHealthRandomizerSetting == RandomizerEnemyTypeFlags.None)
-            return;
-
-        if (Instance.currentEnemyHealthManagers.Add(__instance))
-            Instance.SetHealth(__instance, ref ___initHp, ref ___hp);
     }
 
     /// <summary>
     /// Updates an enemy with a new health value
     /// </summary>
     /// <param name="thing">The HealthManager to adjust hp within</param>
-    /// <param name="initHp">Initial hp</param>
-    /// <param name="hp">Current hp (should be same as initial hp when called)</param>
-    /// <exception cref="NotImplementedException"></exception>
-    private void SetHealth(HealthManager thing, ref int initHp, ref int hp)
+    /// <exception cref="NotImplementedException">Consistency type is not implemented</exception>
+    private void SetHealth(HealthManager thing)
     {
-        if (thing == null || initHp > 5000) return;
+        if (thing == null) return;
+
+        Traverse initHp = CuteRandoCore.TraverseCreator(thing, "initHp");
+        Traverse hp = CuteRandoCore.TraverseCreator(thing, "hp");
+
+        if ((int)initHp.GetValue() > 5000)
+            return;
 
         bool boss = CuteRandoCore.IsBoss(thing);
 
@@ -189,45 +178,52 @@ internal class Enemy_Health_Rando : Rando_Base
         {
             case RandomizerConsistencyA.EnemyType:
                 if (enemyHealthNumbers.TryGetValue(name, out tempHp))
-                    hp = initHp = tempHp;
+                    SetHp(tempHp, initHp, hp);
                 else
-                    enemyHealthNumbers.Add(name, RandomizeHp(boss, ref initHp, ref hp, CuteRandoCore.RNGSeed(name)));
+                    enemyHealthNumbers.Add(name, RandomizeHp(boss, initHp, hp, CuteRandoCore.RNGSeed(name)));
 
                 break;
             case RandomizerConsistencyA.Scene:
                 if (sceneHealthNumbers.TryGetValue(operatingScene, out Dictionary<string, int> healthManagerSet))
                 {
                     if (healthManagerSet.TryGetValue(name, out tempHp))
-                        hp = initHp = tempHp;
+                        SetHp(tempHp, initHp, hp);
                     else
-                        healthManagerSet[name] = RandomizeHp(boss, ref initHp, ref hp, CuteRandoCore.RNGSeed(name + operatingScene));
+                        healthManagerSet[name] = RandomizeHp(boss, initHp, hp, CuteRandoCore.RNGSeed(name + operatingScene));
                 }
                 else
-                    sceneHealthNumbers[operatingScene] = new() { { name, RandomizeHp(boss, ref initHp, ref hp, CuteRandoCore.RNGSeed(name + operatingScene)) } };
+                    sceneHealthNumbers[operatingScene] = new() { { name, RandomizeHp(boss, initHp, hp, CuteRandoCore.RNGSeed(name + operatingScene)) } };
 
                 break;
             case RandomizerConsistencyA.None:
-                RandomizeHp(boss, ref initHp, ref hp);
+                RandomizeHp(boss, initHp, hp);
                 break;
             default:
                 throw new NotImplementedException();
         }
 
-        // Helper to randomize hp
-        int RandomizeHp(bool boss, ref int initHp, ref int hp, int seed = int.MinValue)
+        void SetHp(int newHp, Traverse hp, Traverse initHp)
         {
+            hp.SetValue(newHp);
+            initHp.SetValue(newHp);
+        }
+
+        // Helper to randomize hp
+        int RandomizeHp(bool boss, Traverse initHp, Traverse hp, int seed = int.MinValue)
+        {
+            int initialHp = (int)initHp.GetValue();
             float randFloat = CuteRandoCore.RandomFloat(boss ? BossHealthPercentRange.AsTuple() : EnemyHealthPercentRange.AsTuple(), seed);
             int tempHp;
 
-            if (initHp <= 0)
+            if (initialHp <= 0)
             {
-                tempHp = (int)Math.Round(hp * randFloat);
-                hp = initHp = tempHp;
+                tempHp = (int)Math.Round((int)hp.GetValue() * randFloat);
+                SetHp(tempHp, initHp, hp);
             }
             else
             {
-                tempHp = (int)Math.Round(initHp * randFloat);
-                hp = initHp = tempHp;
+                tempHp = (int)Math.Round(initialHp * randFloat);
+                SetHp(tempHp, initHp, hp);
             }
 
             return tempHp;
