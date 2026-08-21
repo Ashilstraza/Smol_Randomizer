@@ -7,7 +7,7 @@ namespace Smol_Randomizer.Patchers;
 /// <summary>
 /// FSM Action to shift a variable down by half an object's height
 /// </summary>
-public class ShiftDownByHalfHeight : FsmStateAction
+public class ShiftVarDownByHalfHeight : FsmStateAction
 {
     /// <summary>
     /// Object we are referencing
@@ -67,7 +67,7 @@ public class ShiftDownByHalfHeight : FsmStateAction
         if (thing != null && col == null)
             col = thing.GetComponent<BoxCollider2D>();
 
-        if (col == null || variableName == null) return;
+        if (thing == null || col == null || variableName == null) return;
 
         if (floatTarget == null)
             floatTarget = ActionHelpers.GetGameObjectFsm(thing, "").FsmVariables.GetFsmFloat(variableName.Value);

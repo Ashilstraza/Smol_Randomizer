@@ -22,6 +22,8 @@ using Silksong.ModMenu.Plugin;
 using Silksong.ModMenu.Screens;
 
 using Smol_Randomizer.Patchers;
+using Smol_Randomizer.Patchers.Enemy;
+using Smol_Randomizer.Patchers.Scene;
 using Smol_Randomizer.Randomizers;
 using Smol_Randomizer.Settings;
 
@@ -271,11 +273,11 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         updateOnFirstSceneFrame = true;
         updateActiveLimitRegions = true;
 
-        FSMPatcher.ApplyScenePatches(scene);
-        FSMPatcher.OnSceneLoaded();
+        SceneFSMPatches.ApplyPatches(scene);
+        EnemyFSMPatches.OnSceneLoaded();
 
-        ObjectPatcher.ApplyScenePatches(scene);
-        ObjectPatcher.OnSceneLoaded();
+        SceneObjectPatchCollection.ApplyPatches(scene);
+        EnemyObjectPatchCollection.OnSceneLoaded();
     }
 
     /// <summary>
@@ -290,12 +292,12 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         }
 
         // Remove any FSM patches
-        FSMPatcher.RemoveScenePatches(currentScene);
-        FSMPatcher.RemoveEnemyPatches();
+        SceneFSMPatches.RemovePatches(currentScene);
+        EnemyFSMPatches.RemovePatches();
 
         // Remove any Object patches
-        ObjectPatcher.RemoveScenePatches(currentScene);
-        ObjectPatcher.RemoveEnemyPatches();
+        SceneObjectPatchCollection.RemovePatches(currentScene);
+        EnemyObjectPatchCollection.RemovePatches();
 
         // Then Unhook Ourself
         SceneManager.sceneLoaded -= OnSceneLoaded;
@@ -324,8 +326,8 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         foreach (KeyValuePair<string, Action<HealthManager>> randomizer in activeEnemy)
             randomizer.Value(__instance);
 
-        FSMPatcher.ApplyEnemyPatches(__instance);
-        ObjectPatcher.ApplyEnemyPatches(__instance);
+        EnemyFSMPatches.ApplyPatches(__instance);
+        EnemyObjectPatchCollection.ApplyPatches(__instance);
     }
 
     /// <summary>

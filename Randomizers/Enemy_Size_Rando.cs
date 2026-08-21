@@ -16,6 +16,8 @@ using Newtonsoft.Json;
 #endif
 
 using Smol_Randomizer.Patchers;
+using Smol_Randomizer.Patchers.Enemy;
+using Smol_Randomizer.Patchers.Scene;
 using Smol_Randomizer.Settings;
 
 using UnityEngine;
@@ -107,9 +109,8 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         CuteRandoCore.RegisterRandomizer(eventActiveEnemy);
         CuteRandoCore.RegisterRandomizer(eventOnFirstSceneFrame);
 
-        FSMPatcher.enemyStateAction.RegisterPatchSets(enemyStateActionPatchSets);
-        FSMPatcher.enemyState.RegisterPatchSets(enemyStatePatchSets);
-        ObjectPatcher.enemyObject.RegisterPatchSets(enemyObjectPatches);
+        EnemyFSMPatches.RegisterPatchCollection(enemyFSMPatches);
+        EnemyObjectPatchCollection.Instance.RegisterPatchCollection(enemyObjectPatches);
     }
 
     protected override void Unregister()
@@ -117,9 +118,8 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         CuteRandoCore.UnregisterRandomizer(eventActiveEnemy);
         CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
 
-        FSMPatcher.enemyStateAction.UnregisterPatchSets(enemyStateActionPatchSets);
-        FSMPatcher.enemyState.UnregisterPatchSets(enemyStatePatchSets);
-        ObjectPatcher.enemyObject.UnregisterPatchSets(enemyObjectPatches);
+        EnemyFSMPatches.RegisterPatchCollection(enemyFSMPatches);
+        EnemyObjectPatchCollection.Instance.UnregisterPatchCollection(enemyObjectPatches);
     }
 
     // Unused as we don't need
@@ -189,99 +189,123 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     }
 
     /// <summary>
-    /// Dictionary containing various enemy state action FSM patches
+    /// Action to shift an enemy to its base (Action is added to end)
     /// </summary>
-    private static readonly Dictionary<string, FSMStateActionPatchSet> enemyStateActionPatchSets = new()
+    private static Action<FsmState, object[]?> shiftPosToBase
+        = delegate (FsmState state, object[]? param)
+            {
+                if (param?.Length != 1) return;
+                ShiftPosToBase shift = new()
+                {
+                    gameObject = new()
+                    {
+                        GameObject = (GameObject)param[0]
+                    }
+                };
+
+                state.Actions = state.Actions.AddItem(shift).ToArray();
+            };
+
+    /// <summary>
+    /// Dictionary containing various FSM patches.
+    /// </summary>
+    private static readonly Dictionary<string, ISmolPatch> enemyFSMPatches = new()
     {
         {
             "Crowman",
-            new FSMStateActionPatchSet("Crowman",
-                [new("Start Rest",
-                    typeof(RandomFloatEither),
-                    delegate (FsmStateAction action, object[]? extra)
-                    {
-                        if(extra?.Length != 1) return;
-                        Transform transform = ((GameObject)extra[0]).transform;
-                        RandomFloatEither rfe = (RandomFloatEither)action;
+            new StateActionPatch("Start Rest",
+                typeof(RandomFloatEither),
+                delegate (FsmStateAction action, object[]? param)
+                {
+                    if (param == null) return;
+                    Transform transform = ((GameObject)param[0]).transform;
+                    RandomFloatEither rfe = (RandomFloatEither)action;
 
-                        rfe.value1.Value = rfe.value1.Value > 0
-                            ? transform.localScale.x
-                            : transform.localScale.x * -1;
-                        rfe.value2.Value = rfe.value2.Value > 0
-                            ? transform.localScale.x
-                            : transform.localScale.x * -1; ;
-                    })
-                ])
+                    rfe.value1.Value = rfe.value1.Value > 0
+                        ? transform.localScale.x
+                        : transform.localScale.x * -1;
+                    rfe.value2.Value = rfe.value2.Value > 0
+                        ? transform.localScale.x
+                        : transform.localScale.x * -1; ;
+                })
         },
         {
             "Farmer Scissors",
-            new FSMStateActionPatchSet("Farmer Scissors",
-                [new("Do Step",
-                    typeof(RayCast2dV2),
-                    delegate (FsmStateAction action, object[]? extra)
-                    {
-                        if(extra?.Length != 1) return;
-                        ((RayCast2dV2)action).distance.Value *= Math.Abs(((GameObject)extra[0]).transform.GetScaleX());
-                    })
-                ])
+            new StateActionPatch("Do Step",
+                typeof(RayCast2dV2),
+                delegate (FsmStateAction action, object[]? param)
+                {
+                    if (param == null) return;
+                    ((RayCast2dV2)action).distance.Value *= Math.Abs(((GameObject)param[0]).transform.GetScaleX());
+                })
+                
         },
         {
             "Farmer Centipede",
-            new FSMStateActionPatchSet("Farmer Centipede",
-                [new("Idle Chase",
-                    typeof(DistanceWalk),
-                    delegate (FsmStateAction action, object[]? extra)
-                    {
-                        if(extra?.Length != 1) return;
-                        DistanceWalk dw = (DistanceWalk)action;
-                        dw.distance.Value *= Math.Abs(((GameObject)extra[0]).transform.GetScaleX());
-                    })
-                ])
+            new StateActionPatch("Idle Chase",
+                typeof(DistanceWalk),
+                delegate (FsmStateAction action, object[]? param)
+                {
+                    if (param == null) return;
+                    DistanceWalk dw = (DistanceWalk)action;
+                    dw.distance.Value *= Math.Abs(((GameObject)param[0]).transform.GetScaleX());
+                })
         },
         {
             "Dustroach",
-            new FSMStateActionPatchSet("Dustroach",
-                [new("ScrabbleJump Air",
-                    typeof(RayCast2dV2),
-                    delegate (FsmStateAction action, object[]? extra){
-                        if(extra?.Length != 1) return;
-                        ((RayCast2dV2)action).distance.Value *= Math.Abs(((GameObject)extra[0]).transform.GetScaleX());
-                    })
-                ])
-        }
-    };
-
-    /// <summary>
-    /// Action to reduce the target height of Bone Worms' dive
-    /// </summary>
-    private static ShiftDownByHalfHeight wormAdjust;
-
-    /// <summary>
-    /// Dictionary containing various patches that add actions to enemy states.
-    /// </summary>
-    private static readonly Dictionary<string, FSMStatePatchSet> enemyStatePatchSets = new()
-    {
+            new StateActionPatch("ScrabbleJump Air",
+                typeof(RayCast2dV2),
+                delegate (FsmStateAction action, object[]? param)
+                {
+                    if (param == null) return;
+                    ((RayCast2dV2)action).distance.Value *= Math.Abs(((GameObject)param[0]).transform.GetScaleX());
+                })
+        },
         {
             "Bone Worm",
-            new FSMStatePatchSet("Bone Worm",
-                [new("Position",
-                    delegate(FsmState state, object[]? extra){
-                        wormAdjust = new()
+            new StatePatch("Position",
+                delegate(FsmState state, object[]? param)
+                {
+                    if (param == null) return;
+                    ShiftVarDownByHalfHeight shift = new()
+                    {
+                        gameObject = new()
                         {
-                            gameObject = new()
-                            {
-                               GameObject = state.Fsm.Owner.gameObject
-                            },
-                            variableName = "Ground Y"
-                        };
+                            GameObject = (GameObject)param[0]
+                        },
+                        variableName = "Ground Y"
+                    };
 
-                         state.Actions = state.Actions.AddItem(wormAdjust).ToArray();
-                    },
-                    delegate(FsmState state, object[]? extra){
-                        if(wormAdjust ==  null) return;
+                        state.Actions = state.Actions.AddItem(shift).ToArray();
+                })
+                
+        },
+        {
+            "Dock Flyer, Bone Hunter, Bone Hunter Child",
+            new StatePatch("Init", 
+                delegate (FsmState state, object[]? param)
+                {
+                    if (param == null) return;
+                    ShiftPosToBase shift = new()
+                    {
+                        gameObject = new()
+                        {
+                            GameObject = (GameObject)param[0]
+                        }
+                    };
 
-                        state.Actions = state.Actions.Except([wormAdjust]).ToArray();
-                    })
+                    FsmStateAction[] bassAckwards = [shift];
+                    state.Actions = bassAckwards.AddRangeToArray(state.Actions);
+            })
+        },
+        {
+            "Bell Goomba",
+            new StatePatchSet("Bell Goomba",
+                [
+                    new("Set To Ground", shiftPosToBase),
+                    new("Set To Wall L", shiftPosToBase),
+                    new("Set To Wall R", shiftPosToBase),
+                    new("Set To Roof", shiftPosToBase)
                 ])
         }
     };
@@ -289,34 +313,28 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// <summary>
     /// Dictionary containing various enemy non-FSM patches
     /// </summary>
-    private static readonly Dictionary<string, ObjectPatch> enemyObjectPatches = new()
-    {
-        {
-            "Farmer Centipede",
-            new("Farmer Centipede",
-                delegate(GameObject obj, object[]? extra)
+    private static readonly List<ISmolPatch> enemyObjectPatches =
+    [
+        new EnemyObjectPatch("Farmer Centipede",
+            delegate(GameObject patchTarget, object[]? param)
+            {
+                float multiplier = patchTarget.transform.GetScaleY();
+                BoxCollider2D battleRange = patchTarget.GetComponentsInChildren<BoxCollider2D>().ToList().FirstOrDefault(collider => collider.name == "Battle Range");
+                battleRange.size = battleRange.size with {y =  battleRange.size.y * 1/multiplier};
+            }),
+        new EnemyObjectPatch("Dustroach",
+            delegate(GameObject patchTarget, object[]? param)
+            {
+                float multiplier = patchTarget.transform.GetScaleY();
+                List<Transform> allTransform = patchTarget.GetComponentsInChildren<Transform>().ToList();
+                foreach(var transform in allTransform)
                 {
-                    float multiplier = obj.transform.GetScaleY();
-                    BoxCollider2D battleRange = obj.GetComponentsInChildren<BoxCollider2D>().ToList().FirstOrDefault(collider => collider.name == "Battle Range");
-                    battleRange.size = battleRange.size with {y =  battleRange.size.y * 1/multiplier};
-                })
-        },
-        {
-            "Dustroach",
-            new("Dustroach",
-                delegate(GameObject obj, object[]? extra)
-                {
-                    float multiplier = obj.transform.GetScaleY();
-                    List<Transform> allTransform = obj.GetComponentsInChildren<Transform>().ToList();
-                    foreach(var transform in allTransform)
-                    {
-                        if(transform.name is "Force Attack Range" or "Attack Range" or "Above Range")
-                            transform.localScale = transform.localScale * 1/multiplier;
-                    }
+                    if(transform.name is "Force Attack Range" or "Attack Range" or "Above Range")
+                        transform.localScale = transform.localScale * 1/multiplier;
+                }
 
-                })
-        }
-    };
+            })
+    ];
 
     /// <summary>
     /// Updates an enemy with a new size
