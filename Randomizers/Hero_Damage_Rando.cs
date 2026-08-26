@@ -289,6 +289,11 @@ internal class Hero_Damage_Rando : Rando_Base
 
         playerNailDamageRando.SettingChanged += SettingMenu.OnRandomizerEnable;
         SettingMenu.UpdateSubMenuColor(playerNailDamageRando);
+
+        if (playerNailDamageRando.Value)
+        {
+            Register();
+        }
     }
 
     protected override void OnSettingsUpdated(object sender, EventArgs args)

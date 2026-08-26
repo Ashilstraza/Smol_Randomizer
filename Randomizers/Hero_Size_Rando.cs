@@ -11,6 +11,8 @@ using HutongGames.PlayMaker;
 using HutongGames.PlayMaker.Actions;
 
 using Smol_Randomizer.Patchers;
+using Smol_Randomizer.Patchers.Scene;
+
 
 #if TESTING
 using Newtonsoft.Json;
@@ -159,14 +161,14 @@ internal class Hero_Size_Rando : Rando_Base
     {
         CuteRandoCore.RegisterRandomizer(eventOnSceneLoad);
 
-        FSMPatcher.sceneStateActionSet.RegisterPatchSets(sceneFSMPatches);
+        SceneFSMPatches.RegisterPatchCollection(sceneFSMPatches);
     }
 
     protected override void Unregister()
     {
         CuteRandoCore.UnregisterRandomizer(eventOnSceneLoad);
 
-        FSMPatcher.sceneStateActionSet.UnregisterPatchSets(sceneFSMPatches);
+        SceneFSMPatches.UnregisterPatchCollection(sceneFSMPatches);
     }
 
     protected override void OnLoaded()
@@ -204,23 +206,10 @@ internal class Hero_Size_Rando : Rando_Base
         Type heroControllerType = typeof(HeroController);
 
         // Basic Scale Patches
-        CuteRandoCore.harmony.Patch(AccessTools.Method(
-            heroControllerType, nameof(HeroController.FaceRight)),
-            postfix: new HarmonyMethod(randoType, nameof(HeroController_FaceRight_Postfix)));
-        CuteRandoCore.harmony.Patch(AccessTools.Method(
-            heroControllerType, nameof(HeroController.FaceLeft)),
-            postfix: new HarmonyMethod(randoType, nameof(HeroController_FaceLeft_Postfix)));
-        CuteRandoCore.harmony.Patch(AccessTools.Method(
-            heroControllerType, "Update10"),
-            transpiler: new HarmonyMethod(randoType, nameof(HeroController_Update10_Transpiler)));
         CuteRandoCore.harmony.Patch(AccessTools.EnumeratorMoveNext(
             AccessTools.Method(
                 heroControllerType, "EnterHeroSubHorizontal")),
                 postfix: new HarmonyMethod(randoType, nameof(HeroController_EnterHeroSubHorizontal_Postfix)));
-        CuteRandoCore.harmony.Patch(AccessTools.EnumeratorMoveNext(
-            AccessTools.Method(
-                typeof(NPCControlBase), "MovePlayer")),
-                postfix: new HarmonyMethod(randoType, nameof(MovePlayer_NPCControllerBase_Postfix)));
         CuteRandoCore.harmony.Patch(AccessTools.Method(
             typeof(SetScale), "DoSetScale"),
             postfix: new HarmonyMethod(randoType, nameof(SetScale_DoSetScale_Postfix)));
@@ -240,11 +229,9 @@ internal class Hero_Size_Rando : Rando_Base
             typeof(LiftControl), "Awake"),
             postfix: new HarmonyMethod(randoType, nameof(LiftControl_Awake_Postfix)));
 
-        // Ledge Clambering
-#if !TESTING
+        // Transpilers
         if (PlayerSizeRando) // only patch if rando is enabled
-            TryTranspilerPatch();
-#endif
+            TryTranspilerPatches();
 
 #if TESTING
         CuteRandoCore.harmony.Patch(AccessTools.Method(
@@ -286,14 +273,79 @@ internal class Hero_Size_Rando : Rando_Base
 #endif
     }
 
+    /// <summary>
+    /// Attempts to apply the transpiler patches. Can only be called once, otherwise silently aborts.
+    /// </summary>
+    private static void TryTranspilerPatches()
+    {
+        if (transpilerAttempted)
+        {
+            //Instance.PlayerSizeRando = false;
+            return;
+        }
+
+        try
+        {
+            var heroControllerType = typeof(HeroController);
+            var randoType = typeof(Hero_Size_Rando);
+
+#if !TESTING // Disable if we are testing and using the clamber postfix
+            CuteRandoCore.harmony.Patch(AccessTools.Method(
+                heroControllerType, nameof(HeroController.CheckClamberLedge)),
+                transpiler: new HarmonyMethod(randoType, nameof(HeroController_CheckClamberLedge_Transpiler)));
+#endif
+            CuteRandoCore.harmony.Patch(AccessTools.Method(
+                heroControllerType, "Update10"),
+                transpiler: new HarmonyMethod(randoType, nameof(HeroController_Update10_Transpiler)));
+            CuteRandoCore.harmony.Patch(AccessTools.Method(
+                heroControllerType, "FaceLeft"),
+                transpiler: new HarmonyMethod(randoType, nameof(HeroController_Facing_Transpilser)));
+            CuteRandoCore.harmony.Patch(AccessTools.Method(
+                heroControllerType, "FaceRight"),
+                transpiler: new HarmonyMethod(randoType, nameof(HeroController_Facing_Transpilser)));
+        }
+        catch (Exception ex)
+        {
+            CuteRandoCore.Log.LogError($"Unable to patch a method with a transpiler, disabling Hero Size Rando. Restart Silksong please and leave it disabled.\nPlease then open a GitHub Issue report for this mod.\nException: {ex.Message}\nStack Trace:{ex.StackTrace}");
+            //Instance.PlayerSizeRando = false;
+        }
+        finally
+        {
+            transpilerAttempted = true;
+        }
+    }
+
     #region Basic Scale Patches
     /// <summary>
-    /// Patch to hook MovePlayer in NPCControllerBase to correct usage of using -1 or 1 for setting scale
+    /// Changes setting the direction of hornet from a hard coded value to a scaled value
     /// </summary>
-    private static void MovePlayer_NPCControllerBase_Postfix()
+    /// <param name="instructions"></param>
+    /// <param name="ilGenerator"></param>
+    /// <returns></returns>
+    private static IEnumerable<CodeInstruction> MovePlayer_NPCControllerBase_Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
     {
-        if (!Instance.PlayerSizeRando || Instance.heroTransform == null) return;
-        Instance.heroTransform.localScale = Instance.heroTransform.GetScaleX() > 0 ? Instance.heroScale : Instance.heroScaleFlipped;
+        var getScaleX = AccessTools.Method(typeof(Extensions), "GetScaleX");
+        var setScaleX = AccessTools.Method(typeof(Extensions), "SetScaleX");
+        var getLocalScale = AccessTools.Method(typeof(Transform), "get_localScale");
+
+        List<CodeInstruction> instructionList = [.. instructions];
+
+        for (int i = 0; i < instructionList.Count; i++)
+        {
+            CodeInstruction instruction = instructionList[i];
+
+            if (instructionList[i].OperandIs(setScaleX))
+            {
+                yield return instructionList[i - 9]; // this
+                yield return instructionList[i - 8]; // .localValue
+                yield return instructionList[i - 7]; // .heroController
+                yield return instructionList[i - 6]; // .get_transform()
+                yield return new(OpCodes.Callvirt, getScaleX); // .getScaleX()
+                yield return new(OpCodes.Mul); // multiply x by dir from earlier in stack
+            }
+
+            yield return instruction;
+        }
     }
 
 
@@ -312,46 +364,33 @@ internal class Hero_Size_Rando : Rando_Base
     }
 
     /// <summary>
-    /// Patch to watch for when Hornet gets damaged
+    /// Changes hard coded scale to be a multiply by -1 to swap direction
     /// </summary>
-    /// <param name="instance">The HeroDamager we want to attach a listener to</param>
-    /// <param name="_">Discarded HealthManager</param>
-    private static void DamageHero_OnEnable(ref DamageHero instance, ref HealthManager _)
+    /// <param name="instructions"></param>
+    /// <param name="ilGenerator"></param>
+    /// <returns></returns>
+    private static IEnumerable<CodeInstruction> HeroController_Facing_Transpilser(IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
     {
-        if (Instance.PlayerSizeRando && Instance.HeroSizeConsistency == RandomizerConsistencyC.OnDamageTaken)
-            instance.OnDamagedHero.AddListener(HeroDamaged);
+        List<CodeInstruction> instructionList = [.. instructions];
 
-    }
+        for (int i = 0; i < instructionList.Count; i++)
+        {
+            CodeInstruction instruction = instructionList[i];
 
-    /// <summary>
-    /// Called when DamageHero fires OnDamagedHero
-    /// </summary>
-    public static void HeroDamaged()
-    {
-        Instance.SetSize(true);
-    }
+            if (instruction.opcode == OpCodes.Ldloca_S)
+            {
+                yield return instruction; // localScale variable
+                yield return new(OpCodes.Dup); // duplicate that reference
+                yield return new(OpCodes.Ldfld, instructionList[i + 2].operand); // load field localScale.x
+                yield return new(OpCodes.Ldc_R4, -1f); // -1
+                yield return new(OpCodes.Mul); // Multiply localScale.x by -1
 
-    /// <summary>
-    /// Patch to hook FaceRight that would set Hornet's horizontal scale to -1
-    /// </summary>
-    /// <param name="___transform">Hornet's Transform</param>
-    private static void HeroController_FaceRight_Postfix(ref Transform ___transform)
-    {
-        if (!Instance.PlayerSizeRando) return;
+                i++; // we handled yielding the instruction, now step to next
+                continue; // but we are skipping ldc.r4 1 or -1, depending on left or right
+            }
 
-        ___transform.localScale = Instance.heroScaleFlipped;
-    }
-
-    /// <summary>
-    /// Patch to hook FaceLeft that would set Hornet's horizontal scale to 1
-    /// </summary>
-    /// <param name="___transform">Hornet's Transform</param>
-    private static void HeroController_FaceLeft_Postfix(ref Transform ___transform)
-    {
-        if (!Instance.PlayerSizeRando) return;
-
-
-        ___transform.localScale = Instance.heroScale;
+            yield return instruction;
+        }
     }
 
     /// <summary>
@@ -370,6 +409,15 @@ internal class Hero_Size_Rando : Rando_Base
 
         Label skipScaleCheck = ilGenerator.DefineLabel();
 
+        List<CodeInstruction> skipCheck =
+            [
+                new CodeInstruction(OpCodes.Call, heroSizeRandoInstance), // Get the instance of Hero_Size_Rando
+                new(OpCodes.Callvirt, playerSizeRando), // Gets the setting if the rando is enabled or not
+                new(OpCodes.Ldc_I4_1), // Load one (true)
+                new(OpCodes.Ceq), // Compare the setting to the loaded value
+                new(OpCodes.Brtrue_S, skipScaleCheck) // Branch to a label later on in the code that we will be adding
+            ];
+
         List<CodeInstruction> instructionList = [.. instructions];
 
         for (int i = 0; i < instructionList.Count; i++)
@@ -378,11 +426,12 @@ internal class Hero_Size_Rando : Rando_Base
 
             if (i < instructionList.Count - 2 && instructionList[i + 2].OperandIs(getScaleX))
             {
-                yield return new CodeInstruction(OpCodes.Call, heroSizeRandoInstance).MoveLabelsFrom(instruction); // Get the instance of Hero_Size_Rando
-                yield return new(OpCodes.Callvirt, playerSizeRando); // Gets the setting if the rando is enabled or not
-                yield return new(OpCodes.Ldc_I4_1); // Load one (true)
-                yield return new(OpCodes.Ceq); // Compare the setting to the loaded value
-                yield return new(OpCodes.Brtrue_S, skipScaleCheck); // Branch to a label later on in the code that we will be adding
+                foreach (var patchInstruction in skipCheck)
+                {
+                    if (patchInstruction.opcode == OpCodes.Call)
+                        patchInstruction.MoveLabelsFrom(instruction);
+                    yield return patchInstruction;
+                }
             }
 
             if (i < instructionList.Count - 1 && instructionList[i + 1].OperandIs(controlRelinquished))
@@ -432,17 +481,6 @@ internal class Hero_Size_Rando : Rando_Base
             yield return instruction;
         }
     }*/
-
-    /// <summary>
-    /// Patch to hook Update10 that is run every 10 frames which would change Hornet's horizontal scale back to default
-    /// </summary>
-    /// <param name="___transform">Hornet's Transform</param>
-    private static void HeroController_Update10_Postfix(ref Transform ___transform)
-    {
-        if (!Instance.PlayerSizeRando) return;
-
-        ___transform.localScale = ___transform.GetScaleX() > 0 ? Instance.heroScale : Instance.heroScaleFlipped;
-    }
 
     // Used for checking where we are in the Enumerator's state
     private static bool transitionHandled = false;
@@ -664,30 +702,6 @@ internal class Hero_Size_Rando : Rando_Base
         __result = true;
     }
 #endif
-
-    /// <summary>
-    /// Attempts to apply the transpiler patch. Can only be called once, otherwise silently aborts.
-    /// </summary>
-    private static void TryTranspilerPatch()
-    {
-        if (transpilerAttempted) return;
-
-        try
-        {
-            CuteRandoCore.harmony.Patch(AccessTools.Method(
-            typeof(HeroController), nameof(HeroController.CheckClamberLedge)),
-            transpiler: new HarmonyMethod(typeof(Hero_Size_Rando), nameof(HeroController_CheckClamberLedge_Transpiler)));
-        }
-        catch (Exception ex)
-        {
-            CuteRandoCore.Log.LogError($"Unable to patch CheckClamberLedge with transpiler, disabling Hero Size Rando. Restart Silksong please and leave it disabled.\nPlease then open a GitHub Issue report for this mod.\nException: {ex.Message}\nStack Trace:{ex.StackTrace}");
-            Instance.PlayerSizeRando = false;
-        }
-        finally
-        {
-            transpilerAttempted = true;
-        }
-    }
 
     /// <summary>
     /// Patches the ledge clamber check to allow for scaling.
@@ -987,18 +1001,18 @@ internal class Hero_Size_Rando : Rando_Base
     /// <summary>
     /// Set of States to patch Actions into 
     /// </summary>
-    private static readonly FSMStatePatchSet mantleFSMPatchSet = new(
+    private static readonly StatePatchSet mantleFSMPatchSet = new(
         "Mantle",
-        [new FSMStatePatch(
+        [new StatePatch(
             "Vault",
-            delegate (FsmState state, object[]? extra)
+            delegate (FsmState state, object[]? param)
             {
                 state.Actions = state.Actions.AddToArray(clamberSquishBox);
 
             }),
-        new FSMStatePatch(
+        new StatePatch(
             "Idle",
-            delegate(FsmState state, object[]? extra)
+            delegate(FsmState state, object[]? param)
             {
                 state.Actions = state.Actions.AddToArray(clamberUnsquishBox);
             })
@@ -1105,46 +1119,26 @@ internal class Hero_Size_Rando : Rando_Base
     /// <summary>
     /// Dictionary containing the various scene patches
     /// </summary>
-    private static readonly Dictionary<string, Dictionary<string, FSMStateActionPatchSet>> sceneFSMPatches = new()
+    private static readonly HashSet<ISceneFSMPatch> sceneFSMPatches = new()
     {
-        {
-            "Bonetown",
-            new()
+        new SceneStateActionPatch("Bonetown",
+            "Churchkeeper Intro Scene",
+            "Wait for Hero Grounded",
+            typeof(FloatCompare),
+            delegate(FsmStateAction action, object[]? param)
             {
-                {
-                    "Churchkeeper Intro Scene",
-                    new FSMStateActionPatchSet(
-                        "Churchkeeper Intro Scene",
-                        [new("Wait for Hero Grounded",
-                            typeof(FloatCompare),
-                            delegate(FsmStateAction action, object[]? extra)
-                            {
-                                ((FloatCompare)action).float2.Value *= Instance.heroScale.y;
-                            },
-                            FSMName: "Control")]
-                        )
-                }
-            }
-        },
-        {
-            "Greymoor_01",
-            new()
+                ((FloatCompare)action).float2.Value *= Instance.heroScale.y;
+            },
+            fsmName: "Control"),
+        new SceneStateActionPatch("Greymoor_01",
+            "Floor Control Scene",
+            "Flip",
+            typeof(CheckYPosition),
+            delegate(FsmStateAction action, object[]? param)
             {
-                {
-                    "Floor Control Scene",
-                    new FSMStateActionPatchSet(
-                        "Floor Control Scene",
-                        [new("Flip",
-                            typeof(CheckYPosition),
-                            delegate(FsmStateAction action, object[]? extra)
-                            {
-                                ((CheckYPosition)action).compareTo.Value *= Instance.heroScale.y;
-                            },
-                            FSMName: "Control")]
-                        )
-                }
-            }
-        }
+                ((CheckYPosition)action).compareTo.Value *= Instance.heroScale.y;
+            },
+            fsmName: "Control")
     };
 
     private static void LiftControl_Awake_Postfix(LiftControl __instance, TriggerEnterEvent ___doorCloseTrigger)
@@ -1182,32 +1176,32 @@ internal class Hero_Size_Rando : Rando_Base
     /// <summary>
     /// Set of States to patch Actions into 
     /// </summary>
-    private static readonly FSMStatePatchSet sprintFSMPatchSet = new(
+    private static readonly StatePatchSet sprintFSMPatchSet = new(
         "Sprint",
-        [new FSMStatePatch(
+        [new StatePatch(
             ["Dashed", "Start Sprint"],
-            delegate (FsmState state, object[]? extra)
+            delegate (FsmState state, object[]? param)
             {
                 if(sprintSquishBox == null) return;
 
                 FsmStateAction[] bassAckwards = [sprintSquishBox];
                 state.Actions = bassAckwards.AddRangeToArray(state.Actions);
             },
-            delegate (FsmState state, object[]? extra){
+            delegate (FsmState state, object[]? param){
                 if(sprintSquishBox == null) return;
 
                 state.Actions = state.Actions.Except([sprintSquishBox]).ToArray();
             }),
-        new FSMStatePatch(
+        new StatePatch(
             ["Idle", "Dash Stab Dir"],
-            delegate(FsmState state, object[]? extra)
+            delegate(FsmState state, object[]? param)
             {
                 if(sprintUnsquishBox == null) return;
 
                 FsmStateAction[] bassAckwards = [sprintUnsquishBox];
                 state.Actions = bassAckwards.AddRangeToArray(state.Actions);
             },
-            delegate(FsmState state, object[]? extra){
+            delegate(FsmState state, object[]? param){
                 if(sprintUnsquishBox == null) return;
 
                 state.Actions = state.Actions.Except([sprintUnsquishBox]).ToArray();
@@ -1342,7 +1336,27 @@ internal class Hero_Size_Rando : Rando_Base
 
     }
 
-    // TODO: tall hornet breaks some triggers; 
+    /// <summary>
+    /// Patch to watch for when Hornet gets damaged
+    /// </summary>
+    /// <param name="instance">The HeroDamager we want to attach a listener to</param>
+    /// <param name="_">Discarded HealthManager</param>
+    private static void DamageHero_OnEnable(ref DamageHero instance, ref HealthManager _)
+    {
+        if (Instance.PlayerSizeRando && Instance.HeroSizeConsistency == RandomizerConsistencyC.OnDamageTaken)
+            instance.OnDamagedHero.AddListener(HeroDamaged);
+
+    }
+
+    /// <summary>
+    /// Called when DamageHero fires OnDamagedHero
+    /// </summary>
+    public static void HeroDamaged()
+    {
+        Instance.SetSize(true);
+    }
+
+    // TODO: tall hornet breaks some triggers and breaks the universe; 
     /// <summary>
     /// Sets the size of Hornet
     /// </summary>
@@ -1408,6 +1422,8 @@ internal class Hero_Size_Rando : Rando_Base
     {
         if (heroTransform == null) return;
 
+        multiplier = 1f;
+
         heroScale = Vector3.one * multiplier;
         heroScaleFlipped = heroScale with { x = heroScale.x * -1 };
         FsmVariables sprintFSMVariables = HeroController.instance.sprintFSM.FsmVariables;
@@ -1421,8 +1437,8 @@ internal class Hero_Size_Rando : Rando_Base
 
         mantleVaultTranslate.y = baseMantleVaultYOffset.Value * multiplier;
 
-        CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_HOR").SetValue((hornetBaseSpeedToEnterHor * Instance.heroScale.x) + (0.2f - (0.2f * Instance.heroScale.x)));
-        CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_UP").SetValue((hornetBaseSpeedToEnterUp * Instance.heroScale.y) + (0.2f - (0.2f * Instance.heroScale.y)));
+        HeroController.instance.SPEED_TO_ENTER_SCENE_HOR = (hornetBaseSpeedToEnterHor * Instance.heroScale.x) + (0.2f - (0.2f * Instance.heroScale.x));
+        HeroController.instance.SPEED_TO_ENTER_SCENE_UP = (hornetBaseSpeedToEnterUp * Instance.heroScale.y) + (0.2f - (0.2f * Instance.heroScale.y));
 
         heroTransform.localScale = heroTransform.localScale.x > 0f ? heroScale : heroScaleFlipped;
 
@@ -1458,8 +1474,8 @@ internal class Hero_Size_Rando : Rando_Base
                 defaultColliderSize = new(heroCollider.size.x, heroCollider.size.y);
                 defaultColliderOffset = new(heroCollider.offset.x, heroCollider.offset.y);
 
-                hornetBaseSpeedToEnterHor = (float)CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_HOR").GetValue();
-                hornetBaseSpeedToEnterUp = (float)CuteRandoCore.TraverseCreator(HeroController.instance, "SPEED_TO_ENTER_SCENE_UP").GetValue();
+                hornetBaseSpeedToEnterHor = HeroController.instance.SPEED_TO_ENTER_SCENE_HOR;
+                hornetBaseSpeedToEnterUp = HeroController.instance.SPEED_TO_ENTER_SCENE_UP;
 
                 foreach (var state in HeroController.instance.mantleFSM.FsmStates)
                 {
@@ -1470,7 +1486,9 @@ internal class Hero_Size_Rando : Rando_Base
                             {
                                 mantleVaultTranslate = (Translate)action;
                                 baseMantleVaultYOffset = mantleVaultTranslate.y;
+                                break;
                             }
+                        break;
                     }
                 }
 
@@ -1640,6 +1658,11 @@ internal class Hero_Size_Rando : Rando_Base
 
         playerSizeRando.SettingChanged += SettingMenu.OnRandomizerEnable;
         SettingMenu.UpdateSubMenuColor(playerSizeRando);
+
+        if (playerSizeRando.Value)
+        {
+            Register();
+        }
     }
 
     protected override void OnSettingsUpdated(object sender, EventArgs args)
@@ -1657,7 +1680,7 @@ internal class Hero_Size_Rando : Rando_Base
 #if !TESTING
         // Try applying transpiler patch mid game if enabled after load
         if (PlayerSizeRando && !transpilerAttempted)
-            TryTranspilerPatch();
+            TryTranspilerPatches();
 #endif
     }
     #endregion

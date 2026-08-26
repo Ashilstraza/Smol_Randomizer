@@ -17,7 +17,6 @@ using Newtonsoft.Json;
 
 using Smol_Randomizer.Patchers;
 using Smol_Randomizer.Patchers.Enemy;
-using Smol_Randomizer.Patchers.Scene;
 using Smol_Randomizer.Settings;
 
 using UnityEngine;
@@ -209,61 +208,50 @@ internal sealed class Enemy_Size_Rando : Rando_Base
     /// <summary>
     /// Dictionary containing various FSM patches.
     /// </summary>
-    private static readonly Dictionary<string, ISmolPatch> enemyFSMPatches = new()
+    private static readonly HashSet<IEnemyFSMPatch> enemyFSMPatches = new()
     {
-        {
-            "Crowman",
-            new StateActionPatch("Start Rest",
-                typeof(RandomFloatEither),
-                delegate (FsmStateAction action, object[]? param)
-                {
-                    if (param == null) return;
-                    Transform transform = ((GameObject)param[0]).transform;
-                    RandomFloatEither rfe = (RandomFloatEither)action;
+        new EnemyStateActionPatch("Crowman",
+            "Start Rest",
+            typeof(RandomFloatEither),
+            delegate (FsmStateAction action, object[]? param)
+            {
+                if (param == null) return;
+                Transform transform = ((GameObject)param[0]).transform;
+                RandomFloatEither rfe = (RandomFloatEither)action;
 
-                    rfe.value1.Value = rfe.value1.Value > 0
-                        ? transform.localScale.x
-                        : transform.localScale.x * -1;
-                    rfe.value2.Value = rfe.value2.Value > 0
-                        ? transform.localScale.x
-                        : transform.localScale.x * -1; ;
-                })
-        },
-        {
-            "Farmer Scissors",
-            new StateActionPatch("Do Step",
+                rfe.value1.Value = rfe.value1.Value > 0
+                    ? transform.localScale.x
+                    : transform.localScale.x * -1;
+                rfe.value2.Value = rfe.value2.Value > 0
+                    ? transform.localScale.x
+                    : transform.localScale.x * -1; ;
+            }),
+            new EnemyStateActionPatch("Farmer Scissors",
+                "Do Step",
                 typeof(RayCast2dV2),
                 delegate (FsmStateAction action, object[]? param)
                 {
                     if (param == null) return;
                     ((RayCast2dV2)action).distance.Value *= Math.Abs(((GameObject)param[0]).transform.GetScaleX());
-                })
-                
-        },
-        {
-            "Farmer Centipede",
-            new StateActionPatch("Idle Chase",
+                }),
+            new EnemyStateActionPatch("Farmer Centipede",
+                "Idle Chase",
                 typeof(DistanceWalk),
                 delegate (FsmStateAction action, object[]? param)
                 {
                     if (param == null) return;
-                    DistanceWalk dw = (DistanceWalk)action;
-                    dw.distance.Value *= Math.Abs(((GameObject)param[0]).transform.GetScaleX());
-                })
-        },
-        {
-            "Dustroach",
-            new StateActionPatch("ScrabbleJump Air",
+                    ((DistanceWalk)action).distance.Value *= Math.Abs(((GameObject)param[0]).transform.GetScaleX());
+                }),
+            new EnemyStateActionPatch("Dustroach",
+                "ScrabbleJump Air",
                 typeof(RayCast2dV2),
                 delegate (FsmStateAction action, object[]? param)
                 {
                     if (param == null) return;
                     ((RayCast2dV2)action).distance.Value *= Math.Abs(((GameObject)param[0]).transform.GetScaleX());
-                })
-        },
-        {
-            "Bone Worm",
-            new StatePatch("Position",
+                }),
+            new EnemyStatePatch("Bone Worm",
+                "Position",
                 delegate(FsmState state, object[]? param)
                 {
                     if (param == null) return;
@@ -277,12 +265,12 @@ internal sealed class Enemy_Size_Rando : Rando_Base
                     };
 
                         state.Actions = state.Actions.AddItem(shift).ToArray();
-                })
-                
-        },
-        {
-            "Dock Flyer, Bone Hunter, Bone Hunter Child",
-            new StatePatch("Init", 
+                }),
+            new EnemyStatePatch(["Dock Flyer",
+                                "Bone Hunter",
+                                "Bone Hunter Child",
+                                "Pilgrim Fisher Enemy"],
+                "Init",
                 delegate (FsmState state, object[]? param)
                 {
                     if (param == null) return;
@@ -291,29 +279,26 @@ internal sealed class Enemy_Size_Rando : Rando_Base
                         gameObject = new()
                         {
                             GameObject = (GameObject)param[0]
-                        }
+                        },
+                        halfHeight = (string)param[1] == "Pilgrim Fisher Enemy" ? false : true
                     };
 
                     FsmStateAction[] bassAckwards = [shift];
                     state.Actions = bassAckwards.AddRangeToArray(state.Actions);
-            })
-        },
-        {
-            "Bell Goomba",
-            new StatePatchSet("Bell Goomba",
-                [
-                    new("Set To Ground", shiftPosToBase),
-                    new("Set To Wall L", shiftPosToBase),
-                    new("Set To Wall R", shiftPosToBase),
-                    new("Set To Roof", shiftPosToBase)
-                ])
-        }
+            }),
+        new EnemyStatePatchSet("Bell Goomba",
+            [
+                new("Bell Goomba", "Set To Ground", shiftPosToBase),
+                new("Bell Goomba", "Set To Wall L", shiftPosToBase),
+                new("Bell Goomba", "Set To Wall R", shiftPosToBase),
+                new("Bell Goomba", "Set To Roof", shiftPosToBase)
+            ])
     };
 
     /// <summary>
     /// Dictionary containing various enemy non-FSM patches
     /// </summary>
-    private static readonly List<ISmolPatch> enemyObjectPatches =
+    private static readonly List<IEnemyObjectPatch> enemyObjectPatches =
     [
         new EnemyObjectPatch("Farmer Centipede",
             delegate(GameObject patchTarget, object[]? param)
@@ -333,6 +318,18 @@ internal sealed class Enemy_Size_Rando : Rando_Base
                         transform.localScale = transform.localScale * 1/multiplier;
                 }
 
+            }),
+        new EnemyObjectPatch("Pond Skater",
+            delegate(GameObject patchTarget, object[]? param)
+            {
+                patchTarget.transform.position = patchTarget.transform.position with
+                {
+                    y = ShiftPosToBase.ShiftY(
+                        patchTarget.GetComponent<BoxCollider2D>().size.y,
+                        patchTarget.transform.localScale.y,
+                        patchTarget.transform.position.y,
+                        patchTarget.transform.rotation.eulerAngles.z)
+                };
             })
     ];
 
@@ -537,6 +534,11 @@ internal sealed class Enemy_Size_Rando : Rando_Base
 
         enemySizeRandomizerSetting.SettingChanged += SettingMenu.OnRandomizerEnable;
         SettingMenu.UpdateSubMenuColor(enemySizeRandomizerSetting);
+
+        if (!enemySizeRandomizerSetting.Value.Equals(RandomizerEnemyTypeFlags.None))
+        {
+            Register();
+        }
     }
 
     protected override void OnSettingsUpdated(object sender, EventArgs args)
@@ -545,14 +547,12 @@ internal sealed class Enemy_Size_Rando : Rando_Base
         {
             if (ehr.Equals(RandomizerEnemyTypeFlags.None) && !currentSizeRandomizerSetting.Equals(RandomizerEnemyTypeFlags.None))
             {
-                CuteRandoCore.UnregisterRandomizer(eventActiveEnemy);
-                CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
+                Unregister();
             }
 
             if (currentSizeRandomizerSetting.Equals(RandomizerEnemyTypeFlags.None) && !ehr.Equals(RandomizerEnemyTypeFlags.None))
             {
-                CuteRandoCore.RegisterRandomizer(eventActiveEnemy);
-                CuteRandoCore.RegisterRandomizer(eventOnFirstSceneFrame);
+                Register();
             }
 
             currentSizeRandomizerSetting = ehr;

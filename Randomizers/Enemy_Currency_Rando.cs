@@ -529,6 +529,7 @@ internal class Enemy_Currency_Rando : Rando_Base
                 SettingMenu.UpdateSubMenuColor(rosaryRandomizerType);
             else
                 SettingMenu.UpdateSubMenuColor(shardRandomizerType);
+            Register();
         }
     }
 

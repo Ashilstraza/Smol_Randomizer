@@ -9,14 +9,14 @@ namespace Smol_Randomizer.Patchers;
 /// </summary>
 /// <typeparam name="PatchTarget">The patch target</typeparam>
 /// <typeparam name="ObjectType">The type of object the patch is applying to</typeparam>
-/// <param name="name">Name of the object the patch is for</param>
+/// <param name="objectName">Name of the object the patch is for</param>
 /// <param name="patch">The delegate to patch the object</param>
 /// <param name="unpatch">Optional delegate to unpatch the object</param>
-public abstract class ObjectPatch_Base<PatchTarget, ObjectType>(string name, Action<PatchTarget, object[]?> patch, Action<PatchTarget, object[]?>? unpatch = null)
+public abstract class ObjectPatch_Base<PatchTarget, ObjectType>(string objectName, Action<PatchTarget, object[]?> patch, Action<PatchTarget, object[]?>? unpatch = null)
     : ISmolPatch
 {
-    public string Name { get; set; } = name;
-    public string[] NameArray { get; set; } = [];
+    public string Name => objectName;
+    public string[] NameArray { get; protected set; } = [];
 
     /// <summary>
     /// The delegate to patch the object
@@ -36,12 +36,25 @@ public abstract class ObjectPatch_Base<PatchTarget, ObjectType>(string name, Act
     public abstract void ApplyPatch(ObjectType patchTarget, object[]? param = null);
 
     /// <summary>
+    /// Patches an object
+    /// </summary>
+    /// <param name="patchTargets">The objects to patch</param>
+    /// <param name="param">An array of extra arguments the patcher may want</param>
+    public abstract void ApplyPatch(ObjectType[] patchTargets, object[]? param = null);
+
+    /// <summary>
     /// Unpatches an object
     /// </summary>
     /// <param name="patchTarget">The object to patch</param>
     /// <param name="param">An array of extra arguments the patcher may want</param>
     public abstract void RemovePatch(ObjectType patchTarget, object[]? param = null);
-    public abstract object Clone();
+
+    /// <summary>
+    /// Unpatches an object
+    /// </summary>
+    /// <param name="patchTargets">The object to patch</param>
+    /// <param name="param">An array of extra arguments the patcher may want</param>
+    public abstract void RemovePatch(ObjectType[] patchTargets, object[]? param = null);
 }
 
 /// <summary>
@@ -56,8 +69,9 @@ public abstract class ObjectPatchSet_Base<PatchType, ObjectType, PatchTarget>(st
     : ISmolPatchSet
     where PatchType : ObjectPatch_Base<PatchTarget, ObjectType>
 {
-    public string Name { get; set; } = name;
-    public string[] NameArray { get; set; } = [];
+    public string Name => name;
+    public string[] NameArray { get; protected set; } = [];
+
     /// <summary>
     /// The list of patches for the object
     /// </summary>
@@ -83,12 +97,9 @@ public abstract class ObjectPatchSet_Base<PatchType, ObjectType, PatchTarget>(st
     /// <param name="param">An array of extra arguments that patches may want</param>
     public virtual void ApplyPatches(ObjectType[] patchTargets, object[]? param = null)
     {
-        foreach (var patchTarget in patchTargets)
+        foreach (var patch in Patches)
         {
-            foreach (var patch in Patches)
-            {
-                patch.ApplyPatch(patchTarget, param);
-            }
+            patch.ApplyPatch(patchTargets, param);
         }
     }
 
@@ -112,12 +123,9 @@ public abstract class ObjectPatchSet_Base<PatchType, ObjectType, PatchTarget>(st
     /// <param name="param">An array of extra arguments that unpatchers may want</param>
     public virtual void RemovePatches(ObjectType[] patchTargets, object[]? param = null)
     {
-        foreach (var patchTarget in patchTargets)
+        foreach (var patch in Patches)
         {
-            foreach (var patch in Patches)
-            {
-                patch.RemovePatch(patchTarget, param);
-            }
+            patch.RemovePatch(patchTargets, param);
         }
     }
 
@@ -144,8 +152,6 @@ public abstract class ObjectPatchSet_Base<PatchType, ObjectType, PatchTarget>(st
     /// </summary>
     /// <param name="patchSet">The set of patches to be removed</param>
     public virtual void UnregisterPatches(PatchType[] patchSet) => Patches.RemoveAll(patchSet.Contains);
-
-    public abstract object Clone();
 }
 
 public abstract class ObjectPatchCollection_Base<PatchType, PatchSetType, ObjectType, PatchTarget>
@@ -197,73 +203,7 @@ public abstract class ObjectPatchCollection_Base<PatchType, PatchSetType, Object
     /// <summary>
     /// Register a collection of patches
     /// </summary>
-    /// <param name="patchCollection">The dictionary containing the patches to be applied to objects</param>
-    public virtual void RegisterPatchCollection(Dictionary<string, ISmolPatch> patchCollection)
-    {
-        foreach (var patch in patchCollection)
-        {
-            RegisterPatchInCollection(patch.Key, patch.Value);
-        }
-    }
-
-    /// <summary>
-    /// Register a collection of patches
-    /// </summary>
-    /// <param name="patchCollection">The dictionary containing the patches to be applied to objects</param>
-    public virtual void RegisterPatchCollection(Dictionary<string, PatchType> patchCollection)
-    {
-        foreach (var patch in patchCollection)
-        {
-            RegisterPatchInCollection(patch.Key, patch.Value);
-        }
-    }
-
-    /// <summary>
-    /// Register a collection of patches
-    /// </summary>
-    /// <param name="patchCollection">The dictionary containing the patches to be applied to an array of objects</param>
-    public virtual void RegisterPatchCollection(Dictionary<string[], ISmolPatch> patchCollection)
-    {
-        foreach (var patch in patchCollection)
-        {
-            foreach (var obj in patch.Key)
-            {
-                RegisterPatchInCollection(obj, patch.Value);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Register a collection of patches
-    /// </summary>
-    /// <param name="patchCollection">The dictionary containing the patches to be applied to an array of objects</param>
-    public virtual void RegisterPatchCollection(Dictionary<string[], PatchType> patchCollection)
-    {
-        foreach (var patch in patchCollection)
-        {
-            foreach (var obj in patch.Key)
-            {
-                RegisterPatchInCollection(obj, patch.Value);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Register a collection of patches
-    /// </summary>
-    /// <param name="patchCollection">A list containing the patches to be applied to an array of objects</param>
-    public virtual void RegisterPatchCollection(List<ISmolPatch> patchCollection)
-    {
-        foreach (var patch in patchCollection)
-        {
-            RegisterPatchInCollection(patch.Name, patch);
-        }
-    }
-
-    /// <summary>
-    /// Register a collection of patches
-    /// </summary>
-    /// <param name="patchCollection">A list containing the patches to be applied to an array of objects</param>
+    /// <param name="patchCollection">A list containing the patches to be applied</param>
     public virtual void RegisterPatchCollection(List<PatchType> patchCollection)
     {
         foreach (var patch in patchCollection)
@@ -276,7 +216,7 @@ public abstract class ObjectPatchCollection_Base<PatchType, PatchSetType, Object
     /// Registers the patch for the object
     /// </summary>
     /// <param name="objectName">The object's name that is to be patched</param>
-    /// <param name="patch">The patch to register</param>
+    /// <param name="smolPatch">The patch to register</param>
     public virtual void RegisterPatchInCollection(string objectName, ISmolPatch smolPatch)
     {
         if (smolPatch is PatchType patch)
@@ -299,73 +239,7 @@ public abstract class ObjectPatchCollection_Base<PatchType, PatchSetType, Object
             RegisterPatchCollection(patchSet.Patches);
         }
         else
-            CuteRandoCore.Log.LogWarning($"Register patch called with invalid patch {smolPatch.Name}");
-    }
-
-    /// <summary>
-    /// Unregister a collection of patches
-    /// </summary>
-    /// <param name="patchCollection">The dictionary containing the patches to no longer be applied</param>
-    public virtual void UnregisterPatchCollection(Dictionary<string, ISmolPatch> patchCollection)
-    {
-        foreach (var patch in patchCollection)
-        {
-            UnregisterPatchInCollection(patch.Key, patch.Value);
-        }
-    }
-
-    /// <summary>
-    /// Unregister a collection of patches
-    /// </summary>
-    /// <param name="patchCollection">The dictionary containing the patches to no longer be applied</param>
-    public virtual void UnregisterPatchCollection(Dictionary<string, PatchType> patchCollection)
-    {
-        foreach (var patch in patchCollection)
-        {
-            UnregisterPatchInCollection(patch.Key, patch.Value);
-        }
-    }
-
-    /// <summary>
-    /// Unregister a collection of patches
-    /// </summary>
-    /// <param name="patchCollection">The dictionary containing the patches to no longer be applied</param>
-    public virtual void UnregisterPatchCollection(Dictionary<string[], ISmolPatch> patchCollection)
-    {
-        foreach (var patch in patchCollection)
-        {
-            foreach (var obj in patch.Key)
-            {
-                UnregisterPatchInCollection(obj, patch.Value);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Unregister a collection of patches
-    /// </summary>
-    /// <param name="patchCollection">The dictionary containing the patches to no longer be applied</param>
-    public virtual void UnregisterPatchCollection(Dictionary<string[], PatchType> patchCollection)
-    {
-        foreach (var patch in patchCollection)
-        {
-            foreach (var obj in patch.Key)
-            {
-                UnregisterPatchInCollection(obj, patch.Value);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Unregister a collection of patches
-    /// </summary>
-    /// <param name="patchCollection">A list containing the patches to no longer be applied<</param>
-    public virtual void UnregisterPatchCollection(List<ISmolPatch> patchCollection)
-    {
-        foreach (var patch in patchCollection)
-        {
-            UnregisterPatchInCollection(patch.Name, patch);
-        }
+            CuteRandoCore.Log.LogWarning($"Register patch called with invalid patch type, Name: {smolPatch.Name}, Type: {smolPatch.GetType()}");
     }
 
     /// <summary>
@@ -384,7 +258,7 @@ public abstract class ObjectPatchCollection_Base<PatchType, PatchSetType, Object
     /// Unregisters the patch for the object
     /// </summary>
     /// <param name="objectName">The object's name that is to no longer be patched</param>
-    /// <param name="patch">The patch to unregister</param>
+    /// <param name="smolPatch">The patch to unregister</param>
     public virtual void UnregisterPatchInCollection(string objectName, ISmolPatch smolPatch)
     {
         if (smolPatch is PatchType patch)
@@ -405,7 +279,7 @@ public abstract class ObjectPatchCollection_Base<PatchType, PatchSetType, Object
             UnregisterPatchCollection(patchSet.Patches);
         }
         else
-            CuteRandoCore.Log.LogWarning($"Unregister patch called with invalid patch {smolPatch.Name}");
+            CuteRandoCore.Log.LogWarning($"Unregister patch called with invalid patch type, Name: {smolPatch.Name}, Type: {smolPatch.GetType()}");
     }
 }
 
@@ -417,18 +291,12 @@ public interface ISmolPatch
     /// <summary>
     /// The name of the object the patch is for
     /// </summary>
-    public string Name { get; protected set; }
+    public string Name { get; }
 
     /// <summary>
     /// An array of names for objects the patch is for
     /// </summary>
-    public string[] NameArray { get; protected set; }
-
-    /// <summary>
-    /// Creates a duplicate of the patch
-    /// </summary>
-    /// <returns>The duplicate</returns>
-    public abstract object Clone();
+    public string[] NameArray { get; }
 }
 
 /// <summary>

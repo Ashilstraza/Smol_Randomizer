@@ -28,7 +28,6 @@ public abstract class Rando_Base
     private protected virtual void InitRandomizer()
     {
         coreEnableRandomization = Settings.Settings.EnableRandomizer;
-        Register();
         AddRandoDescription();
         InitSettings();
         Settings.Settings.enableRandomizer.SettingChanged += RandoCoreSetting;

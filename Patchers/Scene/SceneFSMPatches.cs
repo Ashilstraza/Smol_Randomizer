@@ -5,6 +5,7 @@ using System.Linq;
 using HutongGames.PlayMaker;
 
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Smol_Randomizer.Patchers.Scene;
 
@@ -20,19 +21,10 @@ internal class SceneFSMPatches
     public static SceneFSMPatches Instance => instance.Value;
 
     /// <summary>
-    /// Class for containing a set of Scene State Action patches
-    /// </summary>
-    public class SceneStateActionCollection : SceneFSMPatchCollections_Base<SceneStateActionPatch, SceneStateActionPatchSet, FsmStateAction>;
-
-    /// <summary>
-    /// Class for containing a set of Scene State patches
-    /// </summary>
-    public class SceneStateCollection : SceneFSMPatchCollections_Base<SceneStatePatch, SceneStatePatchSet, FsmState>;
-
-    /// <summary>
     /// A set of Scene State Action patches
     /// </summary>
     public static readonly SceneStateActionCollection sceneStateActionCollection = new();
+
     /// <summary>
     /// As set if Scene State Patches
     /// </summary>
@@ -61,270 +53,170 @@ internal class SceneFSMPatches
         sceneStateActionCollection.RemovePatches(scene, objects);
         sceneStateCollection.RemovePatches(scene, objects);
     }
+
+    /// <summary>
+    /// Registers a collection of patches that are a mix of State and StateActions
+    /// </summary>
+    /// <param name="scenePatchCollection"></param>
+    public static void RegisterPatchCollection(HashSet<ISceneFSMPatch> scenePatchCollection)
+    {
+        foreach (var patchGroup in scenePatchCollection)
+        {
+            if (patchGroup is SceneStateActionPatch or SceneStateActionPatchSet)
+                sceneStateActionCollection.RegisterPatchInCollection(patchGroup.SceneName, patchGroup.ObjectName, patchGroup);
+            else if (patchGroup is SceneStatePatch or SceneStatePatchSet)
+                sceneStateCollection.RegisterPatchInCollection(patchGroup.SceneName, patchGroup.ObjectName, patchGroup);
+            else
+                CuteRandoCore.Log.LogWarning($"Register patch called with invalid patch type, Name: {patchGroup.Name}, Scene Name: {patchGroup.SceneName}, Object Name: {patchGroup.ObjectName}, Type: {patchGroup.GetType()}");
+        }
+    }
+
+    /// <summary>
+    /// Unregisters a collection of patches that are a mix of State and StateActions
+    /// </summary>
+    /// <param name="scenePatchCollection"></param>
+    public static void UnregisterPatchCollection(HashSet<ISceneFSMPatch> scenePatchCollection)
+    {
+        foreach (var patchGroup in scenePatchCollection)
+        {
+            if (patchGroup is SceneStateActionPatch or SceneStateActionPatchSet)
+                sceneStateActionCollection.UnregisterPatchInCollection(patchGroup.SceneName, patchGroup.ObjectName, patchGroup);
+            else if (patchGroup is SceneStatePatch or SceneStatePatchSet)
+                sceneStateCollection.UnregisterPatchInCollection(patchGroup.SceneName, patchGroup.ObjectName, patchGroup);
+            else
+                CuteRandoCore.Log.LogWarning($"Unregister patch called with invalid patch type, Name: {patchGroup.Name}, Scene Name: {patchGroup.SceneName}, Object Name: {patchGroup.ObjectName}, Type: {patchGroup.GetType()}");
+        }
+    }
 }
 
 #region FSM State Action
 /// <summary>
+/// Class for containing a set of Scene State Action patches
+/// </summary>
+public class SceneStateActionCollection : SceneFSMPatchCollections_Base<SceneStateActionPatch, SceneStateActionPatchSet, FsmStateAction>;
+
+/// <summary>
 /// Patch set of Scene State Actions
 /// </summary>
+/// /// <param name="sceneName">Name of scene that the object is within</param>
 /// <param name="objectName">Name of the object to be patched</param>
 /// <param name="patches">The set of patches for the object</param>
-public class SceneStateActionPatchSet(string objectName, List<SceneStateActionPatch> patches)
-    : SceneFSMPatchSet_Base<SceneStateActionPatch, FsmStateAction>(objectName, patches)
+public class SceneStateActionPatchSet(string sceneName, string objectName, List<SceneStateActionPatch> patches, string fsmName = "")
+    : StateActionPatchSet_Base<SceneStateActionPatch>(objectName, patches, fsmName), ISceneFSMPatchSet
 {
     /// <summary>
     /// Patch set of Scene State Actions
     /// </summary>
+    /// /// <param name="sceneName">Name of scene that the objects are within</param>
     /// <param name="objectNames">Array of names for objects to be patched</param>
     /// <param name="patches">The set of patches for the object</param>
-    SceneStateActionPatchSet(string[] objectNames, List<SceneStateActionPatch> patches)
-        : this("", patches)
+    SceneStateActionPatchSet(string sceneName, string[] objectNames, List<SceneStateActionPatch> patches, string fsmName = "")
+        : this(sceneName, "", patches, fsmName)
     {
         NameArray = objectNames;
     }
-    public override object Clone()
-    {
-        List<SceneStateActionPatch> newPatchList = [];
 
-        foreach (var patch in Patches)
-        {
-            newPatchList.Add((SceneStateActionPatch)patch.Clone());
-        }
+    public string SceneName { get; } = sceneName;
 
-        if (Name != "")
-            return new SceneStateActionPatchSet(Name, newPatchList);
-        return new SceneStateActionPatchSet(NameArray, newPatchList);
-    }
+    public string ObjectName { get; } = objectName;
 }
 
 /// <summary>
 /// Patch for a Scene State Action
 /// </summary>
+/// /// <param name="sceneName">Name of scene that the object is within</param>
 /// <param name="stateName">The state that is to be patched within</param>
 /// <param name="actionType">The action to be patched</param>
 /// <param name="patch">The patch to be applied</param>
 /// <param name="unpatch">Optional patch to remove</param>
 /// <param name="fsmName">Optional fsm name, used when calling either ApplyPatch or RemovePatch with an array of PlayMakerFSMs</param>
-public class SceneStateActionPatch(string stateName, Type actionType, Action<FsmStateAction, object[]?> patch, Action<FsmStateAction, object[]?>? unpatch = null, string fsmName = "")
-    : SceneFSMPatch_Base<FsmStateAction>(stateName, patch, unpatch), IFSMActionPatch
+public class SceneStateActionPatch(string sceneName, string objectName, string stateName, Type actionType, Action<FsmStateAction, object[]?> patch, Action<FsmStateAction, object[]?>? unpatch = null, string fsmName = "")
+    : StateActionPatch_Base(stateName, actionType, patch, unpatch, fsmName), ISceneFSMPatch
 {
     /// <summary>
     /// Patch for a Scene State Action
     /// </summary>
+    /// /// <param name="sceneName">Name of scene that the object is within</param>
     /// <param name="stateNames">An array of state names to be patched within</param>
     /// <param name="actionType">The action to be patched</param>
     /// <param name="patch">The patch to be applied</param>
     /// <param name="unpatch">Optional patch to remove</param>
     /// <param name="fsmName">Optional fsm name, used when calling either ApplyPatch or RemovePatch with an array of PlayMakerFSMs</param>
-    public SceneStateActionPatch(string[] stateNames, Type actionType, Action<FsmStateAction, object[]?> patch, Action<FsmStateAction, object[]?>? unpatch = null, string fsmName = "")
-        : this("", actionType, patch, unpatch, fsmName)
+    public SceneStateActionPatch(string sceneName, string objectName, string[] stateNames, Type actionType, Action<FsmStateAction, object[]?> patch, Action<FsmStateAction, object[]?>? unpatch = null, string fsmName = "")
+        : this(sceneName, objectName, "", actionType, patch, unpatch, fsmName)
     {
         NameArray = stateNames;
     }
 
-    public Type Type { get; } = actionType;
-    public string TypeString => Type.ToString();
+    public string SceneName { get; } = sceneName;
 
     /// <summary>
-    /// Patches an FSM
+    /// Name of the patch target
     /// </summary>
-    /// <param name="patchTarget">Array that contains the FSM to patch</param>
-    /// <param name="param">An array of arguments the patcher may want</param>
-    public override void ApplyPatch(PlayMakerFSM[] patchTarget, object[]? param = null)
-    {
-        ApplyPatch(patchTarget.FirstOrDefault(obj => obj.name.Equals(fsmName)), param);
-    }
-
-    public override void ApplyPatch(PlayMakerFSM fsm, object[]? param = null)
-    {
-        if (NameArray.Length > 0)
-        {
-            foreach (string name in NameArray)
-            {
-                foreach (FsmStateAction action in fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(name)).Actions)
-                {
-                    if (action.GetType().ToString().Equals(TypeString))
-                    {
-                        Patch(action, param);
-                    }
-                }
-            }
-        }
-        else
-        {
-            foreach (FsmStateAction action in fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(Name)).Actions)
-            {
-                if (action.GetType().ToString().Equals(TypeString))
-                {
-                    Patch(action, param);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Removes patches from an FSM
-    /// </summary>
-    /// <param name="patchTarget">Array that contains the FSM to remove patches from</param>
-    /// <param name="param">An array of arguments the unpatcher may want</param>
-    public override void RemovePatch(PlayMakerFSM[] patchTarget, object[]? param = null)
-    {
-        if (Unpatch == null) return;
-
-        RemovePatch(patchTarget.FirstOrDefault(obj => obj.name.Equals(fsmName)), param);
-    }
-
-    public override void RemovePatch(PlayMakerFSM fsm, object[]? param = null)
-    {
-        if (Unpatch == null) return;
-
-        if (NameArray.Length > 0)
-        {
-            foreach (string name in NameArray)
-            {
-                foreach (FsmStateAction action in fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(name)).Actions)
-                {
-                    if (action.GetType().ToString().Equals(TypeString))
-                    {
-                        Unpatch(action, param);
-                    }
-                }
-            }
-        }
-        else
-        {
-            foreach (FsmStateAction action in fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(Name)).Actions)
-            {
-                if (action.GetType().ToString().Equals(TypeString))
-                {
-                    Unpatch(action, param);
-                }
-            }
-        }
-    }
-
-    public override object Clone()
-    {
-        if (Name != "")
-            return new SceneStateActionPatch(Name, Type, (Action<FsmStateAction, object[]?>)Patch.Clone(), (Action<FsmStateAction, object[]?>?)Unpatch?.Clone(), FSMName);
-        return new SceneStateActionPatch(NameArray, Type, (Action<FsmStateAction, object[]?>)Patch.Clone(), (Action<FsmStateAction, object[]?>?)Unpatch?.Clone(), FSMName);
-    }
+    public string ObjectName { get; } = objectName;
 }
 #endregion
 
 #region FSM State
 /// <summary>
+/// Class for containing a set of Scene State patches
+/// </summary>
+public class SceneStateCollection : SceneFSMPatchCollections_Base<SceneStatePatch, SceneStatePatchSet, FsmState>;
+
+/// <summary>
 /// Patch set of Scene States
 /// </summary>
 /// <param name="objectName">Name of the object to be patched</param>
 /// <param name="patches">The set of patches for the object</param>
-public class SceneStatePatchSet(string objectName, List<SceneStatePatch> patches)
-    : SceneFSMPatchSet_Base<SceneStatePatch, FsmState>(objectName, patches)
+public class SceneStatePatchSet(string sceneName, string objectName, List<SceneStatePatch> patches, string fsmName = "")
+    : StatePatchSet_Base<SceneStatePatch>(objectName, patches, fsmName), ISceneFSMPatchSet
 {
     /// <summary>
     /// Patch set of Scene States
     /// </summary>
     /// <param name="objectNames">Array of names for objects to be patched</param>
     /// <param name="patches">The set of patches for the object</param>
-    SceneStatePatchSet(string[] objectNames, List<SceneStatePatch> patches)
-        : this("", patches)
+    SceneStatePatchSet(string sceneName, string[] objectNames, List<SceneStatePatch> patches, string fsmName = "")
+        : this(sceneName, "", patches, fsmName)
     {
         NameArray = objectNames;
     }
-    public override object Clone()
-    {
-        List<SceneStatePatch> newPatchList = [];
 
-        foreach (var patch in Patches)
-        {
-            newPatchList.Add((SceneStatePatch)patch.Clone());
-        }
+    public string SceneName { get; } = sceneName;
 
-        if (Name != "")
-            return new SceneStatePatchSet(Name, newPatchList);
-        return new SceneStatePatchSet(NameArray, newPatchList);
-    }
+    public string ObjectName { get; } = objectName;
 }
 
 /// <summary>
 /// Patch for a Scene State
 /// </summary>
+/// /// <param name="sceneName">Name of scene that the object is within</param>
 /// <param name="stateName">The state that is to be patched</param>
 /// <param name="patch">The patch to be applied</param>
 /// <param name="unpatch">Optional patch to remove</param>
 /// <param name="fsmName">Optional fsm name, used when calling either ApplyPatch or RemovePatch with an array of PlayMakerFSMs</param>
-public class SceneStatePatch(string stateName, Action<FsmState, object[]?> patch, Action<FsmState, object[]?>? unpatch = null, string fsmName = "")
-: SceneFSMPatch_Base<FsmState>(stateName, patch, unpatch)
+public class SceneStatePatch(string sceneName, string objectName, string stateName, Action<FsmState, object[]?> patch, Action<FsmState, object[]?>? unpatch = null, string fsmName = "")
+: StatePatch_Base(stateName, patch, unpatch, fsmName), ISceneFSMPatch
 {
     /// <summary>
     /// Patch for a Scene State
     /// </summary>
+    /// <param name="sceneName">Name of scene that the object is within</param>
     /// <param name="stateNames">An array of state names to be patched within</param>
     /// <param name="patch">The patch to be applied</param>
     /// <param name="unpatch">Optional patch to remove</param>
     /// <param name="fsmName">Optional fsm name, used when calling either ApplyPatch or RemovePatch with an array of PlayMakerFSMs</param>
-    public SceneStatePatch(string[] stateNames, Action<FsmState, object[]?> patch, Action<FsmState, object[]?>? unpatch = null, string fsmName = "")
-        : this("", patch, unpatch, fsmName)
+    public SceneStatePatch(string sceneName, string objectName, string[] stateNames, Action<FsmState, object[]?> patch, Action<FsmState, object[]?>? unpatch = null, string fsmName = "")
+        : this(sceneName, objectName, "", patch, unpatch, fsmName)
     {
         NameArray = stateNames;
     }
 
+    public string SceneName { get; } = sceneName;
     /// <summary>
-    /// Patches an FSM, will ignore Name if NameArray is populated
+    /// Name of the patch target
     /// </summary>
-    /// <param name="patchTarget">Array that contains the FSM to patch</param>
-    /// <param name="param">An array of arguments the patcher may want</param>
-    public override void ApplyPatch(PlayMakerFSM[] patchTarget, object[]? param = null)
-    {
-        ApplyPatch(patchTarget.FirstOrDefault(obj => obj.name.Equals(fsmName)), param);
-    }
-
-    public override void ApplyPatch(PlayMakerFSM fsm, object[]? param = null)
-    {
-        if (NameArray.Length > 0)
-        {
-            foreach (string name in NameArray)
-            {
-                Patch(fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(name)), param);
-            }
-        }
-        else
-            Patch(fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(Name)), param);
-    }
-
-    /// <summary>
-    /// Removes patches from an FSM, will ignore Name if NameArray is populated
-    /// </summary>
-    /// <param name="patchTarget">Array that contains the FSM to remove patches from</param>
-    /// <param name="param">An array of arguments the unpatcher may want</param>
-    public override void RemovePatch(PlayMakerFSM[] patchTarget, object[]? param = null)
-    {
-        if (Unpatch == null) return;
-
-        RemovePatch(patchTarget.FirstOrDefault(obj => obj.name.Equals(fsmName)), param);
-    }
-
-    public override void RemovePatch(PlayMakerFSM fsm, object[]? param = null)
-    {
-        if (Unpatch == null) return;
-
-        if (NameArray.Length > 0)
-        {
-            foreach (string name in NameArray)
-            {
-                Unpatch(fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(name)), param);
-            }
-        }
-        else
-            Unpatch(fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(Name)), param);
-    }
-
-    public override object Clone()
-    {
-        if (Name != "")
-            return new SceneStatePatch(Name, (Action<FsmState, object[]?>)Patch.Clone(), (Action<FsmState, object[]?>?)Unpatch?.Clone(), FSMName);
-        return new SceneStatePatch(NameArray, (Action<FsmState, object[]?>)Patch.Clone(), (Action<FsmState, object[]?>?)Unpatch?.Clone(), FSMName);
-    }
+    public string ObjectName { get; } = objectName;
 }
 #endregion
 
@@ -336,11 +228,15 @@ public class SceneStatePatch(string stateName, Action<FsmState, object[]?> patch
 /// <typeparam name="PatchSetType">The class for the base patch</typeparam>
 /// <typeparam name="PatchTarget">The type of FSM thing the patches are patching</typeparam>
 public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, PatchTarget>
-    : ObjectPatchCollection_Base<PatchType, PatchSetType, PlayMakerFSM[], PatchTarget>
-    where PatchType : SceneFSMPatch_Base<PatchTarget>
-    where PatchSetType : SceneFSMPatchSet_Base<PatchType, PatchTarget>
+    : ObjectPatchCollection_Base<PatchType, PatchSetType, PlayMakerFSM, PatchTarget>
+    where PatchType : FSMPatch_Base<PatchTarget>
+    where PatchSetType : FSMPatchSet_Base<PatchType, PatchTarget>
 {
-
+    private readonly Dictionary<string, Dictionary<string, int>> patchedObjects = [];
+    /// <summary>
+    /// Dictionary containing the names of objects within scenes to patch and how many patches are to be applied to them
+    /// </summary>
+    public new Dictionary<string, Dictionary<string, int>> PatchedObjects => patchedObjects;
     /// <summary>
     /// The collection of patches that this contains
     /// </summary>
@@ -379,56 +275,177 @@ public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, Pat
             }
         }
     }
-}
-
-/// <summary>
-/// Abstract class for a set of Scene object FSM patches
-/// </summary>
-/// <typeparam name="PatchType">The Patch type to use</typeparam>
-/// <typeparam name="PatchTarget">The type of FSM thing to patch</typeparam>
-/// <param name="name">Name of the object to be patched</param>
-/// <param name="patches">The patches to apply</param>
-/// <param name="fsmName">Optional fsm name</param>
-public abstract class SceneFSMPatchSet_Base<PatchType, PatchTarget>(string name, List<PatchType> patches, string fsmName = "")
-    : ObjectPatchSet_Base<PatchType, PlayMakerFSM[], PatchTarget>(name, patches), ISceneFSMPatchSet
-    where PatchType : SceneFSMPatch_Base<PatchTarget>
-{
-    public string FSMName { get; } = fsmName;
-}
-
-/// <summary>
-/// Abstract class for a Scene FSM patch
-/// </summary>
-/// <typeparam name="PatchTarget">The type of FSM thing to patch</typeparam>
-/// <param name="name">Name of the object to patch</param>
-/// <param name="patch">The patch to be applied</param>
-/// <param name="unpatch">Optional patch to remove the changes</param>
-/// <param name="fsmName">Optional name of the FSM to patch</param>
-public abstract class SceneFSMPatch_Base<PatchTarget>(string name, Action<PatchTarget, object[]?> patch, Action<PatchTarget, object[]?>? unpatch = null, string fsmName = "")
-        : ObjectPatch_Base<PatchTarget, PlayMakerFSM[]>(name, patch, unpatch), ISceneFSMPatch
-{
-    public string FSMName { get; } = fsmName;
 
     /// <summary>
-    /// Patches an FSM
+    /// Register a collection of patches
     /// </summary>
-    /// <param name="fsm">The FSM to patch</param>
-    /// <param name="param">An array of arguments the patcher may want</param>
-    public abstract void ApplyPatch(PlayMakerFSM fsm, object[]? param = null);
+    /// <param name="patchCollection">The dictionary containing the patches to be applied to objects</param>
+    public virtual void RegisterPatchCollection(Dictionary<string, Dictionary<string, PatchType>> patchCollection)
+    {
+        foreach (var patchGroup in patchCollection)
+        {
+            foreach (var patchSet in patchGroup.Value)
+            {
+                RegisterPatchInCollection(patchGroup.Key, patchSet.Key, patchSet.Value);
+            }
+        }
+    }
 
     /// <summary>
-    /// Removes patches from an FSM
+    /// Register a collection of patches
     /// </summary>
-    /// <param name="fsm">The FSM to remove patches from</param>
-    /// <param name="param">An array of arguments the unpatcher may want</param>
-    public abstract void RemovePatch(PlayMakerFSM fsm, object[]? param = null);
+    /// <param name="sceneName">Name of scene that the object is within</param>
+    /// <param name="objectName">Name of the object</param>
+    /// <param name="patchCollection">List containing patches to apply</param>
+    public virtual void RegisterPatchCollection(string sceneName, string objectName, List<PatchType> patchCollection)
+    {
+        foreach (var patch in patchCollection)
+        {
+            RegisterPatchInCollection(sceneName, objectName, patch);
+        }
+    }
+
+    /// <summary>
+    /// Register a patch for an object in a scene
+    /// </summary>
+    /// <param name="sceneName">Name of scene that the object is within</param>
+    /// <param name="objectName">Name of the object</param>
+    /// <param name="smolPatch">Patch to apply</param>
+    public virtual void RegisterPatchInCollection(string sceneName, string objectName, ISmolPatch smolPatch)
+    {
+        if (smolPatch is PatchType patch)
+        {
+            if (Patches.ContainsKey(sceneName))
+            {
+                if (Patches[sceneName].ContainsKey(objectName))
+                {
+                    if (!Patches[sceneName][objectName].Add(patch))
+                        return; // The patch is already in there
+                }
+                else
+                    Patches[sceneName][objectName] = new() { { patch } };
+            }
+            else
+                Patches[sceneName] = new() { { objectName, [patch] } };
+
+            if (PatchedObjects.ContainsKey(sceneName))
+            {
+                if (PatchedObjects[sceneName].ContainsKey(objectName))
+                {
+                    PatchedObjects[sceneName][objectName]++;
+                }
+                else
+                    PatchedObjects[sceneName].Add(objectName, 1);
+            }
+            else
+                PatchedObjects[sceneName] = new() { { objectName, 1 } };
+        }
+        else if (smolPatch is PatchSetType patchSet)
+        {
+            RegisterPatchCollection(sceneName, objectName, patchSet.Patches);
+        }
+        else
+            CuteRandoCore.Log.LogWarning($"Register patch called with invalid patch type, Name: {smolPatch.Name}, Type: {smolPatch.GetType()}");
+    }
+
+    /// <summary>
+    /// Unregister a collection of patches
+    /// </summary>
+    /// <param name="patchCollection">The dictionary containing the patches to be removed from objects</param>
+    public virtual void UnregisterPatchCollection(Dictionary<string, Dictionary<string, PatchType>> patchCollection)
+    {
+        foreach (var patchGroup in patchCollection)
+        {
+            foreach (var patchSet in patchGroup.Value)
+            {
+                UnregisterPatchInCollection(patchGroup.Key, patchSet.Key, patchSet.Value);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Unregister a collection of patches
+    /// </summary>
+    /// <param name="sceneName">Name of scene that the object is within</param>
+    /// <param name="objectName">Name of the object</param>
+    /// <param name="patchCollection">List containing patches to remove</param>
+    public virtual void UnregisterPatchCollection(string sceneName, string objectName, List<PatchType> patchCollection)
+    {
+        foreach (var patch in patchCollection)
+        {
+            UnregisterPatchInCollection(sceneName, objectName, patch);
+        }
+    }
+
+    /// <summary>
+    /// Unregister a patch for an object in a scene
+    /// </summary>
+    /// <param name="sceneName">Name of scene that the object is within</param>
+    /// <param name="objectName">Name of the object</param>
+    /// <param name="smolPatch">Patch to remove</param>
+    public virtual void UnregisterPatchInCollection(string sceneName, string objectName, ISmolPatch smolPatch)
+    {
+        if (smolPatch is PatchType patch)
+        {
+            if (Patches.ContainsKey(sceneName))
+            {
+                if (Patches[sceneName].ContainsKey(objectName))
+                {
+                    if (Patches[sceneName][objectName].Remove(patch))
+                    {
+                        if (PatchedObjects[sceneName][objectName] == 1)
+                            PatchedObjects[sceneName].Remove(objectName);
+                        else
+                            PatchedObjects[sceneName][objectName]--;
+                    }
+                    if (PatchedObjects[sceneName].GetCount() == 0)
+                        PatchedObjects.Remove(sceneName);
+                }
+            }
+        }
+        else if (smolPatch is PatchSetType patchSet)
+        {
+            RegisterPatchCollection(sceneName, objectName, patchSet.Patches);
+        }
+        else
+            CuteRandoCore.Log.LogWarning($"Register patch called with invalid patch {smolPatch.Name}");
+    }
+
+    #region Overrided Register/Unregister Methods
+#pragma warning disable CS0809 // Obsolete member overrides non-obsolete member
+    [Obsolete("Class Requires Dictionary{string, Dictionary{string, PatchType}} for Scene Detection", true)]
+    public override void RegisterPatchCollection(List<PatchType> patchCollection) { }
+    [Obsolete("Class Requires Dictionary{string, Dictionary{string, ISmolPatch}} for Scene Detection", true)]
+    public override void RegisterPatchInCollection(string objectName, ISmolPatch smolPatch) { }
+    [Obsolete("Class Requires Dictionary{string, Dictionary{string, PatchType}} for Scene Detection", true)]
+    public override void UnregisterPatchCollection(List<PatchType> patchCollection) { }
+    [Obsolete("Class Requires Dictionary{string, Dictionary{string, ISmolPatch}} for Scene Detection", true)]
+    public override void UnregisterPatchInCollection(string objectName, ISmolPatch smolPatch) { }
+#pragma warning restore CS0809 // Obsolete member overrides non-obsolete member
+    #endregion
 }
 #endregion
 
 /// <summary>
+/// Marks a patch as a Scene patch
+/// </summary>
+public interface IScenePatch
+{
+    /// <summary>
+    /// Name of the scene the patch is for
+    /// </summary>
+    public string SceneName { get; }
+
+    /// <summary>
+    /// Name of the patch target
+    /// </summary>
+    public string ObjectName { get; }
+}
+
+/// <summary>
 /// Marks a patch as a Scene FSM Patch
 /// </summary>
-public interface ISceneFSMPatch : IFSMPatch, ISmolPatch;
+public interface ISceneFSMPatch : IFSMPatch, ISmolPatch, IScenePatch;
 
 /// <summary>
 /// Marks a patch set as a Scene FSM Patch Set, includes the interface to additionally mark it as a patch

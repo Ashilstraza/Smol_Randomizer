@@ -21,7 +21,6 @@ using Silksong.DataManager;
 using Silksong.ModMenu.Plugin;
 using Silksong.ModMenu.Screens;
 
-using Smol_Randomizer.Patchers;
 using Smol_Randomizer.Patchers.Enemy;
 using Smol_Randomizer.Patchers.Scene;
 using Smol_Randomizer.Randomizers;
@@ -195,7 +194,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     {
         if (string.IsNullOrEmpty(DataLocation) && !string.IsNullOrEmpty(Info.Location))
         {
-            DataLocation = Info.Location.TrimEnd("\\\\Smol_Randomizer.dll".ToCharArray()) + "Smol_Randomizer\\Smol_Randomizer";
+            DataLocation = Info.Location.TrimEnd("\\\\Smol_Randomizer.dll".ToCharArray()) + "Smol_Randomizer";
             return true;
         }
         else if (!string.IsNullOrEmpty(DataLocation))
@@ -276,7 +275,6 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         SceneFSMPatches.ApplyPatches(scene);
         EnemyFSMPatches.OnSceneLoaded();
 
-        SceneObjectPatchCollection.ApplyPatches(scene);
         EnemyObjectPatchCollection.OnSceneLoaded();
     }
 
@@ -296,7 +294,6 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         EnemyFSMPatches.RemovePatches();
 
         // Remove any Object patches
-        SceneObjectPatchCollection.RemovePatches(currentScene);
         EnemyObjectPatchCollection.RemovePatches();
 
         // Then Unhook Ourself

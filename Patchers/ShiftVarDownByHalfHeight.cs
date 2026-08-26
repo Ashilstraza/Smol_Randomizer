@@ -72,8 +72,6 @@ public class ShiftVarDownByHalfHeight : FsmStateAction
         if (floatTarget == null)
             floatTarget = ActionHelpers.GetGameObjectFsm(thing, "").FsmVariables.GetFsmFloat(variableName.Value);
 
-        float halfHeight = col.size.y / 2;
-
-        floatTarget.Value = floatTarget.Value - halfHeight;
+        floatTarget.Value = floatTarget.Value - col.size.y / 2;
     }
 }

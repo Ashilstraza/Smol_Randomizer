@@ -76,6 +76,32 @@ public class EnemyObjectPatchCollection : ObjectPatchCollection_Base<EnemyObject
 
         patchedEnemies.Remove(enemyHealthManager);
     }
+
+    /// <summary>
+    /// Register a collection of patches
+    /// </summary>
+    /// <param name="patchCollection">A list containing the patches to be applied</param>
+    public void RegisterPatchCollection(List<IEnemyObjectPatch> patchCollection)
+    {
+
+        foreach (var patch in patchCollection)
+        {
+            RegisterPatchInCollection(patch.Name, patch);
+        }
+    }
+
+    /// <summary>
+    /// Unregister a collection of patches
+    /// </summary>
+    /// <param name="patchCollection">A list containing the patches to no longer be applied<</param>
+    public void UnregisterPatchCollection(List<IEnemyObjectPatch> patchCollection)
+    {
+
+        foreach (var patch in patchCollection)
+        {
+            RegisterPatchInCollection(patch.Name, patch);
+        }
+    }
 }
 
 /// <summary>
@@ -95,17 +121,6 @@ public class EnemyObjectPatchSet(string enemyName, List<EnemyObjectPatch> patche
         : this("", patches)
     {
         NameArray = enemyNames;
-    }
-    public override object Clone()
-    {
-        List<EnemyObjectPatch> newPatchList = [];
-        foreach (var patch in Patches)
-        {
-            newPatchList.Add((EnemyObjectPatch)patch.Clone());
-        }
-        if (Name != "")
-            return new EnemyObjectPatchSet(Name, newPatchList);
-        return new EnemyObjectPatchSet(NameArray, newPatchList);
     }
 }
 
@@ -129,23 +144,31 @@ public class EnemyObjectPatch(string enemyName, Action<GameObject, object[]?> pa
     {
         NameArray = enemyNames;
     }
+    public override void ApplyPatch(GameObject[] patchTargets, object[]? param = null)
+    {
+        foreach (var target in patchTargets)
+        {
+            ApplyPatch(target, param);
+        }
+    }
+
     public override void ApplyPatch(GameObject patchTarget, object[]? param = null)
     {
-        if (param == null) return;
         Patch(patchTarget, param);
+    }
+
+    public override void RemovePatch(GameObject[] patchTargets, object[]? param = null)
+    {
+        foreach (var target in patchTargets)
+        {
+            RemovePatch(target, param);
+        }
     }
 
     public override void RemovePatch(GameObject patchTarget, object[]? param = null)
     {
-        if (Unpatch == null || param == null) return;
+        if (Unpatch == null) return;
         Unpatch(patchTarget, param);
-    }
-
-    public override object Clone()
-    {
-        if (Name != "")
-            return new EnemyObjectPatch(Name, (Action<GameObject, object[]?>)Patch.Clone(), (Action<GameObject, object[]?>?)Unpatch?.Clone());
-        return new EnemyObjectPatch(NameArray, (Action<GameObject, object[]?>)Patch.Clone(), (Action<GameObject, object[]?>?)Unpatch?.Clone());
     }
 }
 

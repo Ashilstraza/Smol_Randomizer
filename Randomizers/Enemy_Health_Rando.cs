@@ -338,6 +338,11 @@ internal class Enemy_Health_Rando : Rando_Base
 
         enemyHealthRandomizerSetting.SettingChanged += SettingMenu.OnRandomizerEnable;
         SettingMenu.UpdateSubMenuColor(enemyHealthRandomizerSetting);
+
+        if (!enemyHealthRandomizerSetting.Value.Equals(RandomizerEnemyTypeFlags.None))
+        {
+            Register();
+        }
     }
 
     protected override void OnSettingsUpdated(object sender, EventArgs args)

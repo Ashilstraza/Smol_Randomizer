@@ -386,6 +386,11 @@ internal class Enemy_Damage_Rando : Rando_Base
 
         damageModifierType.SettingChanged += SettingMenu.OnRandomizerEnable;
         SettingMenu.UpdateSubMenuColor(damageModifierType);
+
+        if (!damageModifierType.Value.Equals(RandomizeByFlatAmount.Disabled))
+        {
+            Register();
+        }
     }
 
     protected override void OnSettingsUpdated(object sender, EventArgs args)

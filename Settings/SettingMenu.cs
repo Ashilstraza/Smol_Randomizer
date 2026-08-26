@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
 using BepInEx.Configuration;
-
-using HarmonyLib;
 
 using Silksong.ModMenu.Elements;
 using Silksong.ModMenu.Models;
@@ -198,14 +195,6 @@ public class SettingMenu : SmolRandomizerMenuBuilder
                 },
                 "Resets the settings for all the randomizers to their default settings.");
             screenBuilder.BlankSpace();
-            screenBuilder.Button("Reset Cameras",
-                static delegate
-                {
-                    if (GameCameras.instance != null)
-                        UnityEngine.Object.Destroy(GameCameras.instance.gameObject);
-                    var startGameCameras = AccessTools.Method(typeof(QuitToMenu), "StartLoadCoreManager");
-                    startGameCameras.Invoke(null, ["_GameCameras"]);
-                });
 #if TESTING // Enable Saving Data
             TextButton resetButton = screenBuilder.Button("Reset All Saved Values for Current Slot",
                 ResetAllSavedData,
@@ -222,7 +211,6 @@ public class SettingMenu : SmolRandomizerMenuBuilder
 #endif
         }
     }
-
     static OnScreenDebugInfo debugInfo = new OnScreenDebugInfo();
 
     private static void ResetAllSavedData()

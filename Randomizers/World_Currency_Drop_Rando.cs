@@ -390,6 +390,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
                 SettingMenu.UpdateSubMenuColor(shardChanceEnable);
             else
                 SettingMenu.UpdateSubMenuColor(architectChanceEnable);
+            Register();
         }
     }
 
