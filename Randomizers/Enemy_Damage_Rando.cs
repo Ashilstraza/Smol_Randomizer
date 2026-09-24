@@ -6,57 +6,48 @@ using BepInEx.Configuration;
 using HarmonyLib;
 
 #if TESTING
+
 using MonoMod.Utils;
 
 using Newtonsoft.Json;
+
 #endif
+
 using Smol_Randomizer.Settings;
 
 using UnityEngine.SceneManagement;
 
 namespace Smol_Randomizer.Randomizers;
 
-/// <summary>
-/// Randomizer for Enemy Damage
-/// </summary>
+/// <summary>Randomizer for Enemy Damage</summary>
 internal class Enemy_Damage_Rando : Rando_Base
 {
-    /// <summary>
-    /// We make a singleton of this rando
-    /// </summary>
+    /// <summary>We make a singleton of this rando</summary>
     private static readonly Lazy<Enemy_Damage_Rando> instance = new(() => new Enemy_Damage_Rando());
-    /// <summary>
-    /// Externally visible instance of this rando
-    /// </summary>
+
+    /// <summary>Externally visible instance of this rando</summary>
     public static Enemy_Damage_Rando Instance => instance.Value;
 
-    /// <summary>
-    /// Dictionary of the various enemy damage numbers
-    /// </summary>
+    /// <summary>Dictionary of the various enemy damage numbers</summary>
     private readonly Dictionary<string, int> enemyDamageNumbers = [];
-    /// <summary>
-    /// Dictionary containing the damage numbers by scene
-    /// </summary>
+
+    /// <summary>Dictionary containing the damage numbers by scene</summary>
     private readonly Dictionary<string, Dictionary<string, int>> sceneDamageNumbers = [];
-    /// <summary>
-    /// Set of the currently set hero damagers
-    /// </summary>
+
+    /// <summary>Set of the currently set hero damagers</summary>
     private readonly HashSet<DamageHero> currentHeroDamagers = [];
 
     #region Randomizer_Info
-    /// <summary>
-    /// Used for registering this randomizer in the core for when the hero damager gets enabled
-    /// </summary>
-    private Randomizer_Info eventActiveHeroDamager;
-    /// <summary>
-    /// Used for registering this randomizer in the core for when a scene loads
-    /// </summary>
-    private Randomizer_Info eventOnFirstSceneFrame;
-    #endregion
 
-    /// <summary>
-    /// Constructor for this singleton
-    /// </summary>
+    /// <summary>Used for registering this randomizer in the core for when the hero damager gets enabled</summary>
+    private Randomizer_Info eventActiveHeroDamager;
+
+    /// <summary>Used for registering this randomizer in the core for when a scene loads</summary>
+    private Randomizer_Info eventOnFirstSceneFrame;
+
+    #endregion Randomizer_Info
+
+    /// <summary>Constructor for this singleton</summary>
     private Enemy_Damage_Rando()
     {
         InitRandomizer();
@@ -99,9 +90,11 @@ internal class Enemy_Damage_Rando : Rando_Base
 
     // Unused as we don't need
     protected override void OnLoaded() { }
+
     protected override void OnUnload() { }
 
 #if TESTING // Enable Saving Data
+
     protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(enemyDamageNumbers), out object tempDict))
@@ -118,10 +111,12 @@ internal class Enemy_Damage_Rando : Rando_Base
 
     // Unneeded for this Randomizer
     protected override void OnSettingsSaved() { }
+
 #endif
 
     /// <summary>
-    /// On first frame, clean the hero damagers list. This is done the first frame because some of them activate before the scene is loaded, and some afterward
+    /// On first frame, clean the hero damagers list. This is done the first frame because some of them activate before
+    /// the scene is loaded, and some afterward
     /// </summary>
     /// <param name="scene">The scene we are in</param>
     private void OnFirstSceneFrame(Scene scene)
@@ -129,10 +124,8 @@ internal class Enemy_Damage_Rando : Rando_Base
         CleanCurrentHeroDamagers();
     }
 
-    /// <summary>
-    /// Updates the damager with a new value
-    /// </summary>
-    /// <param name="damager">The damager to be adjusted</param>
+    /// <summary>Updates the damager with a new value</summary>
+    /// <param name="damager">           The damager to be adjusted</param>
     /// <param name="enemyHealthManager">The HealthManager of the enemy</param>
     /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
     private void SetDamage(DamageHero damager, HealthManager enemyHealthManager)
@@ -175,6 +168,7 @@ internal class Enemy_Damage_Rando : Rando_Base
 
                 damager.damageDealt = damageValue;
                 break;
+
             case RandomizerConsistencyA.Scene:
                 if (!sceneDamageNumbers.TryGetValue(operatingScene, out Dictionary<string, int> damageNumbersSet))
                 {
@@ -192,9 +186,11 @@ internal class Enemy_Damage_Rando : Rando_Base
                 damager.damageDealt = damageValue;
 
                 break;
+
             case RandomizerConsistencyA.None:
                 DamageSetter(ref damager.damageDealt);
                 break;
+
             default:
                 throw new NotImplementedException();
         }
@@ -211,9 +207,7 @@ internal class Enemy_Damage_Rando : Rando_Base
         }
     }
 
-    /// <summary>
-    /// Cleans the currentHeroDamagers
-    /// </summary>
+    /// <summary>Cleans the currentHeroDamagers</summary>
     private void CleanCurrentHeroDamagers()
     {
         currentHeroDamagers.RemoveWhere(x => x == null);
@@ -227,84 +221,77 @@ internal class Enemy_Damage_Rando : Rando_Base
     }
 
     #region Settings
-    /// <summary>
-    /// Setting for how consistant the enemy damage should be
-    /// </summary>
+
+    /// <summary>Setting for how consistant the enemy damage should be</summary>
     public RandomizerConsistencyA RandomizerConsistency
     {
         get => randomizerConsistency.Value;
         internal set => randomizerConsistency.Value = value;
     }
+
     private ConfigEntry<RandomizerConsistencyA> randomizerConsistency;
-    /// <summary>
-    /// Default setting for how consistant the enemy damage should be
-    /// </summary>
+
+    /// <summary>Default setting for how consistant the enemy damage should be</summary>
     public const RandomizerConsistencyA defaultRandomizerConsistency = RandomizerConsistencyA.None;
-    /// <summary>
-    /// Randomize the damage of enemies
-    /// </summary>
+
+    /// <summary>Randomize the damage of enemies</summary>
     public RandomizeByFlatAmount DamageModifierType
     {
         get => damageModifierType.Value;
         internal set => damageModifierType.Value = value;
     }
+
     private ConfigEntry<RandomizeByFlatAmount> damageModifierType;
-    /// <summary>
-    /// Default choice for the damage randomizer
-    /// </summary>
+
+    /// <summary>Default choice for the damage randomizer</summary>
     public const RandomizeByFlatAmount defaultDamageModifierType = RandomizeByFlatAmount.Disabled;
-    /// <summary>
-    /// Shift the damage that enemies do by +X or -X
-    /// </summary>
+
+    /// <summary>Shift the damage that enemies do by +X or -X</summary>
     public int DamageShift
     {
         get => damageShift.Value;
         internal set => damageShift.Value = value;
     }
+
     private ConfigEntry<int> damageShift;
-    /// <summary>
-    /// Default choice for the shift amount
-    /// </summary>
+
+    /// <summary>Default choice for the shift amount</summary>
     public const int defaultDamageShift = 1;
-    /// <summary>
-    /// Randomizes the damage between a range of values
-    /// </summary>
+
+    /// <summary>Randomizes the damage between a range of values</summary>
     public IntRange DamageRange
     {
         get => damageRange.Value;
         internal set => damageRange.Value = value;
     }
+
     private ConfigEntry<IntRange> damageRange;
-    /// <summary>
-    /// Default range for the damage
-    /// </summary>
+
+    /// <summary>Default range for the damage</summary>
     public static readonly IntRange defaultDamageRange = new(0, 3);
-    /// <summary>
-    /// Locks minimum damage for an enemy to 1
-    /// </summary>
+
+    /// <summary>Locks minimum damage for an enemy to 1</summary>
     public bool EnemyDamageMinimum
     {
         get => enemyDamageMinimum.Value;
         internal set => enemyDamageMinimum.Value = value;
     }
+
     private ConfigEntry<bool> enemyDamageMinimum;
-    /// <summary>
-    /// Default setting if minimum damage should be enabled
-    /// </summary>
+
+    /// <summary>Default setting if minimum damage should be enabled</summary>
     public const bool defaultEnemyDamageMinimum = false;
 
-    /// <summary>
-    /// If each part of an attack is the same damage
-    /// </summary>
+    /// <summary>If each part of an attack is the same damage</summary>
     public bool EnemyAttackConsistancy
     {
         get => enemyAttackConsistancy.Value;
         internal set => enemyAttackConsistancy.Value = value;
     }
+
     private ConfigEntry<bool> enemyAttackConsistancy;
-    /// <summary>
-    /// Default settings if each part of an attack is the same damage
-    /// </summary>
+
+    /// <summary>Default settings if each part of an attack is the same damage</summary>
     public const bool defaultEnemyAttackConsistancy = true;
 
     // Used for determining if we need to update and clear the dictionaries
@@ -408,5 +395,6 @@ internal class Enemy_Damage_Rando : Rando_Base
 
         ResetAllLists();
     }
-    #endregion
+
+    #endregion Settings
 }

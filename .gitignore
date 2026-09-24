@@ -489,3 +489,4 @@ $RECYCLE.BIN/
 *.swp
 /World_Objects.json
 /Completed_World_Objects.json
+/Patches.json

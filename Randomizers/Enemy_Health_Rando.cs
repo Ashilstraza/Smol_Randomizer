@@ -6,57 +6,48 @@ using BepInEx.Configuration;
 using HarmonyLib;
 
 #if TESTING
+
 using MonoMod.Utils;
 
 using Newtonsoft.Json;
+
 #endif
+
 using Smol_Randomizer.Settings;
 
 using UnityEngine.SceneManagement;
 
 namespace Smol_Randomizer.Randomizers;
 
-/// <summary>
-/// Randomizer for Enemy Health
-/// </summary>
+/// <summary>Randomizer for Enemy Health</summary>
 internal class Enemy_Health_Rando : Rando_Base
 {
-    /// <summary>
-    /// We make a singleton of this rando
-    /// </summary>
+    /// <summary>We make a singleton of this rando</summary>
     private static readonly Lazy<Enemy_Health_Rando> instance = new(() => new Enemy_Health_Rando());
-    /// <summary>
-    /// Externally visible instance of this rando
-    /// </summary>
+
+    /// <summary>Externally visible instance of this rando</summary>
     public static Enemy_Health_Rando Instance => instance.Value;
 
-    /// <summary>
-    /// Dictionary of the enemy health numbers in current game instance
-    /// </summary>
+    /// <summary>Dictionary of the enemy health numbers in current game instance</summary>
     private readonly Dictionary<string, int> enemyHealthNumbers = [];
-    /// <summary>
-    /// Dictionary of the scene health numbers in current game instance
-    /// </summary>
+
+    /// <summary>Dictionary of the scene health numbers in current game instance</summary>
     private readonly Dictionary<string, Dictionary<string, int>> sceneHealthNumbers = [];
-    /// <summary>
-    /// Set of enemy HealthManagers that we have touched in this scene
-    /// </summary>
+
+    /// <summary>Set of enemy HealthManagers that we have touched in this scene</summary>
     private readonly HashSet<HealthManager> currentEnemyHealthManagers = [];
 
     #region Randomizer_Info
-    /// <summary>
-    /// Used for registering this randomizer in the core for when enemies activate
-    /// </summary>
-    private Randomizer_Info eventActiveEnemy;
-    /// <summary>
-    /// Used for registering this randomizer in the core for when a scene loads
-    /// </summary>
-    private Randomizer_Info eventOnFirstSceneFrame;
-    #endregion
 
-    /// <summary>
-    /// Constructor for this singleton
-    /// </summary>
+    /// <summary>Used for registering this randomizer in the core for when enemies activate</summary>
+    private Randomizer_Info eventActiveEnemy;
+
+    /// <summary>Used for registering this randomizer in the core for when a scene loads</summary>
+    private Randomizer_Info eventOnFirstSceneFrame;
+
+    #endregion Randomizer_Info
+
+    /// <summary>Constructor for this singleton</summary>
     private Enemy_Health_Rando()
     {
         InitRandomizer();
@@ -99,9 +90,11 @@ internal class Enemy_Health_Rando : Rando_Base
 
     // Unused as we don't need
     protected override void OnLoaded() { }
+
     protected override void OnUnload() { }
 
 #if TESTING // Enable Saving Data
+
     protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(enemyHealthNumbers), out object tempDict))
@@ -118,10 +111,12 @@ internal class Enemy_Health_Rando : Rando_Base
 
     // Unneeded for this Randomizer
     protected override void OnSettingsSaved() { }
+
 #endif
 
     /// <summary>
-    /// On First Frame, clean the active health manager list. This is done on the first frame since some health managers get added before the scene is loaded, and some afterwards.
+    /// On First Frame, clean the active health manager list. This is done on the first frame since some health managers
+    /// get added before the scene is loaded, and some afterwards.
     /// </summary>
     /// <param name="scene">The scene we are in</param>
     private void OnFirstSceneFrame(Scene scene)
@@ -129,9 +124,7 @@ internal class Enemy_Health_Rando : Rando_Base
         CleanCurrentHealthManagerList();
     }
 
-    /// <summary>
-    /// Updates an enemy with a new health value
-    /// </summary>
+    /// <summary>Updates an enemy with a new health value</summary>
     /// <param name="thing">The HealthManager to adjust hp within</param>
     /// <exception cref="NotImplementedException">Consistency type is not implemented</exception>
     private void SetHealth(HealthManager thing)
@@ -153,8 +146,8 @@ internal class Enemy_Health_Rando : Rando_Base
         int tempHp;
         string name = thing.name;
 
-        int cullIndex = name.IndexOf('(') - 1;
-        if (cullIndex > 0) name = name[..cullIndex];
+        int cullIndex = name.IndexOf('(');
+        if (cullIndex > 0) name = name[..cullIndex].TrimEnd();
 
         switch (RandomizerConsistency)
         {
@@ -165,6 +158,7 @@ internal class Enemy_Health_Rando : Rando_Base
                     enemyHealthNumbers.Add(name, RandomizeHp(boss, initHp, hp, CuteRandoCore.RNGSeed(name)));
 
                 break;
+
             case RandomizerConsistencyA.Scene:
                 if (sceneHealthNumbers.TryGetValue(operatingScene, out Dictionary<string, int> healthManagerSet))
                 {
@@ -177,9 +171,11 @@ internal class Enemy_Health_Rando : Rando_Base
                     sceneHealthNumbers[operatingScene] = new() { { name, RandomizeHp(boss, initHp, hp, CuteRandoCore.RNGSeed(name + operatingScene)) } };
 
                 break;
+
             case RandomizerConsistencyA.None:
                 RandomizeHp(boss, initHp, hp);
                 break;
+
             default:
                 throw new NotImplementedException();
         }
@@ -212,9 +208,7 @@ internal class Enemy_Health_Rando : Rando_Base
         }
     }
 
-    /// <summary>
-    /// Cleans the current scene's HealthManager list
-    /// </summary>
+    /// <summary>Cleans the current scene's HealthManager list</summary>
     private void CleanCurrentHealthManagerList()
     {
         currentEnemyHealthManagers.RemoveWhere(x => x == null);
@@ -228,57 +222,53 @@ internal class Enemy_Health_Rando : Rando_Base
     }
 
     #region Settings
-    /// <summary>
-    /// Setting for how consistent the enemy health should be
-    /// </summary>
+
+    /// <summary>Setting for how consistent the enemy health should be</summary>
     public RandomizerConsistencyA RandomizerConsistency
     {
         get => randomizerConsistency.Value;
         internal set => randomizerConsistency.Value = value;
     }
+
     private ConfigEntry<RandomizerConsistencyA> randomizerConsistency;
-    /// <summary>
-    /// Default setting for how consistent the enemy health should be
-    /// </summary>
+
+    /// <summary>Default setting for how consistent the enemy health should be</summary>
     public const RandomizerConsistencyA defaultRandomizerConsistency = RandomizerConsistencyA.None;
-    /// <summary>
-    /// Randomize the health of enemies
-    /// </summary>
+
+    /// <summary>Randomize the health of enemies</summary>
     public RandomizerEnemyTypeFlags EnemyHealthRandomizerSetting
     {
         get => enemyHealthRandomizerSetting.Value;
         internal set => enemyHealthRandomizerSetting.Value = value;
     }
+
     private ConfigEntry<RandomizerEnemyTypeFlags> enemyHealthRandomizerSetting;
-    /// <summary>
-    /// Default choice for the health randomizer
-    /// </summary>
+
+    /// <summary>Default choice for the health randomizer</summary>
     public const RandomizerEnemyTypeFlags defaultEnemyHealthRandomizerSetting = RandomizerEnemyTypeFlags.None;
-    /// <summary>
-    /// Randomize the health of normal enemies
-    /// </summary>
+
+    /// <summary>Randomize the health of normal enemies</summary>
     public FloatRange EnemyHealthPercentRange
     {
         get => enemyHealthPercentRange.Value;
         internal set => enemyHealthPercentRange.Value = value;
     }
+
     private ConfigEntry<FloatRange> enemyHealthPercentRange;
-    /// <summary>
-    /// Default choice for enemy health randomizer
-    /// </summary>
+
+    /// <summary>Default choice for enemy health randomizer</summary>
     public static readonly FloatRange defaultEnemyHealthPercentRange = new(0.25f, 3.0f);
-    /// <summary>
-    /// Randomize the health of boss enemies
-    /// </summary>
+
+    /// <summary>Randomize the health of boss enemies</summary>
     public FloatRange BossHealthPercentRange
     {
         get => bossHealthPercentRange.Value;
         internal set => bossHealthPercentRange.Value = value;
     }
+
     private ConfigEntry<FloatRange> bossHealthPercentRange;
-    /// <summary>
-    /// Default choice for boss health randomizer
-    /// </summary>
+
+    /// <summary>Default choice for boss health randomizer</summary>
     public static readonly FloatRange defaultBossHealthPercentRange = new(0.75f, 1.25f);
 
     // Used for determining if we need to update
@@ -360,5 +350,6 @@ internal class Enemy_Health_Rando : Rando_Base
 
         ResetAllLists();
     }
-    #endregion
+
+    #endregion Settings
 }

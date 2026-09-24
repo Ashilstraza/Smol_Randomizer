@@ -2,38 +2,27 @@
 
 using UnityEngine;
 
-namespace Smol_Randomizer.Patchers;
+namespace Smol_Randomizer.Patchers.FSM_Actions;
 
-/// <summary>
-/// FSM Action to shift a variable down by half an object's height
-/// </summary>
+/// <summary>FSM Action to shift a variable down by half an object's height</summary>
 public class ShiftVarDownByHalfHeight : FsmStateAction
 {
-    /// <summary>
-    /// Object we are referencing
-    /// </summary>
+    /// <summary>Object we are referencing</summary>
     public FsmOwnerDefault? gameObject;
-    /// <summary>
-    /// Name of the variable we want to shift
-    /// </summary>
+
+    /// <summary>Name of the variable we want to shift</summary>
     public FsmString? variableName;
-    /// <summary>
-    /// If this should happen every frame
-    /// </summary>
+
+    /// <summary>If this should happen every frame</summary>
     public bool everyFrame = false;
 
-    /// <summary>
-    /// The float being changed
-    /// </summary>
+    /// <summary>The float being changed</summary>
     private FsmFloat? floatTarget;
-    /// <summary>
-    /// Collider of referenced GameObject
-    /// </summary>
+
+    /// <summary>Collider of referenced GameObject</summary>
     private BoxCollider2D? col;
 
-    /// <summary>
-    /// Reset Action to base values
-    /// </summary>
+    /// <summary>Reset Action to base values</summary>
     public override void Reset()
     {
         gameObject = null;
@@ -57,9 +46,7 @@ public class ShiftVarDownByHalfHeight : FsmStateAction
         Adjust();
     }
 
-    /// <summary>
-    /// Adjusts the variable by half the height of the GameObject
-    /// </summary>
+    /// <summary>Adjusts the variable by half the height of the GameObject</summary>
     private void Adjust()
     {
         GameObject thing = base.Fsm.GetOwnerDefaultTarget(gameObject);

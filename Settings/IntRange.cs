@@ -6,7 +6,7 @@ namespace Smol_Randomizer.Settings;
 
 /// <summary>
 /// Class containing a range of integer values.
-/// 
+///
 /// Adapted from a StackOverflow question.
 /// </summary>
 public class IntRange
@@ -14,12 +14,8 @@ public class IntRange
     private int min;
     private int max;
 
-    /// <summary>
-    /// The minimum value. Will check if it is less than the max value when set.
-    /// </summary>
-    /// <exception cref="ArgumentException">
-    /// Is thrown if the value is greater than or equal to the max value.
-    /// </exception>
+    /// <summary>The minimum value. Will check if it is less than the max value when set.</summary>
+    /// <exception cref="ArgumentException">Is thrown if the value is greater than or equal to the max value.</exception>
     public int Min
     {
         get => min;
@@ -30,12 +26,8 @@ public class IntRange
         }
     }
 
-    /// <summary>
-    /// The maximum value. Will check if it is greater than the min value when set.
-    /// </summary>
-    /// <exception cref="ArgumentException">
-    /// Is thrown if the value is less than or equal to the min value.
-    /// </exception>
+    /// <summary>The maximum value. Will check if it is greater than the min value when set.</summary>
+    /// <exception cref="ArgumentException">Is thrown if the value is less than or equal to the min value.</exception>
     public int Max
     {
         get => max;
@@ -46,9 +38,7 @@ public class IntRange
         }
     }
 
-    /// <summary>
-    /// Workaround to allow casting an int to an IntRange
-    /// </summary>
+    /// <summary>Workaround to allow casting an int to an IntRange</summary>
     private int Both
     {
         get => min == max ? min : max / min;  // Doesn't get used
@@ -59,18 +49,14 @@ public class IntRange
         }
     }
 
-    /// <summary>
-    /// Returns the range as a Tuple.
-    /// </summary>
+    /// <summary>Returns the range as a Tuple.</summary>
     /// <returns>(min, max)</returns>
     public (int min, int max) AsTuple()
     {
         return (min, max);
     }
 
-    /// <summary>
-    /// Creates a new Range with the given values
-    /// </summary>
+    /// <summary>Creates a new Range with the given values</summary>
     /// <param name="min">The minimum value of the range.</param>
     /// <param name="max">The maximum value of the range.</param>
     /// <exception cref="ArgumentException">Is thrown if the given values are invalid.</exception>
@@ -88,21 +74,15 @@ public class IntRange
         }
     }
 
-    /// <summary>
-    /// Cast an int to an IntRange where both the minimum and maximum values equal the int
-    /// </summary>
+    /// <summary>Cast an int to an IntRange where both the minimum and maximum values equal the int</summary>
     /// <param name="ir">The int</param>
     public static implicit operator int(IntRange ir) => ir.Both;
 
-    /// <summary>
-    /// Cast an int to an IntRange where both the minimum and maximum values equal the int
-    /// </summary>
+    /// <summary>Cast an int to an IntRange where both the minimum and maximum values equal the int</summary>
     /// <param name="i">The int</param>
     public static explicit operator IntRange(int i) => new(i, i);
 
-    /// <summary>
-    /// Checks to see if a given value is within the bounds of the Range
-    /// </summary>
+    /// <summary>Checks to see if a given value is within the bounds of the Range</summary>
     /// <param name="value">Value to test.</param>
     /// <returns>True the value is within the range, otherwise false.</returns>
     public bool ContainsValue(int value)
@@ -110,18 +90,14 @@ public class IntRange
         return value.CompareTo(min) >= 0 && value.CompareTo(max) <= 0;
     }
 
-    /// <summary>
-    /// The range.
-    /// </summary>
+    /// <summary>The range.</summary>
     /// <returns>The range formatted as 'min - max'</returns>
     public override string ToString()
     {
         return $"[{min} - {max}]";
     }
 
-    /// <summary>
-    /// Parses a given string into a float range
-    /// </summary>
+    /// <summary>Parses a given string into a float range</summary>
     /// <param name="s">The string to parse.</param>
     /// <returns>A new FloatRange.</returns>
     public static IntRange Parse(string s)
@@ -130,9 +106,7 @@ public class IntRange
         return new IntRange(int.Parse(ints[0]), int.Parse(ints[1]));
     }
 
-    /// <summary>
-    /// Parses a given pair of strings into a float range
-    /// </summary>
+    /// <summary>Parses a given pair of strings into a float range</summary>
     /// <param name="s1">The string to parse as the minimum.</param>
     /// <param name="s2">The string to parse as the maximum.</param>
     /// <returns>A new FloatRange.</returns>
@@ -143,9 +117,7 @@ public class IntRange
         return new IntRange(min, max);
     }
 
-    /// <summary>
-    /// Compares this to a given object.
-    /// </summary>
+    /// <summary>Compares this to a given object.</summary>
     /// <param name="obj">The object to be compared to, will only work with another FloatRange</param>
     /// <returns>true if the two values are the same, otherwise false</returns>
     public override bool Equals(object obj)
@@ -163,7 +135,6 @@ public class IntRange
 
     /// <summary>
     /// Returns a hash of this object.
-    /// 
     /// <para>Auto Generated</para>
     /// </summary>
     /// <returns>the hash</returns>
@@ -244,4 +215,3 @@ public class AcceptableRangeforIntRange(int minValue, int maxValue) : Acceptable
         return $"# Acceptable value range: From {MinValue} to {MaxValue}";
     }
 }
-

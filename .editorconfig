@@ -98,3 +98,6 @@ dotnet_style_namespace_match_folder = true:suggestion
 
 # Default severity for all analyzer diagnostics
 dotnet_analyzer_diagnostic.severity = none
+
+# Guidelines
+guidelines = 120

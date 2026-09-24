@@ -6,37 +6,26 @@ using BepInEx.Configuration;
 
 using Silksong.ModMenu.Elements;
 using Silksong.ModMenu.Models;
-#if TESTING
-using Smol_Randomizer.Randomizers;
-#endif
 
 using UnityEngine;
 
 namespace Smol_Randomizer.Settings;
 
-/// <summary>
-/// Creates a custom scroll based menu for the randomizer
-/// </summary>
+/// <summary>Creates a custom scroll based menu for the randomizer</summary>
 public class SettingMenu : SmolRandomizerMenuBuilder
 {
-    /// <summary>
-    /// Set of all the randomizer menu buttons
-    /// </summary>
+    /// <summary>Set of all the randomizer menu buttons</summary>
     private readonly HashSet<TextButton> randoMenuButtons = [];
 
     private readonly HashSet<MenuElement> additionalElements = [];
-    /// <summary>
-    /// Dictionary for the initial randomizer menu button enabled/disabled setting
-    /// </summary>
+
+    /// <summary>Dictionary for the initial randomizer menu button enabled/disabled setting</summary>
     private static readonly Dictionary<string, bool> preInitSetting = [];
-    /// <summary>
-    /// If the setting menu has been initialized
-    /// </summary>
+
+    /// <summary>If the setting menu has been initialized</summary>
     public static SettingMenu thisSettingMenu;
 
-    /// <summary>
-    /// Main randomizer menu
-    /// </summary>
+    /// <summary>Main randomizer menu</summary>
     /// <param name="title">Title of the menu (The mod's name)</param>
     internal SettingMenu(LocalizedText title) : base(title)
     {
@@ -57,29 +46,35 @@ public class SettingMenu : SmolRandomizerMenuBuilder
 
     public void AddAdditionalElement(MenuElement menuElement)
     {
+        if (menuElement == null) return;
+
         additionalElements.Add(menuElement);
     }
 
     public void AddAdditionalElements(MenuElement[] menuElements)
     {
+        if (menuElements == null) return;
+
         foreach (MenuElement menuElement in menuElements)
             additionalElements.Add(menuElement);
     }
 
     public void RemoveAdditionalElement(MenuElement menuElement)
     {
+        if (additionalElements == null) return;
+
         additionalElements.Remove(menuElement);
     }
 
     public void RemoveAdditionalElements(MenuElement[] menuElements)
     {
+        if (additionalElements == null) return;
+
         foreach (MenuElement menuElement in menuElements)
             additionalElements.Remove(menuElement);
     }
 
-    /// <summary>
-    /// Generates the various menus and options on the main page
-    /// </summary>
+    /// <summary>Generates the various menus and options on the main page</summary>
     private void GenerateMainPage()
     {
         ConfigFile config = Settings.ConfigFile;
@@ -125,11 +120,9 @@ public class SettingMenu : SmolRandomizerMenuBuilder
         }
     }
 
-    /// <summary>
-    /// Add reset to defaults and reset saved values
-    /// </summary>
+    /// <summary>Add reset to defaults and reset saved values</summary>
     /// <param name="screenBuilder">The screenBuilder menu we are modifying</param>
-    /// <param name="settingGroup">The settings for the menu</param>
+    /// <param name="settingGroup"> The settings for the menu</param>
     private static void Additional_Elements(ref SmolRandomizerMenuBuilder screenBuilder, KeyValuePair<string, Dictionary<string, ConfigEntryBase>> settingGroup)
     {
         string title = settingGroup.Key;
@@ -196,6 +189,14 @@ public class SettingMenu : SmolRandomizerMenuBuilder
                 "Resets the settings for all the randomizers to their default settings.");
             screenBuilder.BlankSpace();
 #if TESTING // Enable Saving Data
+            screenBuilder.Button("Import External Patches",
+                delegate
+                {
+                    Smol_Randomizer.Patchers.External_Patches.LoadPatches();
+                });
+
+            screenBuilder.BlankSpace();
+
             TextButton resetButton = screenBuilder.Button("Reset All Saved Values for Current Slot",
                 ResetAllSavedData,
                 "Resets the saved values for the current slot.");
@@ -211,11 +212,11 @@ public class SettingMenu : SmolRandomizerMenuBuilder
 #endif
         }
     }
-    static OnScreenDebugInfo debugInfo = new OnScreenDebugInfo();
+
+    private static OnScreenDebugInfo debugInfo = new OnScreenDebugInfo();
 
     private static void ResetAllSavedData()
     {
-
         try
         {
             HashSet<string> resetRandos = [];
@@ -235,9 +236,7 @@ public class SettingMenu : SmolRandomizerMenuBuilder
         }
     }
 
-    /// <summary>
-    /// Builds the Save Information Screen
-    /// </summary>
+    /// <summary>Builds the Save Information Screen</summary>
     /// <returns>The scrolling menu for the Save Information Screen</returns>
     private static SmolRandomizerMenuBuilder SaveInfoScreen()
     {
@@ -304,37 +303,29 @@ public class SettingMenu : SmolRandomizerMenuBuilder
 
         screenBuilder.Add(seedInput);
 
-
-
         return screenBuilder;
     }
 
-    /// <summary>
-    /// Called when a "Reset Values" button is clicked
-    /// </summary>
+    /// <summary>Called when a "Reset Values" button is clicked</summary>
     public static event Action<string> OnResetClicked;
 
-    /// <summary>
-    /// Set of all the reset buttons
-    /// </summary>
+    /// <summary>Set of all the reset buttons</summary>
     private static readonly HashSet<TextButton> randoResetButtons = [];
 
-    /// <summary>
-    /// Event hook to listen for updates on a specific setting
-    /// </summary>
+    /// <summary>Event hook to listen for updates on a specific setting</summary>
     /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
+    /// <param name="args">  The setting that was changed</param>
     internal static void OnRandomizerEnable(object sender, EventArgs args)
     {
         UpdateSubMenuColor(((SettingChangedEventArgs)args).ChangedSetting);
     }
 
-    /// <summary>
-    /// Updates the button color if it was enabled or disabled
-    /// </summary>
+    /// <summary>Updates the button color if it was enabled or disabled</summary>
     /// <param name="entry">The setting we are using to check if the button is enabled or not</param>
-    internal static void UpdateSubMenuColor(ConfigEntryBase entry)
+    public static void UpdateSubMenuColor(ConfigEntryBase entry)
     {
+        if (entry == null) return;
+
         bool enabled = entry.BoxedValue.ToString().ToLower() is "none" or "disabled" or "false";
 
         preInitSetting[entry.Definition.Section] = enabled;
@@ -345,19 +336,15 @@ public class SettingMenu : SmolRandomizerMenuBuilder
         thisSettingMenu?.UpdateSubMenuColor(entry.Definition.Section, enabled);
     }
 
-    /// <summary>
-    /// Updates all the menu colors at once.
-    /// </summary>
+    /// <summary>Updates all the menu colors at once.</summary>
     internal void UpdateAllSubMenuColors()
     {
         foreach (KeyValuePair<string, bool> setting in preInitSetting)
             UpdateSubMenuColor(setting.Key, setting.Value);
     }
 
-    /// <summary>
-    /// Updates the button colors via string entry
-    /// </summary>
-    /// <param name="entry">The string of the button to update</param>
+    /// <summary>Updates the button colors via string entry</summary>
+    /// <param name="entry">  The string of the button to update</param>
     /// <param name="enabled">If the randomizer is enabled</param>
     private void UpdateSubMenuColor(string entry, bool enabled)
     {
@@ -377,19 +364,15 @@ public class SettingMenu : SmolRandomizerMenuBuilder
         }
     }
 
-    /// <summary>
-    /// Event hook to update the enabled/disabled colors
-    /// </summary>
+    /// <summary>Event hook to update the enabled/disabled colors</summary>
     /// <param name="sender">?</param>
-    /// <param name="args">The setting that was changed</param>
+    /// <param name="args">  The setting that was changed</param>
     internal static void OnEnabledRandomizerColorChanged(object sender, EventArgs args)
     {
         ChangeColors((RandomizerColors)((SettingChangedEventArgs)args).ChangedSetting.BoxedValue);
     }
 
-    /// <summary>
-    /// Changes the enabled/disabled colors
-    /// </summary>
+    /// <summary>Changes the enabled/disabled colors</summary>
     /// <param name="newColor">The new color set</param>
     /// <exception cref="NotImplementedException">Thrown if the color set has not been implemented</exception>
     internal static void ChangeColors(RandomizerColors newColor)
@@ -401,14 +384,17 @@ public class SettingMenu : SmolRandomizerMenuBuilder
                     Enabled = Color.green;
                     Disabled = Color.red;
                     break;
+
                 case RandomizerColors.BlueYellow:
                     Enabled = EBlue;
                     Disabled = DYellow;
                     break;
+
                 case RandomizerColors.PurpleOrange:
                     Enabled = EPurple;
                     Disabled = DOrange;
                     break;
+
                 default:
                     throw new NotImplementedException();
             }
@@ -417,7 +403,6 @@ public class SettingMenu : SmolRandomizerMenuBuilder
             Enabled = LightGray;
             Disabled = LightGray;
         }
-
 
         thisSettingMenu?.UpdateAllSubMenuColors();
     }

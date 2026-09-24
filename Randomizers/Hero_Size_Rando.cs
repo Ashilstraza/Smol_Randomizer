@@ -13,9 +13,12 @@ using HutongGames.PlayMaker.Actions;
 using Smol_Randomizer.Patchers;
 using Smol_Randomizer.Patchers.Scene;
 
-
 #if TESTING
+
 using Newtonsoft.Json;
+
+using Smol_Randomizer.DebugDrawing;
+
 #endif
 
 using Smol_Randomizer.Settings;
@@ -31,27 +34,21 @@ namespace Smol_Randomizer.Randomizers;
 
 internal class Hero_Size_Rando : Rando_Base
 {
-    /// <summary>
-    /// We make a singleton of this rando
-    /// </summary>
+    /// <summary>We make a singleton of this rando</summary>
     private static readonly Lazy<Hero_Size_Rando> instance = new(() => new Hero_Size_Rando());
-    /// <summary>
-    /// Externally visible instance of this rando
-    /// </summary>
+
+    /// <summary>Externally visible instance of this rando</summary>
     public static Hero_Size_Rando Instance => instance.Value;
 
-    /// <summary>
-    /// The layer mask for checing collisions
-    /// </summary>
+    /// <summary>The layer mask for checing collisions</summary>
     private const int LAYERMASK = 8448;
 
-    /// <summary>
-    /// True if we need to grab Hornet's base values
-    /// </summary>
+    /// <summary>True if we need to grab Hornet's base values</summary>
     private static bool grabVariables = true;
 
     // Various base values to save
     private static float hornetBaseDashSpeed;
+
     private static float hornetBaseSprintSpeed;
     private static float hornetBaseSprintStartSpeed;
     private static float hornetBaseQuickSpeed; // Flea brew?
@@ -61,47 +58,34 @@ internal class Hero_Size_Rando : Rando_Base
     private static Vector2 defaultColliderSize;
     private static Vector2 defaultColliderOffset;
 
-    /// <summary>
-    /// If we have adjusted Hornet's size
-    /// </summary>
+    /// <summary>If we have adjusted Hornet's size</summary>
     private bool heroSizeChanged = false;
-    /// <summary>
-    /// Reference to Hornet's Transform
-    /// </summary>
+
+    /// <summary>Reference to Hornet's Transform</summary>
     private Transform heroTransform;
-    /// <summary>
-    /// Reference to Hornet's Collider
-    /// </summary>
+
+    /// <summary>Reference to Hornet's Collider</summary>
     private BoxCollider2D heroCollider;
-    /// <summary>
-    /// Hornet's Scale
-    /// </summary>
+
+    /// <summary>Hornet's Scale</summary>
     internal Vector3 heroScale = new(1f, 1f, 1f);
-    /// <summary>
-    /// Hornet's Scale when facing Right
-    /// </summary>
+
+    /// <summary>Hornet's Scale when facing Right</summary>
     internal Vector3 heroScaleFlipped = new(-1f, 1f, 1f);
 
-    /// <summary>
-    /// The Translate action within the Vault FSM state
-    /// </summary>
+    /// <summary>The Translate action within the Vault FSM state</summary>
     private static Translate mantleVaultTranslate;
-    /// <summary>
-    /// The YOffset float within Mantle FSM
-    /// </summary>
+
+    /// <summary>The YOffset float within Mantle FSM</summary>
     private static FsmFloat baseMantleVaultYOffset;
-    /// <summary>
-    /// Dictionary containing all the waterRegions in the current scene.
-    /// </summary>
+
+    /// <summary>Dictionary containing all the waterRegions in the current scene.</summary>
     private readonly Dictionary<SurfaceWaterRegion, float> waterRegions = [];
 
-    /// <summary>
-    /// If we have attempted to apply the transpiler
-    /// </summary>
+    /// <summary>If we have attempted to apply the transpiler</summary>
     private static bool transpilerAttempted = false;
-    /// <summary>
-    /// The current Scene
-    /// </summary>
+
+    /// <summary>The current Scene</summary>
     private Scene currentScene;
 
     private readonly Dictionary<string, float> sceneHeroSize = [];
@@ -109,19 +93,15 @@ internal class Hero_Size_Rando : Rando_Base
 
     #region Randomizer_Info
 
-    /// <summary>
-    /// Used for registering this randomizer in the core for when the hero damager gets enabled
-    /// </summary>
+    /// <summary>Used for registering this randomizer in the core for when the hero damager gets enabled</summary>
     private Randomizer_Info eventActiveHeroDamager;
-    /// <summary>
-    /// Used for registeromg tjos randomizer in the core for when a scene is loaded
-    /// </summary>
-    private Randomizer_Info eventOnSceneLoad;
-    #endregion
 
-    /// <summary>
-    /// Constructor for this singleton
-    /// </summary>
+    /// <summary>Used for registeromg tjos randomizer in the core for when a scene is loaded</summary>
+    private Randomizer_Info eventOnSceneLoad;
+
+    #endregion Randomizer_Info
+
+    /// <summary>Constructor for this singleton</summary>
     private Hero_Size_Rando()
     {
         InitRandomizer();
@@ -178,6 +158,7 @@ internal class Hero_Size_Rando : Rando_Base
     }
 
 #if TESTING // Enable Saving Data
+
     protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(heroScale), out object tempDict))
@@ -195,11 +176,10 @@ internal class Hero_Size_Rando : Rando_Base
 
         savedData[nameof(heroScale)] = heroScale;
     }
+
 #endif
 
-    /// <summary>
-    /// Patch HealthManager.OnEnable on game startup
-    /// </summary>
+    /// <summary>Patch HealthManager.OnEnable on game startup</summary>
     private void GameStartup()
     {
         Type randoType = typeof(Hero_Size_Rando);
@@ -237,45 +217,10 @@ internal class Hero_Size_Rando : Rando_Base
         CuteRandoCore.harmony.Patch(AccessTools.Method(
             heroControllerType, nameof(HeroController.CheckClamberLedge)),
             postfix: new HarmonyMethod(typeof(Hero_Size_Rando), nameof(HeroController_CheckClamberLedge_Postfix)));
-        debugPoints = new GameObject("CuteRandoDebugPoints", []);
-
-        heroVectorCollider = debugPoints.AddComponent<CircleCollider2D>();
-        heroVectorAboveCollider = debugPoints.AddComponent<CircleCollider2D>();
-        heroVectorToAboveLine = debugPoints.AddComponent<EdgeCollider2D>();
-        farOriginCollider = debugPoints.AddComponent<CircleCollider2D>();
-        heroVectorAboveToFarLine = debugPoints.AddComponent<EdgeCollider2D>();
-        nearOriginCollider = debugPoints.AddComponent<CircleCollider2D>();
-        heroVectorAboveToNearLine = debugPoints.AddComponent<EdgeCollider2D>();
-        farGoodCollider = debugPoints.AddComponent<CircleCollider2D>();
-        nearGoodCollider = debugPoints.AddComponent<CircleCollider2D>();
-        farOriginToFarGoodLine = debugPoints.AddComponent<EdgeCollider2D>();
-        nearOriginToNearGoodLine = debugPoints.AddComponent<EdgeCollider2D>();
-        farHitPointCollider = debugPoints.AddComponent<CircleCollider2D>();
-        nearHitPointCollider = debugPoints.AddComponent<CircleCollider2D>();
-        farHPCtoHPCCLine = debugPoints.AddComponent<EdgeCollider2D>();
-        nearHPCtoHPCCLine = debugPoints.AddComponent<EdgeCollider2D>();
-        farHitPointColliderCheck = debugPoints.AddComponent<CircleCollider2D>();
-        nearHitPointColliderCheck = debugPoints.AddComponent<CircleCollider2D>();
-
-
-        foreach (Collider2D collider in debugPoints.GetComponents<Collider2D>())
-        {
-            if (collider is CircleCollider2D circle)
-            {
-                circle.radius = colliderRadius;
-            }
-            collider.enabled = true;
-            collider.isTrigger = true;
-            UnityEngine.Object.DontDestroyOnLoad(collider);
-        }
-
-        UnityEngine.Object.DontDestroyOnLoad(debugPoints);
 #endif
     }
 
-    /// <summary>
-    /// Attempts to apply the transpiler patches. Can only be called once, otherwise silently aborts.
-    /// </summary>
+    /// <summary>Attempts to apply the transpiler patches. Can only be called once, otherwise silently aborts.</summary>
     private static void TryTranspilerPatches()
     {
         if (transpilerAttempted)
@@ -289,11 +234,15 @@ internal class Hero_Size_Rando : Rando_Base
             var heroControllerType = typeof(HeroController);
             var randoType = typeof(Hero_Size_Rando);
 
-#if !TESTING // Disable if we are testing and using the clamber postfix
+#if !TESTING // Disable if we are testing
             CuteRandoCore.harmony.Patch(AccessTools.Method(
                 heroControllerType, nameof(HeroController.CheckClamberLedge)),
                 transpiler: new HarmonyMethod(randoType, nameof(HeroController_CheckClamberLedge_Transpiler)));
 #endif
+            CuteRandoCore.harmony.Patch(AccessTools.EnumeratorMoveNext(
+                AccessTools.Method(
+                    typeof(NPCControlBase), "MovePlayer")),
+                    transpiler: new HarmonyMethod(randoType, nameof(NPCControlBase_MovePlayer_Transpiler)));
             CuteRandoCore.harmony.Patch(AccessTools.Method(
                 heroControllerType, "Update10"),
                 transpiler: new HarmonyMethod(randoType, nameof(HeroController_Update10_Transpiler)));
@@ -316,13 +265,12 @@ internal class Hero_Size_Rando : Rando_Base
     }
 
     #region Basic Scale Patches
-    /// <summary>
-    /// Changes setting the direction of hornet from a hard coded value to a scaled value
-    /// </summary>
+
+    /// <summary>Changes setting the direction of hornet from a hard coded value to a scaled value</summary>
     /// <param name="instructions"></param>
-    /// <param name="ilGenerator"></param>
+    /// <param name="ilGenerator"> </param>
     /// <returns></returns>
-    private static IEnumerable<CodeInstruction> MovePlayer_NPCControllerBase_Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
+    private static IEnumerable<CodeInstruction> NPCControlBase_MovePlayer_Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
     {
         var getScaleX = AccessTools.Method(typeof(Extensions), "GetScaleX");
         var setScaleX = AccessTools.Method(typeof(Extensions), "SetScaleX");
@@ -336,8 +284,9 @@ internal class Hero_Size_Rando : Rando_Base
 
             if (instructionList[i].OperandIs(setScaleX))
             {
-                yield return instructionList[i - 9]; // this
-                yield return instructionList[i - 8]; // .localValue
+                yield return instructionList[i - 10]; // this (NPCControlBase)?
+                yield return instructionList[i - 9]; // thisthis (MovePlayer_MoveNext_1)?
+                yield return instructionList[i - 8]; // .thisthisthis (MovePlayer_MoveNext_2)?
                 yield return instructionList[i - 7]; // .heroController
                 yield return instructionList[i - 6]; // .get_transform()
                 yield return new(OpCodes.Callvirt, getScaleX); // .getScaleX()
@@ -348,10 +297,7 @@ internal class Hero_Size_Rando : Rando_Base
         }
     }
 
-
-    /// <summary>
-    /// Patch to hook DeSetScale and fix the Y scale of hornet
-    /// </summary>
+    /// <summary>Patch to hook DeSetScale and fix the Y scale of hornet</summary>
     /// <param name="__instance"></param>
     private static void SetScale_DoSetScale_Postfix(ref SetScale __instance)
     {
@@ -363,11 +309,9 @@ internal class Hero_Size_Rando : Rando_Base
         }
     }
 
-    /// <summary>
-    /// Changes hard coded scale to be a multiply by -1 to swap direction
-    /// </summary>
+    /// <summary>Changes hard coded scale to be a multiply by -1 to swap direction</summary>
     /// <param name="instructions"></param>
-    /// <param name="ilGenerator"></param>
+    /// <param name="ilGenerator"> </param>
     /// <returns></returns>
     private static IEnumerable<CodeInstruction> HeroController_Facing_Transpilser(IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
     {
@@ -393,11 +337,9 @@ internal class Hero_Size_Rando : Rando_Base
         }
     }
 
-    /// <summary>
-    /// Bypass scale check from Update10
-    /// </summary>
+    /// <summary>Bypass scale check from Update10</summary>
     /// <param name="instructions"></param>
-    /// <param name="ilGenerator"></param>
+    /// <param name="ilGenerator"> </param>
     /// <returns></returns>
     private static IEnumerable<CodeInstruction> HeroController_Update10_Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
     {
@@ -444,46 +386,9 @@ internal class Hero_Size_Rando : Rando_Base
         }
     }
 
-    /// <summary>
-    /// Replaces the hard coded sizes with a call to our own
-    /// </summary>
-    /// <param name="instructions"></param>
-    /// <param name="ilGenerator"></param>
-    /// <returns></returns>
-    /*private static IEnumerable<CodeInstruction> HeroController_Update10_Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
-    {
-        var setScaleX = AccessTools.Method(typeof(Transform), "SetScaleX");
-        var heroSizeRandoInstance = AccessTools.Method(typeof(Hero_Size_Rando), "get_Instance");
-        var heroSizeRandoHeroSize = AccessTools.Field(typeof(Hero_Size_Rando), nameof(heroScale));
-        var heroSizeRandoHeroScaleFlipped = AccessTools.Field(typeof(Hero_Size_Rando), nameof(heroScaleFlipped));
-        var heroSizeRandoHeroSizeX = AccessTools.Field(heroSizeRandoHeroSize.FieldType, "x");
-
-        List<CodeInstruction> instructionList = [.. instructions];
-
-        for (int i = 0; i < instructionList.Count; i++)
-        {
-            CodeInstruction instruction = instructionList[i];
-
-            if(i < instructionList.Count - 1 && instructionList[i + 1].OperandIs(setScaleX))
-            {
-                yield return new(OpCodes.Call, heroSizeRandoInstance); // Get the instance of Hero_Size_Rando
-                
-                if (instruction.OperandIs(1))
-                    yield return new(OpCodes.Ldflda, heroSizeRandoHeroSize); // Get the field heroSize
-                else
-                    yield return new(OpCodes.Ldflda, heroSizeRandoHeroScaleFlipped); // Get the field heroSizeFlipped
-
-                yield return new(OpCodes.Ldfld, heroSizeRandoHeroSizeX); // Grab x from that field
-                
-                continue;
-            }
-
-            yield return instruction;
-        }
-    }*/
-
     // Used for checking where we are in the Enumerator's state
     private static bool transitionHandled = false;
+
     private static int enumeratorStep = 1;
 
     /// <summary>
@@ -514,75 +419,27 @@ internal class Hero_Size_Rando : Rando_Base
 
         if (transform == null) return;
 
-        // We take the scale, subtract 1 from it, multiply by the magic number, then add it to the position and add 0.005f to get it closer to level
+        // We take the scale, subtract 1 from it, multiply by the magic number, then add it to the position and add
+        // 0.005f to get it closer to level
         transform.localPosition = transform.localPosition with { y = ((transform.localScale.y - 1) * 0.513f) + transform.localPosition.y + 0.005f }; // Magic number came from spreadsheeting various scales and figuring out the right number through that
 
         transitionHandled = true;
     }
-    #endregion
+
+    #endregion Basic Scale Patches
 
     #region Ledge Clambering
+
 #if TESTING
 
-    #region Testing Colliders
-    // This GameObject and colliders are used to debug the various clamber checks
-
-    private const float colliderRadius = 0.25f;
-    private static GameObject debugPoints;
-    private static CircleCollider2D heroVectorCollider;
-    private static CircleCollider2D heroVectorAboveCollider;
-    private static EdgeCollider2D heroVectorToAboveLine;
-    private static CircleCollider2D farOriginCollider;
-    private static EdgeCollider2D heroVectorAboveToFarLine;
-    private static CircleCollider2D nearOriginCollider;
-    private static EdgeCollider2D heroVectorAboveToNearLine;
-    private static CircleCollider2D farGoodCollider;
-    private static EdgeCollider2D farOriginToFarGoodLine;
-    private static CircleCollider2D nearGoodCollider;
-    private static EdgeCollider2D nearOriginToNearGoodLine;
-    private static CircleCollider2D farHitPointCollider;
-    private static CircleCollider2D nearHitPointCollider;
-    private static EdgeCollider2D farHPCtoHPCCLine;
-    private static EdgeCollider2D nearHPCtoHPCCLine;
-    private static CircleCollider2D farHitPointColliderCheck;
-    private static CircleCollider2D nearHitPointColliderCheck;
-
-    private static bool debugGoodCollider = true;
-    private static bool debugOriginCollider = true;
-    private static bool debugHitPointCollider = true;
-
     /// <summary>
-    /// Set the position of all colliders to 0,0
+    /// Patch that hooks the end of CheckClamberLedge to correctly check depending on hornet's scale. This probably can
+    /// be turned into a transpiler.
     /// </summary>
-    private static void ClearAllColliders()
-    {
-        heroVectorCollider.offset = Vector2.zero;
-        heroVectorAboveCollider.offset = Vector2.zero;
-        heroVectorToAboveLine.points = [];
-        farOriginCollider.offset = Vector2.zero;
-        heroVectorAboveToFarLine.points = [];
-        nearOriginCollider.offset = Vector2.zero;
-        heroVectorAboveToNearLine.points = [];
-        farGoodCollider.offset = Vector2.zero;
-        nearGoodCollider.offset = Vector2.zero;
-        farOriginToFarGoodLine.points = [];
-        nearOriginToNearGoodLine.points = [];
-        farHitPointCollider.offset = Vector2.zero;
-        nearHitPointCollider.offset = Vector2.zero;
-        farHPCtoHPCCLine.points = [];
-        nearHPCtoHPCCLine.points = [];
-        farHitPointColliderCheck.offset = Vector2.zero;
-        nearHitPointColliderCheck.offset = Vector2.zero;
-    }
-    #endregion
-
-    /// <summary>
-    /// Patch that hooks the end of CheckClamberLedge to correctly check depending on hornet's scale. This probably can be turned into a transpiler.
-    /// </summary>
-    /// <param name="__instance">Hornet</param>
-    /// <param name="__result">The result of the check</param>
-    /// <param name="___col2d">Hornet's collider</param>
-    /// <param name="y">The y position that she will land at</param>
+    /// <param name="__instance">       Hornet</param>
+    /// <param name="__result">         The result of the check</param>
+    /// <param name="___col2d">         Hornet's collider</param>
+    /// <param name="y">                The y position that she will land at</param>
     /// <param name="clamberedCollider">What Hornet is clambering onto</param>
     private static void HeroController_CheckClamberLedge_Postfix(ref HeroController __instance, ref bool __result, ref Collider2D ___col2d, ref float y, ref Collider2D clamberedCollider)
     {
@@ -598,7 +455,7 @@ internal class Hero_Size_Rando : Rando_Base
         bool facingRight = __instance.cState.facingRight;
 
         float multiplier = Instance.heroScale.x;
-        
+
         float near = 0.37f * multiplier;
         float far = 0.77f * multiplier;
         float height = 0.67f * multiplier;
@@ -612,58 +469,42 @@ internal class Hero_Size_Rando : Rando_Base
         Vector2 farOrigin = vector + new Vector2(facingRight ? far : far * -1, height);
         Vector2 nearOrigin = vector + new Vector2(facingRight ? near : near * -1, height);
 
-        // Hitboxes for debugging
-        if (DebugMod.Hitbox.HitboxRender.Instance != null)
-            DebugMod.Hitbox.HitboxRender.Instance.UpdateHitbox(debugPoints);
-
-        ClearAllColliders();
-
         // Hitboxes for initial checks
-        heroVectorCollider.offset = vector;
-        
+        Quaternion rotation = Instance.heroTransform.rotation;
 
-        if (debugOriginCollider)
-        {
-            farOriginCollider.offset = farOrigin;
-            heroVectorAboveToFarLine.points = [vector + heightOffset, farOriginCollider.offset];
-            nearOriginCollider.offset = nearOrigin;
-            heroVectorAboveToNearLine.points = [vector + heightOffset, nearOriginCollider.offset];
-        }
-        
-        if (Helper.IsRayHittingNoTriggers(vector + heightOffset, facingDirection, 0.75f, LAYERMASK)) // Directly Above, different than CheckNearRoof, probably allows for clambering through a gap?
+        DebugDrawer.Circle(farOrigin, 0.1f, rotation);
+        DebugDrawer.Circle(nearOrigin, 0.1f, rotation);
+
+        bool directAbove = Helper.IsRayHittingNoTriggers(vector + heightOffset, facingDirection, 0.75f, LAYERMASK);
+        DebugDrawer.Line(vector + heightOffset, vector + heightOffset + facingDirection * 0.75f, directAbove ? Color.red : Color.cyan);
+
+        if (directAbove) // Directly Above, different than CheckNearRoof, probably allows for clambering through a gap?
             return;
 
         bool farGood = Helper.IsRayHittingNoTriggers(farOrigin, Vector2.down, ceiling, LAYERMASK, out var closestFarHit);
         bool nearGood = Helper.IsRayHittingNoTriggers(nearOrigin, Vector2.down, ceiling, LAYERMASK, out var closestNearHit);
 
-        bool heightGood = !Helper.IsRayHittingNoTriggers(new(vector.x, closestNearHit.point.y), Vector2.up, ceiling, LAYERMASK, out var heightHit);
-
-        heroVectorAboveCollider.offset = heightHit.point;
-        heroVectorToAboveLine.points = [heroVectorCollider.offset, heroVectorAboveCollider.offset];
+        Vector2 heightGoodVector = new(vector.x, closestNearHit.point.y);
+        bool heightGood = !Helper.IsRayHittingNoTriggers(heightGoodVector, Vector2.up, ceiling, LAYERMASK, out var heightHit);
 
         // Hitboxes for landing points
-        if (debugGoodCollider)
-        {
-            farGoodCollider.offset = closestFarHit.point;
-            nearGoodCollider.offset = closestNearHit.point;
-
-            if (debugOriginCollider)
-            {
-                if (farGood)
-                    farOriginToFarGoodLine.points = [farOriginCollider.offset, farGoodCollider.offset];
-                if (nearGood)
-                    nearOriginToNearGoodLine.points = [nearOriginCollider.offset, nearGoodCollider.offset];
-            }
-        }
+        DebugDrawer.Line(heightGoodVector, heightGoodVector + Vector2.up * ceiling, heightGood ? Color.cyan : Color.red);
 
         if (!heightGood)
             return;
+
+        DebugDrawer.Line(farOrigin, farOrigin + Vector2.down * ceiling, farGood ? Color.green : Color.red);
+        DebugDrawer.Line(nearOrigin, nearOrigin + Vector2.down * ceiling, nearGood ? Color.green : Color.red);
 
         if (!farGood || !nearGood) // One or both are not good
             return;
 
         Vector2 farHitPoint = closestFarHit.point;
         Vector2 nearHitPoint = closestNearHit.point;
+
+        DebugDrawer.Circle(farHitPoint, 0.1f, rotation);
+        DebugDrawer.Circle(nearHitPoint, 0.1f, rotation);
+
         clamberedCollider = closestNearHit.collider;
 
         farHitPoint.y += 0.1f;
@@ -671,18 +512,6 @@ internal class Hero_Size_Rando : Rando_Base
 
         bool farHitPointGood = !Helper.IsRayHittingNoTriggers(farHitPoint, Vector2.up, ceiling - 0.1f, LAYERMASK, out var closestFarPointHit);
         bool nearHitPointGood = !Helper.IsRayHittingNoTriggers(nearHitPoint, Vector2.up, ceiling - 0.1f, LAYERMASK, out var closestNearPointHit);
-
-        if (debugHitPointCollider)
-        {
-            farHitPointCollider.offset = closestFarPointHit.point;
-            nearHitPointCollider.offset = closestNearPointHit.point;
-            farHitPointColliderCheck.offset = farHitPoint with { y = farHitPoint.y + ceiling - 0.1f };
-            nearHitPointColliderCheck.offset = nearHitPoint with { y = nearHitPoint.y + ceiling - 0.1f };
-            if(!farHitPointGood)
-                farHPCtoHPCCLine.points = [farHitPointCollider.offset, farHitPointColliderCheck.offset];
-            if (!nearHitPointGood)
-                nearHPCtoHPCCLine.points = [nearHitPointCollider.offset, nearHitPointColliderCheck.offset];
-        }
 
         if (!farHitPointGood || !nearHitPointGood) // Above Landing Spot
             return;
@@ -694,20 +523,19 @@ internal class Hero_Size_Rando : Rando_Base
 
         Vector2 n = new(vector.x, ___col2d.bounds.min.y + 0.2f);
 
-        if (Helper.IsRayHittingNoTriggers(n, Vector2.down, landing , LAYERMASK, out var closestHit3) && farHitPoint.y - closestHit3.point.y < landingHeight)
+        if (Helper.IsRayHittingNoTriggers(n, Vector2.down, landing, LAYERMASK, out var closestHit3) && farHitPoint.y - closestHit3.point.y < landingHeight)
         {
             return;
         }
         y = farHitPoint.y;
         __result = true;
     }
+
 #endif
 
-    /// <summary>
-    /// Patches the ledge clamber check to allow for scaling.
-    /// </summary>
+    /// <summary>Patches the ledge clamber check to allow for scaling.</summary>
     /// <param name="instructions"></param>
-    /// <param name="ilGenerator"></param>
+    /// <param name="ilGenerator"> </param>
     /// <returns></returns>
     private static IEnumerable<CodeInstruction> HeroController_CheckClamberLedge_Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
     {
@@ -734,7 +562,7 @@ internal class Hero_Size_Rando : Rando_Base
         List<CodeInstruction> instructionList = [.. instructions];
 
         /* Check to see if player size rando is enabled, if so we want to skip the roof check
-         * 
+         *
          * if (!Instance.PatchHeroFSMs) {
          *     if (Instance.PlayerSizeRando) {
          *         goto [AfterCheckNearRoof]
@@ -823,8 +651,6 @@ internal class Hero_Size_Rando : Rando_Base
                 new(OpCodes.Mul), // multiply the [VARIABLE] by -1 to make it negative
                 new(OpCodes.Ldloc_S, height) // Load height
             ];
-
-
 
         for (int i = 0; i < instructionList.Count; i++)
         {
@@ -990,17 +816,13 @@ internal class Hero_Size_Rando : Rando_Base
         }
     }
 
-    /// <summary>
-    /// FSMAction to squish Hornet's hitbox to allow her to clamber normal spots when large
-    /// </summary>
+    /// <summary>FSMAction to squish Hornet's hitbox to allow her to clamber normal spots when large</summary>
     private static SetBoxCollider2DSizeVector clamberSquishBox;
-    /// <summary>
-    /// FSMAction to unsquish Hornet's hitbox after clambering normal spots when large
-    /// </summary>
+
+    /// <summary>FSMAction to unsquish Hornet's hitbox after clambering normal spots when large</summary>
     private static SetBoxCollider2DSizeVector clamberUnsquishBox;
-    /// <summary>
-    /// Set of States to patch Actions into 
-    /// </summary>
+
+    /// <summary>Set of States to patch Actions into</summary>
     private static readonly StatePatchSet mantleFSMPatchSet = new(
         "Mantle",
         [new StatePatch(
@@ -1008,7 +830,6 @@ internal class Hero_Size_Rando : Rando_Base
             delegate (FsmState state, object[]? param)
             {
                 state.Actions = state.Actions.AddToArray(clamberSquishBox);
-
             }),
         new StatePatch(
             "Idle",
@@ -1018,9 +839,7 @@ internal class Hero_Size_Rando : Rando_Base
             })
         ]);
 
-    /// <summary>
-    /// Patches the Mantle FSM to shrink Hornet's hitbox when Clambering
-    /// </summary>
+    /// <summary>Patches the Mantle FSM to shrink Hornet's hitbox when Clambering</summary>
     private void PatchMantleFSM()
     {
         clamberSquishBox = new SetBoxCollider2DSizeVector
@@ -1028,7 +847,6 @@ internal class Hero_Size_Rando : Rando_Base
             gameObject1 = new FsmOwnerDefault
             {
                 GameObject = HeroController.instance.gameObject
-
             },
             size = new Vector2(defaultColliderSize.x * 2, defaultColliderSize.y / 2),
             offset = Vector2.down
@@ -1039,7 +857,6 @@ internal class Hero_Size_Rando : Rando_Base
             gameObject1 = new FsmOwnerDefault
             {
                 GameObject = HeroController.instance.gameObject
-
             },
             size = new Vector2(defaultColliderSize.x, defaultColliderSize.y),
             offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y)
@@ -1048,9 +865,7 @@ internal class Hero_Size_Rando : Rando_Base
         mantleFSMPatchSet.ApplyPatches(HeroController.instance.mantleFSM);
     }
 
-    /// <summary>
-    /// Updates the Mantle squish sizes when called
-    /// </summary>
+    /// <summary>Updates the Mantle squish sizes when called</summary>
     private void UpdateMantleFSMSizes()
     {
         if (!PatchHeroFSMs) // Don't change the FSMs
@@ -1064,9 +879,7 @@ internal class Hero_Size_Rando : Rando_Base
         clamberUnsquishBox.offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y);
     }
 
-    /// <summary>
-    /// Resets the Mantle squish sizes to default when called
-    /// </summary>
+    /// <summary>Resets the Mantle squish sizes to default when called</summary>
     private void ResetMantleFSMSizes()
     {
         clamberSquishBox.size = new Vector2(defaultColliderSize.x, defaultColliderSize.y);
@@ -1074,11 +887,14 @@ internal class Hero_Size_Rando : Rando_Base
         clamberUnsquishBox.size = new Vector2(defaultColliderSize.x, defaultColliderSize.y);
         clamberUnsquishBox.offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y);
     }
-    #endregion
+
+    #endregion Ledge Clambering
 
     #region Water Surfaces
+
     /// <summary>
-    /// Patch that hooks SurfaceWaterRegion's Start method to adjust the collider and adds it to a list so we can update it mid scene if needed
+    /// Patch that hooks SurfaceWaterRegion's Start method to adjust the collider and adds it to a list so we can update
+    /// it mid scene if needed
     /// </summary>
     /// <param name="__instance">The SurfaceWaterRegion we are adjusting</param>
     private static void SurfaceWaterRegion_Start_Postfix(ref SurfaceWaterRegion __instance)
@@ -1090,9 +906,7 @@ internal class Hero_Size_Rando : Rando_Base
         UpdateWaterSurface(__instance, Instance.heroScale.x, offset);
     }
 
-    /// <summary>
-    /// Update all the water surfaces in the current scene
-    /// </summary>
+    /// <summary>Update all the water surfaces in the current scene</summary>
     private static void UpdateWaterSurfaces()
     {
         foreach (var region in Instance.waterRegions)
@@ -1101,24 +915,22 @@ internal class Hero_Size_Rando : Rando_Base
         }
     }
 
-    /// <summary>
-    /// Update the given water surface region.
-    /// </summary>
-    /// <param name="region">The region to update</param>
+    /// <summary>Update the given water surface region.</summary>
+    /// <param name="region">    The region to update</param>
     /// <param name="multiplier">The multiplier to use, should be Hornet's size</param>
-    /// <param name="offset">The water collider's height to be scaled</param>
+    /// <param name="offset">    The water collider's height to be scaled</param>
     private static void UpdateWaterSurface(SurfaceWaterRegion region, float multiplier, float offset)
     {
         BoxCollider2D col = region.GetComponent<BoxCollider2D>();
 
         col.offset = col.offset with { y = offset - (1.44f * multiplier) + 1.44f };
     }
-    #endregion
+
+    #endregion Water Surfaces
 
     #region Scene  and Object Patches
-    /// <summary>
-    /// Dictionary containing the various scene patches
-    /// </summary>
+
+    /// <summary>Dictionary containing the various scene patches</summary>
     private static readonly HashSet<ISceneFSMPatch> sceneFSMPatches = new()
     {
         new SceneStateActionPatch("Bonetown",
@@ -1162,20 +974,18 @@ internal class Hero_Size_Rando : Rando_Base
             x = position.x > doorCloseTrigger.transform.position.x ? position.x - width - heroWidth : position.x + width + heroWidth
         };
     }
-    #endregion
+
+    #endregion Scene  and Object Patches
 
     #region Sprint and Dash Patches
-    /// <summary>
-    /// FSMAction to squish Hornet's hitbox to allow her to sprint through normal spots when large
-    /// </summary>
+
+    /// <summary>FSMAction to squish Hornet's hitbox to allow her to sprint through normal spots when large</summary>
     private static SetBoxCollider2DSizeVector sprintSquishBox;
-    /// <summary>
-    /// FSMAction to unsquish Hornet's hitbox after sprinting through normal spots when large
-    /// </summary>
+
+    /// <summary>FSMAction to unsquish Hornet's hitbox after sprinting through normal spots when large</summary>
     private static SetBoxCollider2DSizeVector sprintUnsquishBox;
-    /// <summary>
-    /// Set of States to patch Actions into 
-    /// </summary>
+
+    /// <summary>Set of States to patch Actions into</summary>
     private static readonly StatePatchSet sprintFSMPatchSet = new(
         "Sprint",
         [new StatePatch(
@@ -1208,9 +1018,7 @@ internal class Hero_Size_Rando : Rando_Base
             })
         ]);
 
-    /// <summary>
-    /// Patches the Sprint FSM to adjust Hornet's hitbox when dashing
-    /// </summary>
+    /// <summary>Patches the Sprint FSM to adjust Hornet's hitbox when dashing</summary>
     private void PatchSprintFSM()
     {
         sprintSquishBox = new SetBoxCollider2DSizeVector
@@ -1218,7 +1026,6 @@ internal class Hero_Size_Rando : Rando_Base
             gameObject1 = new FsmOwnerDefault
             {
                 GameObject = HeroController.instance.gameObject
-
             },
         };
 
@@ -1229,7 +1036,6 @@ internal class Hero_Size_Rando : Rando_Base
             gameObject1 = new FsmOwnerDefault
             {
                 GameObject = HeroController.instance.gameObject
-
             },
             size = new Vector2(defaultColliderSize.x, defaultColliderSize.y),
             offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y)
@@ -1238,17 +1044,13 @@ internal class Hero_Size_Rando : Rando_Base
         sprintFSMPatchSet.ApplyPatches(HeroController.instance.sprintFSM);
     }
 
-    /// <summary>
-    ///  Removes the Sprint FSM patches that adjust Hornet's hitbox when dashing
-    /// </summary>
+    /// <summary>Removes the Sprint FSM patches that adjust Hornet's hitbox when dashing</summary>
     private void UnpatchSprintFSM()
     {
         sprintFSMPatchSet.RemovePatches(HeroController.instance.sprintFSM);
     }
 
-    /// <summary>
-    /// Patch to listen for if we are air dashing and adjust the collider accordingly
-    /// </summary>
+    /// <summary>Patch to listen for if we are air dashing and adjust the collider accordingly</summary>
     private static bool HeroController_HeroDash_Prefix()
     {
         if (Instance.PlayerSizeRando)
@@ -1258,9 +1060,7 @@ internal class Hero_Size_Rando : Rando_Base
         return true;
     }
 
-    /// <summary>
-    /// Sets the sprint squish size and offset
-    /// </summary>
+    /// <summary>Sets the sprint squish size and offset</summary>
     /// <param name="dashingDown">If hornet is dashing down</param>
     private void SquishSize(bool dashingDown)
     {
@@ -1277,9 +1077,7 @@ internal class Hero_Size_Rando : Rando_Base
         }
     }
 
-    /// <summary>
-    /// Updates the Sprint squish sizes when called
-    /// </summary>
+    /// <summary>Updates the Sprint squish sizes when called</summary>
     private void UpdateSprintFSMSizes()
     {
         if (!PatchHeroFSMs) // Don't change the FSMs
@@ -1304,9 +1102,7 @@ internal class Hero_Size_Rando : Rando_Base
         sprintUnsquishBox.offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y);
     }
 
-    /// <summary>
-    /// Resets the Sprint squish sizes to default when called
-    /// </summary>
+    /// <summary>Resets the Sprint squish sizes to default when called</summary>
     private void ResetSprintFSMSizes()
     {
         sprintSquishBox.size = new Vector2(defaultColliderSize.x, defaultColliderSize.y);
@@ -1314,13 +1110,12 @@ internal class Hero_Size_Rando : Rando_Base
         sprintUnsquishBox.size = new Vector2(defaultColliderSize.x, defaultColliderSize.y);
         sprintUnsquishBox.offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y);
     }
-    #endregion
 
-    /// <summary>
-    /// On Scene Load, save current loading scene
-    /// </summary>
+    #endregion Sprint and Dash Patches
+
+    /// <summary>On Scene Load, save current loading scene</summary>
     /// <param name="scene">The new scene that is loading</param>
-    /// <param name="mode">?</param>
+    /// <param name="mode"> ?</param>
     private void OnSceneLoad(Scene scene, LoadSceneMode _)
     {
         currentScene = scene;
@@ -1330,36 +1125,25 @@ internal class Hero_Size_Rando : Rando_Base
 
     protected override void OnUnload()
     {
-#if TESTING
-        if (debugPoints) UnityEngine.Object.Destroy(debugPoints);
-#endif
-
     }
 
-    /// <summary>
-    /// Patch to watch for when Hornet gets damaged
-    /// </summary>
+    /// <summary>Patch to watch for when Hornet gets damaged</summary>
     /// <param name="instance">The HeroDamager we want to attach a listener to</param>
-    /// <param name="_">Discarded HealthManager</param>
+    /// <param name="_">       Discarded HealthManager</param>
     private static void DamageHero_OnEnable(ref DamageHero instance, ref HealthManager _)
     {
         if (Instance.PlayerSizeRando && Instance.HeroSizeConsistency == RandomizerConsistencyC.OnDamageTaken)
             instance.OnDamagedHero.AddListener(HeroDamaged);
-
     }
 
-    /// <summary>
-    /// Called when DamageHero fires OnDamagedHero
-    /// </summary>
+    /// <summary>Called when DamageHero fires OnDamagedHero</summary>
     public static void HeroDamaged()
     {
         Instance.SetSize(true);
     }
 
-    // TODO: tall hornet breaks some triggers and breaks the universe; 
-    /// <summary>
-    /// Sets the size of Hornet
-    /// </summary>
+    // TODO: tall hornet breaks some triggers and breaks the universe;
+    /// <summary>Sets the size of Hornet</summary>
     private void SetSize(bool damageTaken = false)
     {
         if (!PlayerSizeRando)
@@ -1394,6 +1178,7 @@ internal class Hero_Size_Rando : Rando_Base
                     sceneHeroSize[currentScene.name] = multiplier;
                 }
                 break;
+
             case RandomizerConsistencyC.PerSaveFile:
                 if (saveHeroSize.Equals(float.MinValue))
                 {
@@ -1401,11 +1186,13 @@ internal class Hero_Size_Rando : Rando_Base
                 }
                 multiplier = saveHeroSize;
                 break;
+
             case RandomizerConsistencyC.OnDamageTaken:
                 if (!damageTaken) return;
 
                 multiplier = CuteRandoCore.RandomFloat(PlayerSizeRange.AsTuple());
                 break;
+
             default:
                 throw new NotImplementedException();
         }
@@ -1414,15 +1201,11 @@ internal class Hero_Size_Rando : Rando_Base
         heroSizeChanged = true;
     }
 
-    /// <summary>
-    /// Sets Hornet's variables according to the given multiplier.
-    /// </summary>
+    /// <summary>Sets Hornet's variables according to the given multiplier.</summary>
     /// <param name="multiplier">Hornet's scale</param>
     private void SetVariables(float multiplier)
     {
         if (heroTransform == null) return;
-
-        multiplier = 1f;
 
         heroScale = Vector3.one * multiplier;
         heroScaleFlipped = heroScale with { x = heroScale.x * -1 };
@@ -1448,9 +1231,7 @@ internal class Hero_Size_Rando : Rando_Base
         UpdateWaterSurfaces();
     }
 
-    /// <summary>
-    /// Save Hornet's base values
-    /// </summary>
+    /// <summary>Save Hornet's base values</summary>
     /// <returns>True if it succeeded, false if it did not</returns>
     private bool SaveVariables()
     {
@@ -1509,9 +1290,7 @@ internal class Hero_Size_Rando : Rando_Base
         return true;
     }
 
-    /// <summary>
-    /// Returns Hornet's values to default
-    /// </summary>
+    /// <summary>Returns Hornet's values to default</summary>
     private void ReturnToDefault()
     {
         if (!heroSizeChanged || heroTransform == null)
@@ -1551,61 +1330,56 @@ internal class Hero_Size_Rando : Rando_Base
     }
 
     #region Settings
-    /// <summary>
-    /// Setting for if player size should be randomized
-    /// </summary>
+
+    /// <summary>Setting for if player size should be randomized</summary>
     public bool PlayerSizeRando
     {
         get => playerSizeRando.Value;
         internal set => playerSizeRando.Value = value;
     }
+
     private ConfigEntry<bool> playerSizeRando;
-    /// <summary>
-    /// Default choice for if player size should be randomized
-    /// </summary>
+
+    /// <summary>Default choice for if player size should be randomized</summary>
     public const bool defaultPlayerSizeRando = false;
-    /// <summary>
-    /// Setting for how conistent Hornet's size should be
-    /// </summary>
+
+    /// <summary>Setting for how conistent Hornet's size should be</summary>
     public RandomizerConsistencyC HeroSizeConsistency
     {
         get => playerSizeConsistency.Value;
         internal set => playerSizeConsistency.Value = value;
     }
+
     private ConfigEntry<RandomizerConsistencyC> playerSizeConsistency;
-    /// <summary>
-    /// Default consistency of Hornet's size
-    /// </summary>
+
+    /// <summary>Default consistency of Hornet's size</summary>
     public const RandomizerConsistencyC defaultHeroSizeConsistency = RandomizerConsistencyC.PerSaveFile;
-    /// <summary>
-    /// Setting for the range that the hero's size can be randomized to
-    /// </summary>
+
+    /// <summary>Setting for the range that the hero's size can be randomized to</summary>
     public FloatRange PlayerSizeRange
     {
         get => playerSizeRange.Value;
         internal set => playerSizeRange.Value = value;
     }
+
     private ConfigEntry<FloatRange> playerSizeRange;
-    /// <summary>
-    /// Default range for the hero's size
-    /// </summary>
+
+    /// <summary>Default range for the hero's size</summary>
     public readonly FloatRange defaultPlayerSizeRange = new(0.68f, 1.35f);
-    /// <summary>
-    /// Acceptable value range for the hero's size
-    /// </summary>
-    public static readonly AcceptableRangeforFloatRange acceptablePlayerSizeRange = new(0.25f, 2f);
-    /// <summary>
-    /// Setting for if the hero's FSMs should be patched for quality of life
-    /// </summary>
+
+    /// <summary>Acceptable value range for the hero's size</summary>
+    public static AcceptableRangeforFloatRange acceptablePlayerSizeRange = new(0.25f, 2f);
+
+    /// <summary>Setting for if the hero's FSMs should be patched for quality of life</summary>
     public bool PatchHeroFSMs
     {
         get => patchHeroFSMs.Value;
         internal set => patchHeroFSMs.Value = value;
     }
+
     private ConfigEntry<bool> patchHeroFSMs;
-    /// <summary>
-    /// Default option for patching the FSMs
-    /// </summary>
+
+    /// <summary>Default option for patching the FSMs</summary>
     public const bool defaultPatchHeroFSMs = true;
 
     protected override void InitSettings()
@@ -1677,11 +1451,10 @@ internal class Hero_Size_Rando : Rando_Base
         ResetAllLists();
         SetSize(true);
 
-#if !TESTING
         // Try applying transpiler patch mid game if enabled after load
         if (PlayerSizeRando && !transpilerAttempted)
             TryTranspilerPatches();
-#endif
     }
-    #endregion
+
+    #endregion Settings
 }

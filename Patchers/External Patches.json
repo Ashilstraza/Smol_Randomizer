@@ -1,0 +1,35 @@
+[
+  {
+    "PatchType": "Enemy_State_FSM",
+    "EnemyName": "Enemy Name",
+    "Name": "Init",
+    "Names": [],
+    "FSMName": "Control",
+    "LatePatch": false,
+    "ReInit": false,
+    "Overwrite": false,
+    "Patch": {
+      "PatchType": "State",
+      "PatchTarget": "ShiftPosToBase",
+      "BoolOptions": [ false, false ],
+      "FloatOptions": [ 0, 0, 0, 0 ],
+      "StartOfAction": true
+    }
+  },
+  {
+    "PatchType": "Enemy_State_FSM",
+    "EnemyName": "Enemy Name",
+    "Name": "Init",
+    "Names": [],
+    "FSMName": "",
+    "LatePatch": false,
+    "ReInit": true,
+    "Overwrite": false,
+    "Patch": {
+      "PatchType": "State",
+      "PatchTarget": "SetVelocity2d",
+      "FloatOptions": [ 0, 0 ],
+      "StartOfAction": true
+    }
+  }
+]

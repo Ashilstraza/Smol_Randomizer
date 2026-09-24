@@ -6,10 +6,13 @@ using BepInEx.Configuration;
 using HarmonyLib;
 
 #if TESTING
+
 using MonoMod.Utils;
 
 using Newtonsoft.Json;
+
 #endif
+
 using Smol_Randomizer.Settings;
 
 using UnityEngine.SceneManagement;
@@ -18,50 +21,38 @@ namespace Smol_Randomizer.Randomizers;
 
 internal class World_Currency_Drop_Rando : Rando_Base
 {
-    /// <summary>
-    /// We make a singleton of this rando
-    /// </summary>
+    /// <summary>We make a singleton of this rando</summary>
     private static readonly Lazy<World_Currency_Drop_Rando> instance = new(() => new World_Currency_Drop_Rando());
-    /// <summary>
-    /// Externally visible instance of this rando
-    /// </summary>
+
+    /// <summary>Externally visible instance of this rando</summary>
     public static World_Currency_Drop_Rando Instance => instance.Value;
 
-    /// <summary>
-    /// Dictionary of multipliers per room
-    /// </summary>
+    /// <summary>Dictionary of multipliers per room</summary>
     private readonly Dictionary<string, float> sceneMultiplier = [];
-    /// <summary>
-    /// Dictionary of Architect Crest multipliers per room
-    /// </summary>
+
+    /// <summary>Dictionary of Architect Crest multipliers per room</summary>
     private readonly Dictionary<string, float> sceneACMultiplier = [];
-    /// <summary>
-    /// Shard multiplier when enemy consistancy is enabled (all regions drop same amount)
-    /// </summary>
+
+    /// <summary>Shard multiplier when enemy consistancy is enabled (all regions drop same amount)</summary>
     private float consistantMultiplier;
-    /// <summary>
-    /// Architect multiplier when enemy consistancy is enabled (all regions drop same amount)
-    /// </summary>
+
+    /// <summary>Architect multiplier when enemy consistancy is enabled (all regions drop same amount)</summary>
     private float consistantACMultiplier;
-    /// <summary>
-    /// The current scene we are in
-    /// </summary>
+
+    /// <summary>The current scene we are in</summary>
     private string currentScene = "";
 
     #region Randomizer_Info
-    /// <summary>
-    /// Used for registering this randomizer in the core for first frame to update currency regions
-    /// </summary>
-    private Randomizer_Info eventActiveLimitRegion;
-    /// <summary>
-    /// Used for registering this randomizer in the core for when the scene loads
-    /// </summary>
-    private Randomizer_Info eventOnSceneLoad;
-    #endregion
 
-    /// <summary>
-    /// Constructor for this singleton
-    /// </summary>
+    /// <summary>Used for registering this randomizer in the core for first frame to update currency regions</summary>
+    private Randomizer_Info eventActiveLimitRegion;
+
+    /// <summary>Used for registering this randomizer in the core for when the scene loads</summary>
+    private Randomizer_Info eventOnSceneLoad;
+
+    #endregion Randomizer_Info
+
+    /// <summary>Constructor for this singleton</summary>
     private World_Currency_Drop_Rando()
     {
         InitRandomizer();
@@ -112,9 +103,11 @@ internal class World_Currency_Drop_Rando : Rando_Base
 
     // Unused as we don't need
     protected override void OnLoaded() { }
+
     protected override void OnUnload() { }
 
 #if TESTING // Enable Saving Data
+
     protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(sceneMultiplier), out object tempDict))
@@ -142,21 +135,18 @@ internal class World_Currency_Drop_Rando : Rando_Base
         savedData[nameof(consistantMultiplier)] = consistantMultiplier;
         savedData[nameof(consistantACMultiplier)] = consistantACMultiplier;
     }
+
 #endif
 
-    /// <summary>
-    /// On Scene Load, save current loading scene
-    /// </summary>
+    /// <summary>On Scene Load, save current loading scene</summary>
     /// <param name="scene">The new scene that is loading</param>
-    /// <param name="mode">?</param>
+    /// <param name="mode"> ?</param>
     private void OnSceneLoad(Scene scene, LoadSceneMode _)
     {
         currentScene = scene.name;
     }
 
-    /// <summary>
-    /// Updates world currency drops with new currency values
-    /// </summary>
+    /// <summary>Updates world currency drops with new currency values</summary>
     /// <param name="region">The region to adjust</param>
     /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
     private void SetCurrency(ICurrencyLimitRegion region)
@@ -173,6 +163,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
                 multiplier = consistantMultiplier;
                 multiplierAC = consistantACMultiplier;
                 break;
+
             case RandomizerConsistencyB.Scene:
                 if (!sceneMultiplier.TryGetValue(currentScene, out multiplier))
                 {
@@ -187,10 +178,12 @@ internal class World_Currency_Drop_Rando : Rando_Base
                 }
 
                 break;
+
             case RandomizerConsistencyB.None:
                 multiplier = CuteRandoCore.RandomFloat(ShardChanceMultiplier.AsTuple());
                 multiplierAC = CuteRandoCore.RandomFloat(ArchitectCrestMultiplier.AsTuple());
                 break;
+
             default:
                 throw new NotImplementedException();
         }
@@ -251,74 +244,70 @@ internal class World_Currency_Drop_Rando : Rando_Base
     }
 
     #region Settings
-    /// <summary>
-    /// Setting for how consistant the drop chances are
-    /// </summary>
+
+    /// <summary>Setting for how consistant the drop chances are</summary>
     public RandomizerConsistencyB ConsistencySetting
     {
         get => consistencySetting.Value;
         internal set => consistencySetting.Value = value;
     }
+
     private ConfigEntry<RandomizerConsistencyB> consistencySetting;
-    /// <summary>
-    /// Default setting for how consistant the drop chances are
-    /// </summary>
+
+    /// <summary>Default setting for how consistant the drop chances are</summary>
     public const RandomizerConsistencyB defaultConsistencySetting = RandomizerConsistencyB.None;
-    /// <summary>
-    /// Randomize shard drop chance from hitting specific walls
-    /// </summary>
+
+    /// <summary>Randomize shard drop chance from hitting specific walls</summary>
     public bool ShardChanceEnable
     {
         get => shardChanceEnable.Value;
         internal set => shardChanceEnable.Value = value;
     }
+
     private ConfigEntry<bool> shardChanceEnable;
-    /// <summary>
-    /// Default choice for wall shard drop chance randomizer
-    /// </summary>
+
+    /// <summary>Default choice for wall shard drop chance randomizer</summary>
     public const bool defaultShardChanceEnable = false;
-    /// <summary>
-    /// Percent range for regular shard drop chance multiplier
-    /// </summary>
+
+    /// <summary>Percent range for regular shard drop chance multiplier</summary>
     public FloatRange ShardChanceMultiplier
     {
         get => shardChanceMultiplier.Value;
         internal set => shardChanceMultiplier.Value = value;
     }
+
     private ConfigEntry<FloatRange> shardChanceMultiplier;
-    /// <summary>
-    /// Default percent range for regular shard drop chance multiplier
-    /// </summary>
+
+    /// <summary>Default percent range for regular shard drop chance multiplier</summary>
     public static readonly FloatRange defaultShardChanceMultiplier = new(1f, 3f);
-    /// <summary>
-    /// Randomize architect crest shard drop chance
-    /// </summary>
+
+    /// <summary>Randomize architect crest shard drop chance</summary>
     public bool ArchitectChanceEnable
     {
         get => architectChanceEnable.Value;
         internal set => architectChanceEnable.Value = value;
     }
+
     private ConfigEntry<bool> architectChanceEnable;
-    /// <summary>
-    /// Default choice for architect crest shard drop chance randomizer
-    /// </summary>
+
+    /// <summary>Default choice for architect crest shard drop chance randomizer</summary>
     public const bool defaultArchitectChanceEnable = false;
-    /// <summary>
-    /// Percent range for architect crest multiplier
-    /// </summary>
+
+    /// <summary>Percent range for architect crest multiplier</summary>
     public FloatRange ArchitectCrestMultiplier
     {
         get => architectCrestMultiplier.Value;
         internal set => architectCrestMultiplier.Value = value;
     }
+
     private ConfigEntry<FloatRange> architectCrestMultiplier;
-    /// <summary>
-    /// Default percent range for architect crest multiplier
-    /// </summary>
+
+    /// <summary>Default percent range for architect crest multiplier</summary>
     public static readonly FloatRange defaultArchitectCrestMultiplier = new(1f, 3f);
 
     // Used for determining if we need to update
     private bool architectCrestChanging = false;
+
     private bool shardChanceChanging = false;
 
     protected override void InitSettings()
@@ -413,5 +402,5 @@ internal class World_Currency_Drop_Rando : Rando_Base
 
         ResetAllLists();
     }
-    #endregion
+    #endregion Settings
 }

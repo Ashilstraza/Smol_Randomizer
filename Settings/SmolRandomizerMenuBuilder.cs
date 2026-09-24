@@ -14,30 +14,27 @@ using static Smol_Randomizer.Settings.SliderCuteExtensions;
 
 namespace Smol_Randomizer.Settings;
 
-/// <summary>
-/// Customized set of menu elements for easy building
-/// </summary>
+/// <summary>Customized set of menu elements for easy building</summary>
 /// <param name="title">Title of the menu</param>
 public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScreen(title)
 {
     // Additional Colors
     public static Color LightGray => new(0.75f, 0.75f, 0.75f);
-    public static Color EBlue => RGBInttoColor(12, 123, 220);
-    public static Color DYellow => RGBInttoColor(255, 194, 10);
-    public static Color EPurple => RGBInttoColor(151, 93, 255);
-    public static Color DOrange => RGBInttoColor(230, 97, 0);
+
+    public static Color EBlue => RGBIntToColor(12, 123, 220);
+    public static Color DYellow => RGBIntToColor(255, 194, 10);
+    public static Color EPurple => RGBIntToColor(151, 93, 255);
+    public static Color DOrange => RGBIntToColor(230, 97, 0);
     public static Color Enabled { get; internal set; }
     public static Color Disabled { get; internal set; }
 
-    /// <summary>
-    /// Takes int values and turns them into a new Color
-    /// </summary>
+    /// <summary>Takes int values and turns them into a new Color</summary>
     /// <param name="r">red</param>
     /// <param name="g">green</param>
     /// <param name="b">blue</param>
     /// <param name="a">alpha (optional)</param>
     /// <returns>A new color based on the given values.</returns>
-    private static Color RGBInttoColor(int r, int g, int b, int a = 255)
+    private static Color RGBIntToColor(int r, int g, int b, int a = 255)
     {
         return new((float)(clamp(r) / 255f), (float)(clamp(g) / 255f), (float)(clamp(b) / 255f), (float)(clamp(a) / 255f));
 
@@ -51,14 +48,10 @@ public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScree
         }
     }
 
-    /// <summary>
-    /// Tight spacing for vertical
-    /// </summary>
+    /// <summary>Tight spacing for vertical</summary>
     public const float VSPACE_TIGHT = 60f;
 
-    /// <summary>
-    /// A blank space for spacing reasons, good for giving room to descriptions
-    /// </summary>
+    /// <summary>A blank space for spacing reasons, good for giving room to descriptions</summary>
     /// <returns></returns>
     public TextLabel BlankSpace()
     {
@@ -67,10 +60,8 @@ public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScree
         return blank;
     }
 
-    /// <summary>
-    /// A basic text label
-    /// </summary>
-    /// <param name="label">Text of the label</param>
+    /// <summary>A basic text label</summary>
+    /// <param name="label">   Text of the label</param>
     /// <param name="fontSize">Font size of the label</param>
     /// <returns>The added label</returns>
     public TextLabel Label(string label, FontSizes fontSize = FontSizes.Medium)
@@ -78,11 +69,9 @@ public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScree
         return Label(label, Color.white, fontSize);
     }
 
-    /// <summary>
-    /// A text label
-    /// </summary>
-    /// <param name="label">Text of the label</param>
-    /// <param name="color">Color of the text</param>
+    /// <summary>A text label</summary>
+    /// <param name="label">   Text of the label</param>
+    /// <param name="color">   Color of the text</param>
     /// <param name="fontSize">Font size of the label</param>
     /// <returns>The added label</returns>
     public TextLabel Label(string label, Color color, FontSizes fontSize = FontSizes.Medium)
@@ -95,13 +84,11 @@ public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScree
         return textLabel;
     }
 
-    /// <summary>
-    /// A clickable button with a given action to activate when clicked
-    /// </summary>
-    /// <param name="label">The button's text</param>
-    /// <param name="onClick">The action to be performed when clicked</param>
+    /// <summary>A clickable button with a given action to activate when clicked</summary>
+    /// <param name="label">      The button's text</param>
+    /// <param name="onClick">    The action to be performed when clicked</param>
     /// <param name="description">Description of the button</param>
-    /// <param name="fontSize">Font size of the button</param>
+    /// <param name="fontSize">   Font size of the button</param>
     /// <returns>The added button</returns>
     public TextButton Button(string label, Action onClick, string description = "", FontSizes fontSize = FontSizes.Medium)
     {
@@ -113,10 +100,8 @@ public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScree
         return button;
     }
 
-    /// <summary>
-    /// A button leading to a sub menu
-    /// </summary>
-    /// <param name="subMenu">The given menu to navigate to when clicked</param>
+    /// <summary>A button leading to a sub menu</summary>
+    /// <param name="subMenu"> The given menu to navigate to when clicked</param>
     /// <param name="fontSize">Font size of the button</param>
     /// <returns>The added button</returns>
     public TextButton SubMenuButton(AbstractMenuScreen subMenu, string description = "", FontSizes fontSize = FontSizes.Medium)
@@ -133,13 +118,11 @@ public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScree
         return button;
     }
 
-    /// <summary>
-    /// A togglable element
-    /// </summary>
-    /// <param name="label">Label of the toggle</param>
+    /// <summary>A togglable element</summary>
+    /// <param name="label">      Label of the toggle</param>
     /// <param name="configEntry">The setting the toggle is attached to</param>
     /// <param name="description">Description of the toggle</param>
-    /// <param name="fontSizes">Font size of the toggle</param>
+    /// <param name="fontSizes">  Font size of the toggle</param>
     /// <returns>The Added toggle</returns>
     public ChoiceElement<bool> ToggleElement(string label, ConfigEntryBase configEntry, string description = "", FontSizes fontSizes = FontSizes.Medium)
     {
@@ -152,11 +135,9 @@ public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScree
         return element;
     }
 
-    /// <summary>
-    /// A chooser of enums
-    /// </summary>
+    /// <summary>A chooser of enums</summary>
     /// <param name="configEntry">The setting of the chooser</param>
-    /// <param name="fontSizes">Font size of the chooser</param>
+    /// <param name="fontSizes">  Font size of the chooser</param>
     /// <returns>The added object of the chooser, may be null if enum was not implemented</returns>
     public object? EnumList(ConfigEntryBase configEntry, FontSizes fontSizes = FontSizes.Medium)
     {
@@ -179,10 +160,8 @@ public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScree
         return element;
     }
 
-    /// <summary>
-    /// A slider for a float range
-    /// </summary>
-    /// <param name="label">Label of the slider</param>
+    /// <summary>A slider for a float range</summary>
+    /// <param name="label">      Label of the slider</param>
     /// <param name="configEntry">The setting of the slider</param>
     /// <param name="description">Description of the slider</param>
     /// <returns>The two added sliders in an array</returns>
@@ -219,10 +198,8 @@ public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScree
         return [minSlider, maxSlider];
     }
 
-    /// <summary>
-    /// A slider for a int range
-    /// </summary>
-    /// <param name="label">Label of the slider</param>
+    /// <summary>A slider for a int range</summary>
+    /// <param name="label">      Label of the slider</param>
     /// <param name="configEntry">The setting of the slider</param>
     /// <param name="description">Description of the slider</param>
     /// <returns>The two added sliders in an array</returns>
@@ -241,7 +218,6 @@ public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScree
         IntSliderModel minModel = SliderModels.ForInts(min, max);
         IntSliderModel maxModel = SliderModels.ForInts(min, max);
 
-
         SliderElement<int> minSlider = new("Minimum Value", minModel);
         minSlider.SetFontSizes(FontSizes.Small);
         minSlider.SynchronizeWithIntRangeMin(configEntry);
@@ -257,10 +233,8 @@ public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScree
         return [minSlider, maxSlider];
     }
 
-    /// <summary>
-    /// Text input for an int value
-    /// </summary>
-    /// <param name="label">Label of the input</param>
+    /// <summary>Text input for an int value</summary>
+    /// <param name="label">      Label of the input</param>
     /// <param name="configEntry">The setting of the input</param>
     /// <param name="description">Description of the input</param>
     /// <returns>The added input</returns>
@@ -276,10 +250,8 @@ public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScree
         return intInput;
     }
 
-    /// <summary>
-    /// Slider input for an int value
-    /// </summary>
-    /// <param name="label">Label of the input</param>
+    /// <summary>Slider input for an int value</summary>
+    /// <param name="label">      Label of the input</param>
     /// <param name="configEntry">The setting of the input</param>
     /// <param name="description">Description of the input</param>
     /// <returns>The added input</returns>
@@ -303,10 +275,8 @@ public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScree
         return slider;
     }
 
-    /// <summary>
-    /// Sub menu builder for the sub menu button
-    /// </summary>
-    /// <param name="title">Title of the sub menu</param>
+    /// <summary>Sub menu builder for the sub menu button</summary>
+    /// <param name="title">   Title of the sub menu</param>
     /// <param name="settings">The list of settings for the sub menu</param>
     /// <returns>The new sub menu screen</returns>
     public static ScrollingMenuScreen BuildPagedSubMenu(KeyValuePair<string, Dictionary<string, ConfigEntryBase>> settingGroup)
@@ -324,9 +294,7 @@ public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScree
         return screenBuilder;
     }
 
-    /// <summary>
-    /// Adds an element to the menu depending on the type of setting that was given
-    /// </summary>
+    /// <summary>Adds an element to the menu depending on the type of setting that was given</summary>
     /// <param name="entry">The setting to have an element added for</param>
     public void ElementBuilder(ConfigEntryBase entry)
     {
@@ -337,20 +305,25 @@ public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScree
                 ToggleElement(entry.LabelName(), entry, entry.Description.Description);
                 if (entry.Description.Description != "") BlankSpace();
                 break;
+
             case nameof(Int32):
                 IntSlider(entry.LabelName(), entry, entry.Description.Description);
                 if (entry.Description.Description != "") BlankSpace();
                 break;
+
             case nameof(FloatRange):
                 SliderRangeFloat(entry.LabelName(), entry, entry.Description.Description);
                 break;
+
             case nameof(IntRange):
                 SliderRangeInt(entry.LabelName(), entry, entry.Description.Description);
                 break;
+
             case "Enum":
                 EnumList(entry);
                 if (entry.Description.Description != "") BlankSpace();
                 break;
+
             default:
                 Label("(Unimplemented)" + entry.LabelName(), Color.magenta);
                 break;
@@ -358,23 +331,17 @@ public class SmolRandomizerMenuBuilder(LocalizedText title) : ScrollingMenuScree
     }
 }
 
-/// <summary>
-/// Helper Extensions for the Range Sliders
-/// </summary>
+/// <summary>Helper Extensions for the Range Sliders</summary>
 public static class SliderCuteExtensions
 {
-    /// <summary>
-    /// Formats a slider value to have a % sign after it.
-    /// </summary>
-    /// <param name="_">Index number, discarded</param>
+    /// <summary>Formats a slider value to have a % sign after it.</summary>
+    /// <param name="_">   Index number, discarded</param>
     /// <param name="item">Float to be formatted</param>
     /// <returns>The formatted float</returns>
     public static LocalizedText AsPercent(int _, float item)
         => $"{item:0.###}%";
 
-    /// <summary>
-    /// Converts a range to a tuple
-    /// </summary>
+    /// <summary>Converts a range to a tuple</summary>
     /// <param name="range">The range for conversion</param>
     /// <returns>A tuple containing the min and max values</returns>
     public static (int min, int max) RangeAsTuple(AcceptableValueRange<int> range)
@@ -382,11 +349,9 @@ public static class SliderCuteExtensions
         return (range.MinValue, range.MaxValue);
     }
 
-    /// <summary>
-    /// Synchronize with a minimum float value
-    /// </summary>
+    /// <summary>Synchronize with a minimum float value</summary>
     /// <param name="element">The slider that we want to sync</param>
-    /// <param name="entry">The setting we are syncing with</param>
+    /// <param name="entry">  The setting we are syncing with</param>
     public static void SynchronizeWithFloatRangeMin(this SelectableValueElement<float> element, ConfigEntryBase entry)
     {
         ConfigEntry<FloatRange> configEntry = entry as ConfigEntry<FloatRange>
@@ -421,11 +386,9 @@ public static class SliderCuteExtensions
         }
     }
 
-    /// <summary>
-    /// Synchronize with a maximum float value
-    /// </summary>
+    /// <summary>Synchronize with a maximum float value</summary>
     /// <param name="element">The slider that we want to sync</param>
-    /// <param name="entry">The setting we are syncing with</param>
+    /// <param name="entry">  The setting we are syncing with</param>
     public static void SynchronizeWithFloatRangeMax(this SelectableValueElement<float> element, ConfigEntryBase entry)
     {
         ConfigEntry<FloatRange> configEntry = entry as ConfigEntry<FloatRange>
@@ -461,11 +424,9 @@ public static class SliderCuteExtensions
         }
     }
 
-    /// <summary>
-    /// Synchronize with a minimum int value
-    /// </summary>
+    /// <summary>Synchronize with a minimum int value</summary>
     /// <param name="element">The slider that we want to sync</param>
-    /// <param name="entry">The setting we are syncing with</param>
+    /// <param name="entry">  The setting we are syncing with</param>
     public static void SynchronizeWithIntRangeMin(this SelectableValueElement<int> element, ConfigEntryBase entry)
     {
         ConfigEntry<IntRange> configEntry = entry as ConfigEntry<IntRange>
@@ -496,11 +457,9 @@ public static class SliderCuteExtensions
             => model.SetValue(((IntRange)((SettingChangedEventArgs)args).ChangedSetting.BoxedValue).Min);
     }
 
-    /// <summary>
-    /// Synchronize with a maximum int value
-    /// </summary>
+    /// <summary>Synchronize with a maximum int value</summary>
     /// <param name="element">The slider that we want to sync</param>
-    /// <param name="entry">The setting we are syncing with</param>
+    /// <param name="entry">  The setting we are syncing with</param>
     public static void SynchronizeWithIntRangeMax(this SelectableValueElement<int> element, ConfigEntryBase entry)
     {
         ConfigEntry<IntRange> configEntry = entry as ConfigEntry<IntRange>

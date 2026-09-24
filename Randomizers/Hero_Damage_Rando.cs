@@ -9,40 +9,33 @@ using BepInEx.Configuration;
 using HarmonyLib;
 
 #if TESTING
+
 using MonoMod.Utils;
 
 using Newtonsoft.Json;
+
 #endif
+
 using Smol_Randomizer.Settings;
 
 namespace Smol_Randomizer.Randomizers;
 
-/// <summary>
-/// Randomizer for Hero Nail Damage
-/// </summary>
+/// <summary>Randomizer for Hero Nail Damage</summary>
 internal class Hero_Damage_Rando : Rando_Base
 {
-    /// <summary>
-    /// We make a singleton of this rando
-    /// </summary>
+    /// <summary>We make a singleton of this rando</summary>
     private static readonly Lazy<Hero_Damage_Rando> instance = new(() => new Hero_Damage_Rando());
-    /// <summary>
-    /// Externally visible instance of this rando
-    /// </summary>
+
+    /// <summary>Externally visible instance of this rando</summary>
     public static Hero_Damage_Rando Instance => instance.Value;
 
-    /// <summary>
-    /// The nail damage if based on the game instance
-    /// </summary>
+    /// <summary>The nail damage if based on the game instance</summary>
     public int saveNailDamageOffset = int.MinValue;
-    /// <summary>
-    /// The nail damage based on upgrade level
-    /// </summary>
+
+    /// <summary>The nail damage based on upgrade level</summary>
     public Dictionary<int, int> nailUpgradeDamages = [];
 
-    /// <summary>
-    /// Constructor for this singleton
-    /// </summary>
+    /// <summary>Constructor for this singleton</summary>
     private Hero_Damage_Rando()
     {
         InitRandomizer();
@@ -65,6 +58,7 @@ internal class Hero_Damage_Rando : Rando_Base
     }
 
 #if TESTING // Enable Saving Data
+
     protected override void ApplySaveData(Dictionary<string, object> savedData)
     {
         if (savedData.TryGetValue(nameof(nailUpgradeDamages), out object tempDict))
@@ -85,18 +79,23 @@ internal class Hero_Damage_Rando : Rando_Base
 
         savedData[nameof(saveNailDamageOffset)] = saveNailDamageOffset;
     }
+
 #endif
 
     // Unused as we don't need
     protected override void Register() { }
+
     protected override void Unregister() { }
+
     protected override void OnLoaded() { }
+
     protected override void OnUnload() { }
 
     /// <summary>
     /// Patch the nail damage getter for either the base game, or debug mod if that is loaded.
     /// <para>
-    /// Debug mod's patch takes precidence over any patches applied to PlayerData.get_nailDamage for some reason. We need to patch that instead to apply the damage properly.
+    /// Debug mod's patch takes precidence over any patches applied to PlayerData.get_nailDamage for some reason. We
+    /// need to patch that instead to apply the damage properly.
     /// </para>
     /// </summary>
     private void GameStartup()
@@ -115,7 +114,8 @@ internal class Hero_Damage_Rando : Rando_Base
     }
 
     /// <summary>
-    /// Patch that hooks onto the DebugMod's Get_NailDamage postfix since for some reason HarmonyX isn't able to put our own version after DebugMod's
+    /// Patch that hooks onto the DebugMod's Get_NailDamage postfix since for some reason HarmonyX isn't able to put our
+    /// own version after DebugMod's
     /// </summary>
     /// <param name="__result">The to-be returned nail damage amount</param>
     private static void DebugMod_Get_NailDamage_Postfix(ref int __result)
@@ -123,9 +123,7 @@ internal class Hero_Damage_Rando : Rando_Base
         PlayerData_Get_NailDamage_Postfix(ref __result);
     }
 
-    /// <summary>
-    /// Patch that hooks get_NailDamage to tweak the nail's damage
-    /// </summary>
+    /// <summary>Patch that hooks get_NailDamage to tweak the nail's damage</summary>
     /// <param name="__result">The to-be returned nail damage amount</param>
     private static void PlayerData_Get_NailDamage_Postfix(ref int __result)
     {
@@ -134,9 +132,7 @@ internal class Hero_Damage_Rando : Rando_Base
         Instance.NailDamage(ref __result);
     }
 
-    /// <summary>
-    /// Randomizes the nail's damage depending on the consistancy setting
-    /// </summary>
+    /// <summary>Randomizes the nail's damage depending on the consistancy setting</summary>
     /// <param name="nailDamage">Reference to the initial nail damage value</param>
     /// <exception cref="NotImplementedException">Thrown if there is an unimplemented consistancy type.</exception>
     private void NailDamage(ref int nailDamage)
@@ -152,6 +148,7 @@ internal class Hero_Damage_Rando : Rando_Base
 
                 nailDamage += tempDamage;
                 break;
+
             case PlayerNailDamageConsistancy.PerSave:
                 if (saveNailDamageOffset.Equals(int.MinValue))
                 {
@@ -160,12 +157,13 @@ internal class Hero_Damage_Rando : Rando_Base
 
                 nailDamage += saveNailDamageOffset;
                 break;
+
             case PlayerNailDamageConsistancy.None:
                 nailDamage += RollDamage();
                 break;
+
             default:
                 throw new NotImplementedException();
-
         }
 
         if (nailDamage <= 0 && PlayerNailDamageMinimum) nailDamage = 1;
@@ -183,61 +181,56 @@ internal class Hero_Damage_Rando : Rando_Base
     }
 
     #region Settings
-    /// <summary>
-    /// Setting for how consistant nail damage should be
-    /// </summary>
+
+    /// <summary>Setting for how consistant nail damage should be</summary>
     public PlayerNailDamageConsistancy ConsistancySetting
     {
         get => consistancySetting.Value;
         internal set => consistancySetting.Value = value;
     }
+
     private ConfigEntry<PlayerNailDamageConsistancy> consistancySetting;
-    /// <summary>
-    /// Default choice for nail damage consistancy
-    /// </summary>
+
+    /// <summary>Default choice for nail damage consistancy</summary>
     public const PlayerNailDamageConsistancy defaultConsistancySetting = PlayerNailDamageConsistancy.None;
-    /// <summary>
-    /// Setting for if nail damage should be randomized
-    /// </summary>
+
+    /// <summary>Setting for if nail damage should be randomized</summary>
     public bool PlayerNailDamageRando
     {
         get => playerNailDamageRando.Value;
         internal set => playerNailDamageRando.Value = value;
     }
+
     private ConfigEntry<bool> playerNailDamageRando;
-    /// <summary>
-    /// Default choice for if nail damage should be randomized
-    /// </summary>
+
+    /// <summary>Default choice for if nail damage should be randomized</summary>
     public const bool defaultPlayerNailDamageRando = false;
-    /// <summary>
-    /// Setting for if there should be a minimum damage for the nail
-    /// </summary>
+
+    /// <summary>Setting for if there should be a minimum damage for the nail</summary>
     public bool PlayerNailDamageMinimum
     {
         get => playerNailDamageMinimum.Value;
         internal set => playerNailDamageMinimum.Value = value;
     }
+
     private ConfigEntry<bool> playerNailDamageMinimum;
-    /// <summary>
-    /// Default choice for minimum nail damage
-    /// </summary>
+
+    /// <summary>Default choice for minimum nail damage</summary>
     public const bool defaultPlayerNailDamageMinimum = true;
-    /// <summary>
-    /// Setting for the amount we should shift the nail damage
-    /// </summary>
+
+    /// <summary>Setting for the amount we should shift the nail damage</summary>
     public int PlayerNailDamageShift
     {
         get => playerNailDamageShift.Value;
         internal set => playerNailDamageShift.Value = value;
     }
+
     private ConfigEntry<int> playerNailDamageShift;
-    /// <summary>
-    /// Default choice for the nail damage shift
-    /// </summary>
+
+    /// <summary>Default choice for the nail damage shift</summary>
     public const int defaultPlayerNailDamageShift = 3;
-    /// <summary>
-    /// Acceptable value range for player nail damage
-    /// </summary>
+
+    /// <summary>Acceptable value range for player nail damage</summary>
     public AcceptableValueRange<int> acceptablePlayerNailDamageShift = new(0, 20);
 
     protected override void InitSettings()
@@ -300,12 +293,11 @@ internal class Hero_Damage_Rando : Rando_Base
     {
         ResetAllLists();
     }
-    #endregion
+
+    #endregion Settings
 }
 
-/// <summary>
-/// The options for the nail damage consistancy
-/// </summary>
+/// <summary>The options for the nail damage consistancy</summary>
 internal enum PlayerNailDamageConsistancy
 {
     None, // Each swing is different damage

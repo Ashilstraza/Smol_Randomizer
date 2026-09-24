@@ -1,8 +1,11 @@
 ﻿using System;
 
 #if TESTING
+
 using System.Collections.Generic;
+
 #endif
+
 using BepInEx.Configuration;
 
 using Newtonsoft.Json;
@@ -12,62 +15,59 @@ using UnityEngine;
 namespace Smol_Randomizer.Settings;
 
 /// <summary>
-/// Handles the various settings <see href="https://github.com/BepInEx/BepInEx.ConfigurationManager/blob/master/README.md"/>
+/// Handles the various settings <see
+/// href="https://github.com/BepInEx/BepInEx.ConfigurationManager/blob/master/README.md" />
 /// </summary>
 public static class Settings
 {
     #region Settings
+
 #if TESTING
-    /// <summary>
-    /// If we want to test new things
-    /// </summary>
+
+    /// <summary>If we want to test new things</summary>
     public static bool TestNewThings
     {
         get => testNewThings.Value;
         internal set => testNewThings.Value = value;
     }
+
     private static ConfigEntry<bool> testNewThings;
-    /// <summary>
-    /// Default for if we want to test new things
-    /// </summary>
+
+    /// <summary>Default for if we want to test new things</summary>
     public const bool defaultTestNewThings = false;
+
     /// <summary>
 #endif
-    /// Enables the randomization of the various things
-    /// </summary>
+
+    /// Enables the randomization of the various things </summary>
     public static bool EnableRandomizer
     {
         get => enableRandomizer.Value;
         internal set => enableRandomizer.Value = value;
     }
+
     internal static ConfigEntry<bool> enableRandomizer;
-    /// <summary>
-    /// Default if we want to randomize the various things
-    /// </summary>
+
+    /// <summary>Default if we want to randomize the various things</summary>
     public const bool defaultEnableRandomizer = true;
-    /// <summary>
-    /// Changes the menu button colors of the enabled/disabled randomizers
-    /// </summary>
+
+    /// <summary>Changes the menu button colors of the enabled/disabled randomizers</summary>
     public static RandomizerColors EnabledRandomizerColors
     {
         get => enabledRandomizerColors.Value;
         internal set => enabledRandomizerColors.Value = value;
     }
+
     private static ConfigEntry<RandomizerColors> enabledRandomizerColors;
-    /// <summary>
-    /// Default color of the randomizer menu buttons
-    /// </summary>
+
+    /// <summary>Default color of the randomizer menu buttons</summary>
     public const RandomizerColors defaultEnabledRandomizerColors = RandomizerColors.GreenRed;
 
-    /// <summary>
-    /// Reference to the randomizer's config file to allow adding settings.
-    /// </summary>
+    /// <summary>Reference to the randomizer's config file to allow adding settings.</summary>
     public static ConfigFile ConfigFile { get; private set; }
 
-    /// <summary>
-    /// Initialize the various settings.
-    /// </summary>
-    /// <remarks> Order is backwards for some reason?</remarks>
+    /// <summary>Initialize the various settings.</summary>
+    /// <remarks>Order is backwards for some reason?</remarks>
     /// <param name="config"></param>
     public static void Init(ConfigFile config)
     {
@@ -110,22 +110,18 @@ public static class Settings
         enabledRandomizerColors.SettingChanged += SettingMenu.OnEnabledRandomizerColorChanged;
         SettingMenu.ChangeColors(EnabledRandomizerColors);
     }
-    #endregion
+
+    #endregion Settings
 
     #region BepInEx_Setting_Stuff
-    /// <summary>
-    /// Max Slider Percentage
-    /// </summary>
+
+    /// <summary>Max Slider Percentage</summary>
     public const int maxSliderPercent = 300;
 
-    /// <summary>
-    /// Max Slider Value
-    /// </summary>
+    /// <summary>Max Slider Value</summary>
     public const int maxSliderValue = 100;
 
-    /// <summary>
-    /// Custom Drawer for entering Ranges
-    /// </summary>
+    /// <summary>Custom Drawer for entering Ranges</summary>
     /// <param name="entry">The entry to draw.</param>
     public static void RangeDrawer(ConfigEntryBase entry)
     {
@@ -166,11 +162,9 @@ public static class Settings
         }
     }
 
-    /// <summary>
-    /// Range UI Control
-    /// </summary>
-    /// <param name="min">Minimum Value.</param>
-    /// <param name="max">Maximum Value.</param>
+    /// <summary>Range UI Control</summary>
+    /// <param name="min">      Minimum Value.</param>
+    /// <param name="max">      Maximum Value.</param>
     /// <param name="rangeType">Type of range the values are.</param>
     private static void TextRange(ref string min, ref string max, RangeType rangeType, AcceptableValueBase? acceptableRange = null)
     {
@@ -194,7 +188,6 @@ public static class Settings
             GUILayout.Label($"Minimum {(rangeType.Equals(RangeType.Percent) ? "Percent" : "Value")}");
             min = GUILayout.TextField(min, GUILayout.Width(30));
             min = GUILayout.HorizontalSlider((float)Math.Round(float.Parse(min)), minVal, (float)Math.Round(float.Parse(max)), GUILayout.Width(100)).ToString();
-
         }
 
         using (GUILayout.HorizontalScope horizontalGroup = new("box"))
@@ -205,38 +198,32 @@ public static class Settings
         }
     }
 
-    /// <summary>
-    /// Converter for BepInEx to convert the FloatRange into something savable then back again
-    /// </summary>
+    /// <summary>Converter for BepInEx to convert the FloatRange into something savable then back again</summary>
     private static readonly TypeConverter FloatRangeConverter = new()
     {
         ConvertToString = (obj, type) => obj.ToString(),
         ConvertToObject = (str, type) => FloatRange.Parse(str)
     };
 
-    /// <summary>
-    /// Converter for BepInEx to convert the IntRange into something savable then back again
-    /// </summary>
+    /// <summary>Converter for BepInEx to convert the IntRange into something savable then back again</summary>
     private static readonly TypeConverter IntRangeConverter = new()
     {
         ConvertToString = (obj, type) => obj.ToString(),
         ConvertToObject = (str, type) => IntRange.Parse(str)
     };
 
-    /// <summary>
-    /// Randomizer Range Types
-    /// </summary>
+    /// <summary>Randomizer Range Types</summary>
     public enum RangeType
     {
         Percent,
         Value
     }
-    #endregion
+
+    #endregion BepInEx_Setting_Stuff
 
     #region Silksong.DataManager_Stuff
-    /// <summary>
-    /// Contains references to all the various data that we want to save per-save slot
-    /// </summary>
+
+    /// <summary>Contains references to all the various data that we want to save per-save slot</summary>
     public static RandoPerSaveData SaveData
     {
         get
@@ -255,6 +242,7 @@ public static class Settings
             RandoPerSaveData.Load();
         }
     }
+
     private static RandoPerSaveData saveData;
 
     public static bool Loaded
@@ -275,18 +263,15 @@ public static class Settings
     private static bool loaded = false;
 
     internal static bool loading = false;
-    #endregion
+    #endregion Silksong.DataManager_Stuff
 }
 
-/// <summary>
-/// Used for referencing save data
-/// </summary>
+/// <summary>Used for referencing save data</summary>
 public class RandoPerSaveData
 {
 #if TESTING // Enable Saving Data
-    /// <summary>
-    /// Dictionary containing references to all the data we want to save per-save slot
-    /// </summary>
+
+    /// <summary>Dictionary containing references to all the data we want to save per-save slot</summary>
     [JsonProperty]
     public Dictionary<string, Dictionary<string, object>> SmolSaveDictionary
     // <Randomizer, <Randomizer Dictionary Name, Saved Object>>
@@ -294,11 +279,10 @@ public class RandoPerSaveData
         get;
         internal set;
     }
+
 #endif
 
-    /// <summary>
-    /// The seed for the save
-    /// </summary>
+    /// <summary>The seed for the save</summary>
     [JsonIgnore]
     public int SaveSeed
     {
@@ -312,18 +296,13 @@ public class RandoPerSaveData
     [JsonProperty]
     private int saveSeed = int.MinValue;
 
-    /// <summary>
-    /// Called on the data being loaded
-    /// </summary>
+    /// <summary>Called on the data being loaded</summary>
     internal static event Action OnSettingsLoaded;
-    /// <summary>
-    /// Called on the data being saved
-    /// </summary>
+
+    /// <summary>Called on the data being saved</summary>
     internal static event Action OnSettingsSaved;
 
-    /// <summary>
-    /// Loads the saved data into the various randomizers that are listening for the load.
-    /// </summary>
+    /// <summary>Loads the saved data into the various randomizers that are listening for the load.</summary>
     internal static void Load()
     {
         Settings.loading = true;
@@ -337,17 +316,17 @@ public class RandoPerSaveData
         }
     }
 
-    /// <summary>
-    /// Called when saving is occuring
-    /// </summary>
+    /// <summary>Called when saving is occuring</summary>
     internal static void Saving()
     {
         OnSettingsSaved?.Invoke();
     }
 
 #if TESTING // Enable Saving Data
+
     /// <summary>
-    /// Returns a dictionary containing all the saved data for the given randomizer. If it does not exists, just returns an empty dictionary.
+    /// Returns a dictionary containing all the saved data for the given randomizer. If it does not exists, just returns
+    /// an empty dictionary.
     /// </summary>
     /// <param name="randomizer">The randomizer we are requesting</param>
     /// <returns>The saved data for the given randomizer</returns>
@@ -363,9 +342,7 @@ public class RandoPerSaveData
         return dictionary;
     }
 
-    /// <summary>
-    /// Sets the saved data of the given randomizer
-    /// </summary>
+    /// <summary>Sets the saved data of the given randomizer</summary>
     /// <param name="randomizer">The randomizer to set the data of</param>
     /// <param name="dictionary">Dictionary containing the data to set</param>
     internal void SetSavedData(string randomizer, Dictionary<string, object> dictionary)
@@ -373,19 +350,16 @@ public class RandoPerSaveData
         SmolSaveDictionary ??= [];
         SmolSaveDictionary[randomizer] = dictionary;
     }
+
 #endif
 
-    /// <summary>
-    /// Rerolls the seed.
-    /// </summary>
+    /// <summary>Rerolls the seed.</summary>
     internal void RerollSeed()
     {
         saveSeed = CuteRandoCore.GetNewSaveSeed();
     }
 
-    /// <summary>
-    /// Sets the seed to the given value.
-    /// </summary>
+    /// <summary>Sets the seed to the given value.</summary>
     /// <param name="seed">The new seed</param>
     internal void SetSeed(int seed)
     {
@@ -393,9 +367,7 @@ public class RandoPerSaveData
     }
 }
 
-/// <summary>
-/// Range Randomize Types
-/// </summary>
+/// <summary>Range Randomize Types</summary>
 public enum RandomizeByRangeTypes
 {
     Disabled,
@@ -403,9 +375,7 @@ public enum RandomizeByRangeTypes
     Value
 }
 
-/// <summary>
-/// Flat Amount Randomize Types
-/// </summary>
+/// <summary>Flat Amount Randomize Types</summary>
 internal enum RandomizeByFlatAmount
 {
     Disabled,
@@ -413,9 +383,7 @@ internal enum RandomizeByFlatAmount
     Range
 }
 
-/// <summary>
-/// Randomizer Consistency Types; None, EnemyType, and Scene
-/// </summary>
+/// <summary>Randomizer Consistency Types; None, EnemyType, and Scene</summary>
 public enum RandomizerConsistencyA
 {
     None,
@@ -423,9 +391,7 @@ public enum RandomizerConsistencyA
     EnemyType
 }
 
-/// <summary>
-/// Randomizer Consistency Types; None, Scene, PerSave
-/// </summary>
+/// <summary>Randomizer Consistency Types; None, Scene, PerSave</summary>
 public enum RandomizerConsistencyB
 {
     None,
@@ -433,9 +399,7 @@ public enum RandomizerConsistencyB
     PerSave
 }
 
-/// <summary>
-/// Randomizer Consistency Types; OnDamageTaken, OnSceneTransition, Never
-/// </summary>
+/// <summary>Randomizer Consistency Types; OnDamageTaken, OnSceneTransition, Never</summary>
 public enum RandomizerConsistencyC
 {
     OnDamageTaken,
@@ -443,9 +407,7 @@ public enum RandomizerConsistencyC
     PerSaveFile
 }
 
-/// <summary>
-/// Enemy Type Flags
-/// </summary>
+/// <summary>Enemy Type Flags</summary>
 [Flags]
 public enum RandomizerEnemyTypeFlags
 {
@@ -455,9 +417,7 @@ public enum RandomizerEnemyTypeFlags
     Both
 }
 
-/// <summary>
-/// Colors for Enabled/Disabled Randomizers
-/// </summary>
+/// <summary>Colors for Enabled/Disabled Randomizers</summary>
 public enum RandomizerColors
 {
     GreenRed,
