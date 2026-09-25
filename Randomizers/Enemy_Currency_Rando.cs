@@ -70,7 +70,7 @@ internal class Enemy_Currency_Rando : Rando_Base
         InitRandomizer();
     }
 
-    private protected override void InitRandomizer()
+    protected override void InitRandomizer()
     {
         RandomizerName = "Enemy Currency Randomizer";
         RandomizerDescription = "Randomizes the quantity of Rosaries and Shards dropped by enemies.";

@@ -53,7 +53,7 @@ internal class Enemy_Damage_Rando : Rando_Base
         InitRandomizer();
     }
 
-    private protected override void InitRandomizer()
+    protected override void InitRandomizer()
     {
         RandomizerName = "Enemy Damage Randomizer";
         RandomizerDescription = "Randomizes the damage delt to Hornet by enemies and bosses.";

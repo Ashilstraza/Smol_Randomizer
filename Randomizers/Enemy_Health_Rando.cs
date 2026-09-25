@@ -53,7 +53,7 @@ internal class Enemy_Health_Rando : Rando_Base
         InitRandomizer();
     }
 
-    private protected override void InitRandomizer()
+    protected override void InitRandomizer()
     {
         RandomizerName = "Enemy Health Randomizer";
         RandomizerDescription = "Randomizes the health of enemies and bosses.";

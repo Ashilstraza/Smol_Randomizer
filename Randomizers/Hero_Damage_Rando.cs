@@ -41,7 +41,7 @@ internal class Hero_Damage_Rando : Rando_Base
         InitRandomizer();
     }
 
-    private protected override void InitRandomizer()
+    protected override void InitRandomizer()
     {
         RandomizerName = "Hornet Damage Randomizer";
         RandomizerDescription = "Randomizes the damage Hornet does.";

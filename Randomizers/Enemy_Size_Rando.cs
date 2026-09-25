@@ -63,7 +63,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
         InitRandomizer();
     }
 
-    private protected override void InitRandomizer()
+    protected override void InitRandomizer()
     {
         RandomizerName = "Enemy Size Randomizer";
         RandomizerDescription = "Randomizes the sizes of enemies and bosses.";

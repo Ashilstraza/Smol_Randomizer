@@ -25,53 +25,16 @@ public class SettingMenu : SmolRandomizerMenuBuilder
     /// <summary>If the setting menu has been initialized</summary>
     public static SettingMenu thisSettingMenu;
 
+    public static EventHandler menuLoaded;
+
     /// <summary>Main randomizer menu</summary>
     /// <param name="title">Title of the menu (The mod's name)</param>
     internal SettingMenu(LocalizedText title) : base(title)
     {
         Content.VerticalSpacing = VSPACE_TIGHT;
-        GenerateMainPage();
-        AddExternalElements();
         thisSettingMenu = this;
+        GenerateMainPage();
         UpdateAllSubMenuColors();
-    }
-
-    private void AddExternalElements()
-    {
-        foreach (var element in additionalElements)
-        {
-            Add(element);
-        }
-    }
-
-    public void AddAdditionalElement(MenuElement menuElement)
-    {
-        if (menuElement == null) return;
-
-        additionalElements.Add(menuElement);
-    }
-
-    public void AddAdditionalElements(MenuElement[] menuElements)
-    {
-        if (menuElements == null) return;
-
-        foreach (MenuElement menuElement in menuElements)
-            additionalElements.Add(menuElement);
-    }
-
-    public void RemoveAdditionalElement(MenuElement menuElement)
-    {
-        if (additionalElements == null) return;
-
-        additionalElements.Remove(menuElement);
-    }
-
-    public void RemoveAdditionalElements(MenuElement[] menuElements)
-    {
-        if (additionalElements == null) return;
-
-        foreach (MenuElement menuElement in menuElements)
-            additionalElements.Remove(menuElement);
     }
 
     /// <summary>Generates the various menus and options on the main page</summary>
@@ -118,6 +81,8 @@ public class SettingMenu : SmolRandomizerMenuBuilder
                 }
             }
         }
+
+        menuLoaded?.Invoke(this, null);
     }
 
     /// <summary>Add reset to defaults and reset saved values</summary>

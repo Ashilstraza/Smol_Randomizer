@@ -58,7 +58,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
         InitRandomizer();
     }
 
-    private protected override void InitRandomizer()
+    protected override void InitRandomizer()
     {
         RandomizerName = "World Currency Drop Randomizer";
         RandomizerDescription = "Randomizes the quantity of shards dropped from certain walls.";

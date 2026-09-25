@@ -13,16 +13,16 @@ namespace Smol_Randomizer.Randomizers;
 public abstract class Rando_Base
 {
     /// <summary>If the core of the randomizer is enabled</summary>
-    private protected bool coreEnableRandomization;
+    protected bool coreEnableRandomization;
 
     /// <summary>Name of the randomizer</summary>
-    public virtual string RandomizerName { get; private protected set; }
+    public virtual string RandomizerName { get; protected set; }
 
     /// <summary>Description of the randomizer</summary>
-    public virtual string RandomizerDescription { get; private protected set; }
+    public virtual string RandomizerDescription { get; protected set; }
 
     /// <summary>Initialize the randomizer</summary>
-    private protected virtual void InitRandomizer()
+    protected virtual void InitRandomizer()
     {
         coreEnableRandomization = Settings.Settings.EnableRandomizer;
         AddRandoDescription();
@@ -43,7 +43,7 @@ public abstract class Rando_Base
 
     /// <summary>Event hook for when settings are loaded</summary>
     /// <param name="hasSaveData">If the setting that were loaded had data or not</param>
-    private protected void OnSettingsLoaded()
+    protected void OnSettingsLoaded()
     {
 #if TESTING // Enable Saving Data
         Dictionary<string, object> savedData = Settings.Settings.SaveData.GetSavedData(RandomizerName);
@@ -64,7 +64,7 @@ public abstract class Rando_Base
 
     /// <summary>Clears this Randomizer's lists if the given name matches the RandomizerName</summary>
     /// <param name="randoName">The randomizer being cleared</param>
-    private protected void OnResetClicked(string randoName)
+    protected void OnResetClicked(string randoName)
     {
         if (randoName == RandomizerName)
             ResetAllLists();
@@ -97,7 +97,7 @@ public abstract class Rando_Base
     protected abstract void ResetAllLists();
 
     /// <summary>Add the randomizer's description into the core</summary>
-    private protected void AddRandoDescription()
+    protected void AddRandoDescription()
     {
         CuteRandoCore.AddRandoDescription(RandomizerName, RandomizerDescription);
     }
@@ -105,7 +105,7 @@ public abstract class Rando_Base
     /// <summary>Event hook for when the core enable setting for the randomizer is changed</summary>
     /// <param name="sender">?</param>
     /// <param name="args">  The setting that was changed</param>
-    private protected void RandoCoreSetting(object sender, EventArgs args)
+    protected void RandoCoreSetting(object sender, EventArgs args)
     {
         coreEnableRandomization = (bool)((SettingChangedEventArgs)args).ChangedSetting.BoxedValue;
 

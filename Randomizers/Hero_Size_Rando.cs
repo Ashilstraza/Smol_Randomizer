@@ -107,7 +107,7 @@ internal class Hero_Size_Rando : Rando_Base
         InitRandomizer();
     }
 
-    private protected override void InitRandomizer()
+    protected override void InitRandomizer()
     {
         RandomizerName = "Hornet Size Randomizer";
         RandomizerDescription = "Randomizes the size of Hornet.";

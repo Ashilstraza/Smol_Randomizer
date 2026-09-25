@@ -765,7 +765,7 @@ public enum RandomizerEventType : byte
 /// <param name="name">          Unique name of the randomizer.</param>
 /// <param name="randomizerType">The type of the randomizer.</param>
 /// <param name="method">        The method to call to use the randomizer.</param>
-public class Randomizer_Info(string name, RandomizerEventType randomizerType, MethodInfo method, object? o = null)
+public class Randomizer_Info(string name, RandomizerEventType randomizerType, MethodInfo method, object? o)
 {
     /// <summary>Unique name of the randomizer.</summary>
     public string Name => name;
