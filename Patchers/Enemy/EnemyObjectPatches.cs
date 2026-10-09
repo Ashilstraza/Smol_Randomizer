@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using UnityEngine;
 
@@ -14,7 +15,7 @@ public class EnemyObjectPatchCollection : ObjectPatchCollection_Base<EnemyObject
     public static EnemyObjectPatchCollection Instance => instance.Value;
 
     /// <summary>Set of patched enemies</summary>
-    private static HashSet<HealthManager> patchedEnemies = [];
+    private static HashSet<GameObject> patchedEnemies = [];
 
     /// <summary>Called when the scene loads to clear out unloaded enemies</summary>
     internal static void OnSceneLoaded()
@@ -26,10 +27,7 @@ public class EnemyObjectPatchCollection : ObjectPatchCollection_Base<EnemyObject
     /// <param name="enemyHealthManager">The enemy to patch</param>
     internal static void ApplyPatches(HealthManager enemyHealthManager)
     {
-        string enemyName = enemyHealthManager.name;
-
-        int cullIndex = enemyName.IndexOf('(');
-        if (cullIndex > 0) enemyName = enemyName[..cullIndex].TrimEnd();
+        string enemyName = CuteRandoCore.CullName(enemyHealthManager.name);
 
         if (!Instance.PatchedObjects.ContainsKey(enemyName))
             return;
@@ -38,30 +36,32 @@ public class EnemyObjectPatchCollection : ObjectPatchCollection_Base<EnemyObject
 
         Instance.ApplyPatches(enemyName, obj);
 
-        patchedEnemies.Add(enemyHealthManager);
+        patchedEnemies.Add(obj);
     }
 
     /// <summary>Called to remove all enemy patches</summary>
     internal static void RemovePatches()
     {
-        foreach (var enemy in patchedEnemies)
-            RemovePatches(enemy);
+        for (int i = patchedEnemies.Count - 1; i >= 0; i--)
+        {
+            RemovePatches(patchedEnemies.ElementAt(i));
+        }
     }
 
     /// <summary>Remove the various enemy patches</summary>
-    /// <param name="enemyHealthManager">The enemy to unpatch</param>
-    internal static void RemovePatches(HealthManager enemyHealthManager)
+    /// <param name="enemy">The enemy to unpatch</param>
+    internal static void RemovePatches(GameObject enemy)
     {
-        string enemyName = enemyHealthManager.name;
+        if (enemy == null) return;
+
+        string enemyName = enemy.name;
 
         if (!Instance.PatchedObjects.ContainsKey(enemyName))
             return;
 
-        GameObject obj = enemyHealthManager.gameObject;
+        Instance.RemovePatches(enemyName, enemy);
 
-        Instance.RemovePatches(enemyName, obj);
-
-        patchedEnemies.Remove(enemyHealthManager);
+        patchedEnemies.Remove(enemy);
     }
 
     /// <summary>Register a collection of patches</summary>
@@ -117,20 +117,20 @@ public class EnemyObjectPatchSet(string enemyName, List<EnemyObjectPatch> patche
 /// <param name="enemyName">Name of the enemy to patch</param>
 /// <param name="patch">    The patch for the enemy</param>
 /// <param name="unpatch">  Optional unpatcher for undoing the changes</param>
-public class EnemyObjectPatch(string enemyName, Action<GameObject, object[]?> patch, Action<GameObject, object[]?>? unpatch = null)
+public class EnemyObjectPatch(string enemyName, Action<GameObject, object[]> patch, Action<GameObject, object[]>? unpatch = null)
         : ObjectPatch_Base<GameObject, GameObject>(enemyName, patch, unpatch), IEnemyObjectPatch
 {
     /// <summary>Patch for an enemy object</summary>
     /// <param name="enemyNames">Array of names for enemies to patch</param>
     /// <param name="patch">     The patch for the enemy</param>
     /// <param name="unpatch">   Optional unpatcher for undoing the changes</param>
-    public EnemyObjectPatch(string[] enemyNames, Action<GameObject, object[]?> patch, Action<GameObject, object[]?>? unpatch = null)
+    public EnemyObjectPatch(string[] enemyNames, Action<GameObject, object[]> patch, Action<GameObject, object[]>? unpatch = null)
         : this("", patch, unpatch)
     {
         NameArray = enemyNames;
     }
 
-    public override void ApplyPatch(GameObject[] patchTargets, object[]? param = null)
+    public override void ApplyPatch(GameObject[] patchTargets, object[] param)
     {
         foreach (var target in patchTargets)
         {
@@ -138,12 +138,12 @@ public class EnemyObjectPatch(string enemyName, Action<GameObject, object[]?> pa
         }
     }
 
-    public override void ApplyPatch(GameObject patchTarget, object[]? param = null)
+    public override void ApplyPatch(GameObject patchTarget, object[] param)
     {
         Patch(patchTarget, param);
     }
 
-    public override void RemovePatch(GameObject[] patchTargets, object[]? param = null)
+    public override void RemovePatch(GameObject[] patchTargets, object[] param)
     {
         foreach (var target in patchTargets)
         {
@@ -151,7 +151,7 @@ public class EnemyObjectPatch(string enemyName, Action<GameObject, object[]?> pa
         }
     }
 
-    public override void RemovePatch(GameObject patchTarget, object[]? param = null)
+    public override void RemovePatch(GameObject patchTarget, object[] param)
     {
         if (Unpatch == null) return;
         Unpatch(patchTarget, param);
@@ -160,8 +160,8 @@ public class EnemyObjectPatch(string enemyName, Action<GameObject, object[]?> pa
     public override object Clone()
     {
         if (NameArray.Length > 0)
-            return new EnemyObjectPatch(NameArray, (Action<GameObject, object[]?>)Patch.Clone(), (Action<GameObject, object[]?>?)Unpatch?.Clone());
-        return new EnemyObjectPatch(Name, (Action<GameObject, object[]?>)Patch.Clone(), (Action<GameObject, object[]?>?)Unpatch?.Clone());
+            return new EnemyObjectPatch(NameArray, (Action<GameObject, object[]>)Patch.Clone(), (Action<GameObject, object[]>?)Unpatch?.Clone());
+        return new EnemyObjectPatch(Name, (Action<GameObject, object[]>)Patch.Clone(), (Action<GameObject, object[]>?)Unpatch?.Clone());
     }
 }
 

@@ -144,10 +144,7 @@ internal class Enemy_Health_Rando : Rando_Base
         string operatingScene = thing.gameObject.scene.name;
 
         int tempHp;
-        string name = thing.name;
-
-        int cullIndex = name.IndexOf('(');
-        if (cullIndex > 0) name = name[..cullIndex].TrimEnd();
+        string name = CuteRandoCore.CullName(thing.name);
 
         switch (RandomizerConsistency)
         {

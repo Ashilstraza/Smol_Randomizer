@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-using BepInEx.Configuration;
+﻿using BepInEx.Configuration;
 
 using Silksong.ModMenu.Elements;
 using Silksong.ModMenu.Models;
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 using UnityEngine;
 

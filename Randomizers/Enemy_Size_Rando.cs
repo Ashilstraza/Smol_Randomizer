@@ -15,7 +15,7 @@ using MonoMod.Utils;
 
 using Newtonsoft.Json;
 
-using Smol_Randomizer.DebugDrawing;
+using DebugDrawing;
 
 #endif
 
@@ -24,6 +24,7 @@ using Smol_Randomizer.Settings;
 
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;
 
 namespace Smol_Randomizer.Randomizers;
 
@@ -43,7 +44,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
     private readonly Dictionary<string, Dictionary<string, float>> sceneEnemySizes = [];
 
     /// <summary>Set of enemies that we have touched in this scene</summary>
-    private readonly HashSet<HealthManager> currentEnemyHealthManagers = [];
+    private readonly Dictionary<HealthManager, Vector3> currentEnemyHealthManagers = [];
 
     public readonly HashSet<string> excludedEnemies = ["Splinter Queen Spike"];
 
@@ -201,20 +202,21 @@ internal partial class Enemy_Size_Rando : Rando_Base
         Vector2 down = Vector2.down;
         float length = ShouldTurnLengthCheck(Math.Abs(__instance.transform.localScale.y));
 
-        DebugDrawer.Square(__instance.transform, offset, ___collider.size);
-        DebugDrawer.Circle(__instance.transform, back_bottom, 0.1f, __instance.transform.rotation, Color.red);
-        DebugDrawer.Circle(__instance.transform, front_top, 0.1f, __instance.transform.rotation, Color.yellow);
-        DebugDrawer.Circle(__instance.transform, front_bottom, 0.1f, __instance.transform.rotation, Color.green);
-        DebugDrawer.Circle(__instance.transform, front, 0.1f, __instance.transform.rotation);
-        DebugDrawer.Circle(__instance.transform, paddedFront_Down, 0.1f, __instance.transform.rotation, Color.cyan);
-        DebugDrawer.Circle(__instance.transform, back_middle, 0.1f, __instance.transform.rotation, Color.blue);
-        DebugDrawer.Circle(__instance.transform, down, 0.1f, __instance.transform.rotation);
+        DebugDrawer.Square(__instance.transform, offset, ___collider.size, oneFrame: true);
+        DebugDrawer.Circle(__instance.transform, back_bottom, 0.1f, __instance.transform.rotation, Color.red, oneFrame: true);
+        DebugDrawer.Circle(__instance.transform, front_top, 0.1f, __instance.transform.rotation, Color.yellow, oneFrame: true);
+        DebugDrawer.Circle(__instance.transform, front_bottom, 0.1f, __instance.transform.rotation, Color.green, oneFrame: true);
+        DebugDrawer.Circle(__instance.transform, front, 0.1f, __instance.transform.rotation, oneFrame: true);
+        DebugDrawer.Circle(__instance.transform, paddedFront_Down, 0.1f, __instance.transform.rotation, Color.cyan, oneFrame: true);
+        DebugDrawer.Circle(__instance.transform, back_middle, 0.1f, __instance.transform.rotation, Color.blue, oneFrame: true);
+        DebugDrawer.Circle(__instance.transform, down, 0.1f, __instance.transform.rotation, oneFrame: true);
 
         bool airborne = !__instance.IsRayHittingLocal(back_middle, down, length);
         DebugDrawer.Line(__instance.transform,
                     back_middle,
                     back_middle + down * length,
-                    airborne ? Color.cyan : Color.clear);
+                    airborne ? Color.cyan : Color.clear,
+                    oneFrame: true);
         if (airborne)
         {
             __result = false;
@@ -224,7 +226,8 @@ internal partial class Enemy_Size_Rando : Rando_Base
         DebugDrawer.Line(__instance.transform,
                     front_bottom,
                     front_bottom + front * frontDistanceTimeScaled,
-                    wallCheck ? Color.green : Color.red);
+                    wallCheck ? Color.green : Color.red,
+                    oneFrame: true);
         if (wallCheck)
         {
             __result = true;
@@ -234,7 +237,8 @@ internal partial class Enemy_Size_Rando : Rando_Base
         DebugDrawer.Line(__instance.transform,
                     paddedFront_Down,
                     paddedFront_Down + down * length,
-                    ledgeCheck ? Color.green : Color.red);
+                    ledgeCheck ? Color.green : Color.red,
+                    oneFrame: true);
         if (ledgeCheck)
         {
             __result = true;
@@ -302,10 +306,26 @@ internal partial class Enemy_Size_Rando : Rando_Base
     /// <returns>always true to continue processing SetScale</returns>
     private static bool SetScale_DoSetScale_Prefix(ref SetScale __instance)
     {
-        if (__instance.Owner != null && Instance.currentEnemyHealthManagers.Contains(__instance.Owner.GetComponent<HealthManager>()))
+        if (__instance.Owner != null)
         {
-            __instance.x = __instance.Owner.transform.GetScaleX();
-            __instance.y = __instance.Owner.transform.GetScaleY();
+            HealthManager healthManager = __instance.Owner.GetComponent<HealthManager>();
+            GameObject obj = __instance.gameObject.GameObject.Value;
+            if (healthManager != null && Instance.currentEnemyHealthManagers.ContainsKey(healthManager))
+            {
+                var xScale = __instance.Owner.transform.GetScaleX();
+                var yScale = __instance.Owner.transform.GetScaleY();
+                if (obj != null)
+                {
+                    xScale = obj.transform.localScale.x;
+                    yScale = obj.transform.localScale.y;
+                }
+
+                if (__instance.x.Value != xScale && __instance.x.Value != 0f)
+                    __instance.x = xScale;
+
+                if (__instance.y.Value != yScale && __instance.y.Value != 0f)
+                    __instance.y = yScale;
+            }
         }
 
         return true;
@@ -319,7 +339,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
         resizing = true;
         foreach (var enemy in currentEnemyHealthManagers)
         {
-            SetSize(enemy);
+            SetSize(enemy.Key);
         }
         resizing = false;
     }
@@ -331,13 +351,15 @@ internal partial class Enemy_Size_Rando : Rando_Base
         { "Bloom Puncher", ["Alert Range"] },
         { "Farmer Scissors", ["Close Range"] },
         { "Farmer Catcher", ["Attack Range", "Alert Range"] },
-        {"Crowman", ["Slash Range"] },
-        {"Roachfeeder Tall", ["Attack Range", "Evade Range"] }
+        { "Crowman", ["Slash Range"] },
+        { "Roachfeeder Tall", ["Attack Range", "Evade Range"] },
+        { "Roachkeeper", ["Attack Range"] }
     };
 
     private static Dictionary<string, bool[]> childAdjustsOptions = new()
     {
-        { "Roof Crab", [true] }
+        { "Roof Crab", [false, true] }, // unused currently
+        //{ "Bone Hunter Child", [false, false, false]}
     };
 
     private static string[] extraChildAdjusts =
@@ -346,6 +368,8 @@ internal partial class Enemy_Size_Rando : Rando_Base
         "Patrol Point",
         "Move Target", // Bell Fly
         "Throw Point",
+        "Initial Position Markers", // Stick Insect(s)
+        "a",
         "b",
         "c"
         ];
@@ -383,11 +407,10 @@ internal partial class Enemy_Size_Rando : Rando_Base
             {
                 reverseX = childAdjustsOptions[name].ElementAtOrDefault(0);
                 reverseY = childAdjustsOptions[name].ElementAtOrDefault(1);
-                alternateNullColliderScale = childAdjustsOptions[name].ElementAtOrDefault(3);
+                alternateNullColliderScale = childAdjustsOptions[name].ElementAtOrDefault(2);
             }
 
-            float parentYScale = obj.transform.localScale.y;
-            float parentXScale = obj.transform.localScale.x;
+            Vector2 parentScale = obj.transform.localScale;
             double parentRotation = Math.PI * obj.transform.rotation.eulerAngles.z / 180;
 
             bool negX = target.localScale.x < 0;
@@ -397,49 +420,38 @@ internal partial class Enemy_Size_Rando : Rando_Base
             Collider2D collider = target.GetComponent<Collider2D>();
 
             if (resizing)
-                target.localScale = new(
-                    target.localScale.x / Math.Abs(target.localScale.x),
-                    target.localScale.y / Math.Abs(target.localScale.y));
+                target.localScale = target.localScale.DivideElements(target.localScale.Abs());
 
-            target.localScale = new((Math.Abs(target.lossyScale.x) * (negX ? -1 : 1)) / (parentXScale * parentXScale), (Math.Abs(target.lossyScale.y) * (negY ? -1 : 1)) / (parentYScale * parentYScale));
+            target.localScale = new((Math.Abs(target.lossyScale.x) * (negX ? -1 : 1)) / (parentScale.x * parentScale.x), (Math.Abs(target.lossyScale.y) * (negY ? -1 : 1)) / (parentScale.y * parentScale.y));
 
             if (collider == null)
             {
                 if (!alternateNullColliderScale)
-                    target.position = new(ScalePosition(target.position.x, obj.transform.position.x, target.localScale.x),
-                                        ScalePosition(target.position.y, obj.transform.position.y, target.localScale.y),
-                                        ScalePosition(target.position.z, obj.transform.position.z, target.localScale.z));
+                    target.position = (target.position - obj.transform.position).MultiplyElements(target.localScale.Abs()) + obj.transform.position;
                 else
-                    target.position = new(target.position.x * parentXScale, target.position.y * parentYScale);
+                    target.localPosition = new(target.localPosition.x * parentScale.x, target.localPosition.y * parentScale.y);
 #if TESTING
+                DebugDrawer.Circle(target.position, 0.1f, color: Color.red, duration: 10f);
+                DebugDrawer.Square(obj.transform.position, 0.2f, color: Color.red, duration: 10f);
                 var debugCollider = target.gameObject.AddComponent<CircleCollider2D>();
+                debugCollider.name = "Smol_DebugCollider";
                 debugCollider.radius = 0.1f;
                 debugCollider.isTrigger = true;
                 debugCollider.enabled = true;
 #endif
                 return;
-
-                float ScalePosition(float child, float parent, float scale)
-                {
-                    return (child - parent) * Math.Abs(scale) + parent;
-                }
             }
 
-            if ((localPosition.x.IsWithinTolerance(0.1f, 0f) && localPosition.y.IsWithinTolerance(0.1f, 0f))) return; // transform is located at 0,0 on the object, don't bother doing more math
-
-            double cosParentRotation = Math.Cos(parentRotation);
-            double sinParentRotation = Math.Sin(parentRotation);
-
-            double rotation = Math.PI * target.rotation.eulerAngles.z / 180;
+            if ((localPosition.x.IsWithinTolerance(0.1f, 0f) && localPosition.y.IsWithinTolerance(0.1f, 0f))) return; // transform is located at approximately 0,0 on the object, don't bother doing more math
 
             float newX = AdjustChildPosition(
                 localPosition.x,
                 collider.offset.x,
-                Math.Abs(parentXScale));
+                Math.Abs(parentScale.x));
             float newY = AdjustChildPosition(
                 localPosition.y,
                 collider.offset.y,
-                Math.Abs(parentYScale));
+                Math.Abs(parentScale.y));
 
             target.localPosition = new(newX, newY);
         }
@@ -463,7 +475,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
     /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
     private void SetSize(HealthManager thing)
     {
-        if (thing?.transform == null || (!Instance.currentEnemyHealthManagers.Add(thing) && !resizing)) return;
+        if (thing?.transform == null || (!resizing && !Instance.currentEnemyHealthManagers.TryAdd(thing, thing.transform.localScale))) return;
 
         bool boss = CuteRandoCore.IsBoss(thing);
 
@@ -477,17 +489,14 @@ internal partial class Enemy_Size_Rando : Rando_Base
         Walker walker = thing.gameObject.GetComponent<Walker>();
         Transform thingTransform = thing.transform;
         float tempMultiplier;
-        string name = thing.name;
-
-        int cullIndex = name.IndexOf('(');
-        if (cullIndex > 0) name = name[..cullIndex].TrimEnd();
+        string name = CuteRandoCore.CullName(thing.name);
 
         if (Instance.excludedEnemies.Contains(name))
             return;
 
-        if (resizing && enemySizeRandomizerSetting.Value == RandomizerEnemyTypeFlags.None && Math.Abs(thing.transform.localScale.x) < 1)
+        if (resizing && enemySizeRandomizerSetting.Value == RandomizerEnemyTypeFlags.None)
         {
-            ApplySize(thingTransform, 1, walker);
+            ApplySize(thingTransform, currentEnemyHealthManagers[thing].z, walker);
             goto afterSwitch;
         }
 
@@ -522,34 +531,37 @@ internal partial class Enemy_Size_Rando : Rando_Base
     afterSwitch:
 
         AdjustChildren(thing.gameObject, name);
+    }
 
-        // local methods
-        float RandomizeSize(bool boss, Transform transform, Walker walker, int seed = int.MinValue)
+    public float RandomizeSize(bool boss, Transform transform, Walker? walker = null, int seed = int.MinValue)
+    {
+        float multiplier = CuteRandoCore.RandomFloat(boss ? BossSizePercentRange.AsTuple() : EnemySizePercentRange.AsTuple(), seed);
+        ApplySize(transform, multiplier, walker);
+        return multiplier;
+    }
+
+    private void ApplySize(Transform transform, float multiplier, Walker? walker)
+    {
+        if (resizing)
+            transform.localScale = transform.localScale.DivideElements(transform.localScale.Abs());
+        transform.localScale *= multiplier;
+
+        if (walker != null)
         {
-            float multiplier = CuteRandoCore.RandomFloat(boss ? BossSizePercentRange.AsTuple() : EnemySizePercentRange.AsTuple(), seed);
-            ApplySize(transform, multiplier, walker);
-            return multiplier;
-        }
-
-        void ApplySize(Transform transform, float multiplier, Walker walker)
-        {
-            if (resizing)
-                transform.localScale = new(transform.localScale.x / Math.Abs(transform.localScale.x), transform.localScale.y / Math.Abs(transform.localScale.y));
-            transform.localScale *= multiplier;
-
-            if (walker != null)
-            {
-                Traverse rightScale = CuteRandoCore.TraverseCreator(walker, "rightScale");
-                int direction = (float)rightScale.GetValue() < 0 ? -1 : 1;
-                rightScale.SetValue(Math.Abs(transform.localScale.x) * direction);
-            }
+            Traverse rightScale = CuteRandoCore.TraverseCreator(walker, "rightScale");
+            int direction = (float)rightScale.GetValue() < 0 ? -1 : 1;
+            rightScale.SetValue(Math.Abs(transform.localScale.x) * direction);
         }
     }
 
     /// <summary>Cleans the current scene's HealthManager list</summary>
     private void CleanCurrentHealthManagerList()
     {
-        currentEnemyHealthManagers.RemoveWhere(x => x == null);
+        for (int i = currentEnemyHealthManagers.Count - 1; i >= 0; i--)
+        {
+            if (currentEnemyHealthManagers.ElementAt(i).Key == null)
+                currentEnemyHealthManagers.Remove(currentEnemyHealthManagers.ElementAt(i).Key);
+        }
     }
 
     protected override void ResetAllLists()
@@ -612,6 +624,20 @@ internal partial class Enemy_Size_Rando : Rando_Base
     /// <summary>Acceptable value range for the enemy sizes</summary>
     public static AcceptableRangeforFloatRange acceptableEnemySizeRange = new(0.25f, 2f);
 
+#if TESTING
+
+    /// <summary>Use raycasting to set enemies to their base height</summary>
+    public bool UseRaycastBasing
+    {
+        get => useRaycastBasing.Value;
+        set => useRaycastBasing.Value = value;
+    }
+    private ConfigEntry<bool> useRaycastBasing;
+
+    /// <summary>Default choice for raycasting</summary>
+    public static readonly bool defaultUseRaycastBasing = true;
+#endif
+
     // Used for determining if we need to update
     private RandomizerEnemyTypeFlags currentSizeRandomizerSetting;
 
@@ -662,6 +688,14 @@ internal partial class Enemy_Size_Rando : Rando_Base
                     Order = 0,
                     CustomDrawer = Settings.Settings.RangeDrawer
                 }));
+#if TESTING
+        useRaycastBasing = config.Bind(
+            section: RandomizerName,
+            key: "Use Raycasting",
+            defaultValue: defaultUseRaycastBasing,
+            configDescription: new ConfigDescription(
+                description: "Use Raycasting when rebasing enemies."));
+#endif
 
         currentSizeRandomizerSetting = enemySizeRandomizerSetting.Value;
 

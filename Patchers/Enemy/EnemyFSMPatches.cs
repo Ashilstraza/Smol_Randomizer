@@ -1,8 +1,8 @@
-﻿using System;
+﻿using HutongGames.PlayMaker;
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using HutongGames.PlayMaker;
 
 using UnityEngine;
 
@@ -32,40 +32,6 @@ internal class EnemyFSMPatches
     internal static void OnSceneLoaded()
     {
         patchedEnemies.RemoveWhere(enemy => enemy == null);
-    }
-
-    /// <summary>List of objects to patch on the first frame to sidestep some weirdness</summary>
-    internal static HashSet<LatePatchInfo> latePatches = [];
-
-    internal class LatePatchInfo(string name, GameObject enemy, Vector2 originalScale)
-    {
-        public string Name { get; } = name;
-        public GameObject Enemy { get; } = enemy;
-        public Vector2 OriginalScale { get; } = originalScale;
-    }
-
-    /// <summary>If we are currently applying patches late</summary>
-    internal static bool latePatching = false;
-
-    internal static void OnFirstFrame()
-    {
-        latePatching = true;
-
-        foreach (var enemy in latePatches)
-        {
-            if (enemy.Enemy == null)
-                continue;
-            string enemyName = enemy.Name;
-
-            int cullIndex = enemyName.IndexOf('(');
-            if (cullIndex > 0) enemyName = enemyName[..cullIndex].TrimEnd();
-
-            enemyStateAction.ApplyPatches(enemy);
-            enemyState.ApplyPatches(enemy);
-        }
-
-        latePatches.Clear();
-        latePatching = false;
     }
 
     /// <summary>Registers a collection of patches that are a mix of State and StateActions</summary>
@@ -107,11 +73,7 @@ internal class EnemyFSMPatches
             var oldPatch = patchSet.Where(p => p.FSMName.Equals(actionPatch.FSMName)
                                                 && (p.Name.Equals(actionPatch.Name) || p.NameArray.Contains(actionPatch.Name))
                                                 && p.TypeString.Equals(actionPatch.TypeString)).FirstOrDefault();
-            if (oldPatch == null)
-            {
-                CuteRandoCore.Log.LogWarning($"Overwrite patch failed, no matching patch; Name: {patch.Name}, Enemy Name: {patch.EnemyName}, Type: {patch.GetType()}");
-            }
-            else
+            if (oldPatch != null)
             {
                 patchSet.Remove(oldPatch);
                 patchSet.Add(actionPatch);
@@ -124,11 +86,7 @@ internal class EnemyFSMPatches
 
             var oldPatch = patchSet?.Where(p => p.FSMName.Equals(statePatch.FSMName)
                                                 && (p.Name.Equals(statePatch.Name) || p.NameArray.Contains(statePatch.Name))).FirstOrDefault();
-            if (oldPatch == null || patchSet == null)
-            {
-                CuteRandoCore.Log.LogWarning($"Overwrite patch failed, no matching patch; Name: {patch.Name}, Enemy Name: {patch.EnemyName}, Type: {patch.GetType()}");
-            }
-            else
+            if (oldPatch != null && patchSet != null)
             {
                 patchSet.Remove(oldPatch);
                 patchSet.Add(statePatch);
@@ -141,45 +99,52 @@ internal class EnemyFSMPatches
     }
 
     /// <summary>Apply the various enemy patches</summary>
-    /// <param name="enemyHealthManager">The enemy to patch</param>
-    internal static void ApplyPatches(HealthManager enemyHealthManager)
+    /// <param name="enemy">The enemy to patch</param>
+    internal static void ApplyPatches(GameObject enemy)
     {
-        if (patchedEnemies.Contains(enemyHealthManager.gameObject)) return; // Don't reapply patches
+        {
+            if (patchedEnemies.Contains(enemy))
+            {
+#if TESTING
+                CuteRandoCore.Log.LogWarning($"Enemy attempted to patch again; Name: {enemy.name}");
+#endif
+                return; // Don't reapply patches
+            }
 
-        string enemyName = enemyHealthManager.name;
+            string enemyName = CuteRandoCore.CullName(enemy.name);
 
-        int cullIndex = enemyName.IndexOf('(');
-        if (cullIndex > 0) enemyName = enemyName[..cullIndex].TrimEnd();
+            if (!enemyStateAction.PatchedObjects.ContainsKey(enemyName) && !enemyState.PatchedObjects.ContainsKey(enemyName))
+                return;
 
-        if (!enemyStateAction.PatchedObjects.ContainsKey(enemyName) && !enemyState.PatchedObjects.ContainsKey(enemyName))
-            return;
-
-        GameObject enemyObject = enemyHealthManager.gameObject;
-
-        enemyStateAction.ApplyPatches(enemyName, enemyObject);
-        enemyState.ApplyPatches(enemyName, enemyObject);
+            enemyStateAction.ApplyPatches(enemyName, enemy);
+            enemyState.ApplyPatches(enemyName, enemy);
+        }
     }
 
     /// <summary>Called to remove all enemy patches</summary>
     internal static void RemovePatches()
     {
-        foreach (var enemy in patchedEnemies)
-            RemovePatches(enemy.GetComponent<HealthManager>());
+        for (int i = patchedEnemies.Count - 1; i >= 0; i--)
+        {
+            RemovePatches(patchedEnemies.ElementAt(i));
+        }
     }
 
     /// <summary>Remove the various enemy patches</summary>
-    /// <param name="enemyHealthManager">The enemy to unpatch</param>
-    internal static void RemovePatches(HealthManager enemyHealthManager)
+    /// <param name="enemy">The enemy to unpatch</param>
+    internal static void RemovePatches(GameObject enemy)
     {
-        string enemyName = enemyHealthManager.name;
+        if (enemy == null) return;
+
+        string enemyName = enemy.name;
 
         if (!enemyStateAction.PatchedObjects.ContainsKey(enemyName) && !enemyState.PatchedObjects.ContainsKey(enemyName))
             return;
 
-        GameObject enemyObject = enemyHealthManager.gameObject;
+        enemyStateAction.RemovePatches(enemyName, enemy);
+        enemyState.RemovePatches(enemyName, enemy);
 
-        enemyStateAction.RemovePatches(enemyName, enemyObject);
-        enemyState.RemovePatches(enemyName, enemyObject);
+        patchedEnemies.Remove(enemy);
     }
 }
 
@@ -191,7 +156,7 @@ internal class EnemyFSMPatches
 /// <param name="patch">    </param>
 /// <param name="unpatch">  </param>
 /// <param name="fsmName">  </param>
-public class EnemyStatePatch(string enemyName, string stateName, Action<FsmState, object[]?> patch, Action<FsmState, object[]?>? unpatch = null, string fsmName = "", bool latePatch = false, bool reInit = true)
+public class EnemyStatePatch(string enemyName, string stateName, Action<FsmState, object[]> patch, Action<FsmState, object[]>? unpatch = null, string fsmName = "")
     : StatePatch_Base(stateName, patch, unpatch, fsmName), IEnemyFSMPatch
 {
     /// <summary></summary>
@@ -200,8 +165,8 @@ public class EnemyStatePatch(string enemyName, string stateName, Action<FsmState
     /// <param name="patch">     </param>
     /// <param name="unpatch">   </param>
     /// <param name="fsmName">   </param>
-    public EnemyStatePatch(string enemyName, string[] stateNames, Action<FsmState, object[]?> patch, Action<FsmState, object[]?>? unpatch = null, string fsmName = "", bool latePatch = false, bool reInit = true)
-        : this(enemyName, "", patch, unpatch, fsmName, latePatch, reInit)
+    public EnemyStatePatch(string enemyName, string[] stateNames, Action<FsmState, object[]> patch, Action<FsmState, object[]>? unpatch = null, string fsmName = "")
+        : this(enemyName, "", patch, unpatch, fsmName)
     {
         NameArray = stateNames;
     }
@@ -212,8 +177,8 @@ public class EnemyStatePatch(string enemyName, string stateName, Action<FsmState
     /// <param name="patch">     </param>
     /// <param name="unpatch">   </param>
     /// <param name="fsmName">   </param>
-    public EnemyStatePatch(string[] enemyNames, string stateName, Action<FsmState, object[]?> patch, Action<FsmState, object[]?>? unpatch = null, string fsmName = "", bool latePatch = false, bool reInit = true)
-        : this("", stateName, patch, unpatch, fsmName, latePatch, reInit)
+    public EnemyStatePatch(string[] enemyNames, string stateName, Action<FsmState, object[]> patch, Action<FsmState, object[]>? unpatch = null, string fsmName = "")
+        : this("", stateName, patch, unpatch, fsmName)
     {
         EnemyNames = enemyNames;
     }
@@ -224,43 +189,33 @@ public class EnemyStatePatch(string enemyName, string stateName, Action<FsmState
     public string[] EnemyNames { get => enemyNames; set => enemyNames = value; }
 
     public string EnemyName { get => enemyName; set => enemyName = value; }
-    public bool LatePatch { get => latePatch; set => latePatch = value; }
-    public bool ReInit { get => reInit; set => reInit = value; }
 
     public override object Clone()
     {
         if (NameArray.Length > 0)
-            return new EnemyStatePatch(EnemyName, NameArray, (Action<FsmState, object[]?>)Patch.Clone(), (Action<FsmState, object[]?>?)Unpatch?.Clone(), FSMName, LatePatch);
+            return new EnemyStatePatch(EnemyName, NameArray, (Action<FsmState, object[]>)Patch.Clone(), (Action<FsmState, object[]>?)Unpatch?.Clone(), FSMName);
         else if (EnemyNames.Length > 0)
-            return new EnemyStatePatch(EnemyNames, Name, (Action<FsmState, object[]?>)Patch.Clone(), (Action<FsmState, object[]?>?)Unpatch?.Clone(), FSMName, LatePatch);
-        return new EnemyStatePatch(EnemyName, Name, (Action<FsmState, object[]?>)Patch.Clone(), (Action<FsmState, object[]?>?)Unpatch?.Clone(), FSMName, LatePatch);
+            return new EnemyStatePatch(EnemyNames, Name, (Action<FsmState, object[]>)Patch.Clone(), (Action<FsmState, object[]>?)Unpatch?.Clone(), FSMName);
+        return new EnemyStatePatch(EnemyName, Name, (Action<FsmState, object[]>)Patch.Clone(), (Action<FsmState, object[]>?)Unpatch?.Clone(), FSMName);
     }
 }
 
 public class EnemyStatePatchSet : StatePatchSet_Base<EnemyStatePatch>, IEnemyFSMPatchSet
 {
     private string enemyName;
-    private bool latePatch;
-    private bool reInit;
 
-    public EnemyStatePatchSet(string enemyName, List<EnemyStatePatch> patches, string fsmName = "", bool latePatch = false, bool reInit = true) : base(enemyName, patches, fsmName)
+    public EnemyStatePatchSet(string enemyName, List<EnemyStatePatch> patches, string fsmName = "") : base(enemyName, patches, fsmName)
     {
         this.enemyName = enemyName;
-        this.latePatch = latePatch;
-        this.reInit = reInit;
 
         foreach (EnemyStatePatch patch in patches)
         {
             patch.EnemyName = enemyName;
-            patch.LatePatch = latePatch;
-            patch.ReInit = reInit;
             if (patch.FSMName == "") patch.FSMName = fsmName;
         }
     }
 
     public string EnemyName { get => enemyName; set => enemyName = value; }
-    public bool LatePatch { get => latePatch; set => latePatch = value; }
-    public bool ReInit { get => reInit; set => reInit = value; }
 
     public override object Clone()
     {
@@ -269,7 +224,7 @@ public class EnemyStatePatchSet : StatePatchSet_Base<EnemyStatePatch>, IEnemyFSM
         foreach (var patch in Patches)
             newList.Add(patch);
 
-        return new EnemyStatePatchSet(Name, newList, FSMName, LatePatch);
+        return new EnemyStatePatchSet(Name, newList, FSMName);
     }
 }
 
@@ -277,17 +232,17 @@ public class EnemyStatePatchSet : StatePatchSet_Base<EnemyStatePatch>, IEnemyFSM
 
 #region FSM State Action
 
-public class EnemyStateActionPatch(string enemyName, string stateName, Type actionType, Action<FsmStateAction, object[]?> patch, Action<FsmStateAction, object[]?>? unpatch = null, string fsmName = "", bool latePatch = false, bool reInit = true)
+public class EnemyStateActionPatch(string enemyName, string stateName, Type actionType, Action<FsmStateAction, object[]> patch, Action<FsmStateAction, object[]>? unpatch = null, string fsmName = "")
     : StateActionPatch_Base(stateName, actionType, patch, unpatch, fsmName), IEnemyFSMPatch
 {
-    public EnemyStateActionPatch(string enemyName, string[] stateNames, Type actionType, Action<FsmStateAction, object[]?> patch, Action<FsmStateAction, object[]?>? unpatch = null, string fsmName = "", bool latePatch = false, bool reInit = true)
-        : this(enemyName, "", actionType, patch, unpatch, fsmName, latePatch, reInit)
+    public EnemyStateActionPatch(string enemyName, string[] stateNames, Type actionType, Action<FsmStateAction, object[]> patch, Action<FsmStateAction, object[]>? unpatch = null, string fsmName = "")
+        : this(enemyName, "", actionType, patch, unpatch, fsmName)
     {
         NameArray = stateNames;
     }
 
-    public EnemyStateActionPatch(string[] enemyNames, string stateName, Type actionType, Action<FsmStateAction, object[]?> patch, Action<FsmStateAction, object[]?>? unpatch = null, string fsmName = "", bool latePatch = false, bool reInit = true)
-        : this("", stateName, actionType, patch, unpatch, fsmName, latePatch, reInit)
+    public EnemyStateActionPatch(string[] enemyNames, string stateName, Type actionType, Action<FsmStateAction, object[]> patch, Action<FsmStateAction, object[]>? unpatch = null, string fsmName = "")
+        : this("", stateName, actionType, patch, unpatch, fsmName)
     {
         EnemyNames = enemyNames;
     }
@@ -298,25 +253,21 @@ public class EnemyStateActionPatch(string enemyName, string stateName, Type acti
     public string[] EnemyNames { get => enemyNames; set => enemyNames = value; }
 
     public string EnemyName { get => enemyName; set => enemyName = value; }
-    public bool LatePatch { get => latePatch; set => latePatch = value; }
-    public bool ReInit { get => reInit; set => reInit = value; }
 
     public override object Clone()
     {
         if (NameArray.Length > 0)
-            return new EnemyStateActionPatch(EnemyName, NameArray, Type, (Action<FsmStateAction, object[]?>)Patch.Clone(), (Action<FsmStateAction, object[]?>?)Unpatch?.Clone(), FSMName, LatePatch);
+            return new EnemyStateActionPatch(EnemyName, NameArray, Type, (Action<FsmStateAction, object[]>)Patch.Clone(), (Action<FsmStateAction, object[]>?)Unpatch?.Clone(), FSMName);
         else if (EnemyNames.Length > 0)
-            return new EnemyStateActionPatch(EnemyNames, Name, Type, (Action<FsmStateAction, object[]?>)Patch.Clone(), (Action<FsmStateAction, object[]?>?)Unpatch?.Clone(), FSMName, LatePatch);
-        return new EnemyStateActionPatch(EnemyName, Name, Type, (Action<FsmStateAction, object[]?>)Patch.Clone(), (Action<FsmStateAction, object[]?>?)Unpatch?.Clone(), FSMName, LatePatch);
+            return new EnemyStateActionPatch(EnemyNames, Name, Type, (Action<FsmStateAction, object[]>)Patch.Clone(), (Action<FsmStateAction, object[]>?)Unpatch?.Clone(), FSMName);
+        return new EnemyStateActionPatch(EnemyName, Name, Type, (Action<FsmStateAction, object[]>)Patch.Clone(), (Action<FsmStateAction, object[]>?)Unpatch?.Clone(), FSMName);
     }
 }
 
-public class EnemyStateActionPatchSet(string enemyName, string objectName, List<EnemyStateActionPatch> patches, string fsmName = "", bool latePatch = false, bool reInit = true)
+public class EnemyStateActionPatchSet(string enemyName, string objectName, List<EnemyStateActionPatch> patches, string fsmName = "")
     : StateActionPatchSet_Base<EnemyStateActionPatch>(objectName, patches, fsmName), IEnemyFSMPatchSet
 {
     public string EnemyName { get => enemyName; set => enemyName = value; }
-    public bool LatePatch { get => latePatch; set => latePatch = value; }
-    public bool ReInit { get => reInit; set => reInit = value; }
 
     public override object Clone()
     {
@@ -325,7 +276,7 @@ public class EnemyStateActionPatchSet(string enemyName, string objectName, List<
         foreach (var patch in Patches)
             newList.Add(patch);
 
-        return new EnemyStateActionPatchSet(EnemyName, Name, newList, FSMName, LatePatch);
+        return new EnemyStateActionPatchSet(EnemyName, Name, newList, FSMName);
     }
 }
 
@@ -343,45 +294,10 @@ public abstract class EnemyFSMPatchCollections_Base<PatchType, PatchSetType, Pat
         {
             foreach (var setPatch in patchSet)
             {
-                if (setPatch.LatePatch)
-                {
-                    EnemyFSMPatches.latePatches.Add(new(enemyName, enemyObject, enemyObject.transform.localScale));
-                    continue;
-                }
-                else
-                    setPatch.ApplyPatch(enemyObject.GetComponents<PlayMakerFSM>(), [enemyObject, enemyName]);
+                setPatch.ApplyPatch(enemyObject.GetComponents<PlayMakerFSM>(), [enemyObject, enemyName]);
 
                 EnemyFSMPatches.patchedEnemies.Add(enemyObject);
             }
-        }
-    }
-
-    internal void ApplyPatches(LatePatchInfo patch)
-    {
-        if (Patches.TryGetValue(patch.Name, out HashSet<PatchType> patchSet))
-        {
-            foreach (var setPatch in patchSet)
-            {
-                if (!setPatch.LatePatch) continue;
-
-                setPatch.ApplyPatch(patch.Enemy.GetComponents<PlayMakerFSM>(), [patch.Enemy, patch.Name, patch.OriginalScale]);
-
-                if (setPatch.ReInit)
-                {
-                    var fsm = patch.Enemy.GetComponents<PlayMakerFSM>().FirstOrDefault(obj => obj.FsmName.Equals(setPatch.FSMName)) ?? patch.Enemy.GetComponents<PlayMakerFSM>()[0];
-
-                    //if(fsm.ActiveStateName == setPatch.Name)
-                    ReInit(setPatch, fsm);
-                }
-
-                EnemyFSMPatches.patchedEnemies.Add(patch.Enemy);
-            }
-        }
-
-        void ReInit(PatchType setPatch, PlayMakerFSM fsm)
-        {
-            var state = fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(setPatch.Name));
-            fsm.Fsm.SwitchState(state);
         }
     }
 
@@ -390,7 +306,11 @@ public abstract class EnemyFSMPatchCollections_Base<PatchType, PatchSetType, Pat
         if (Patches.TryGetValue(enemyName, out HashSet<PatchType> patchSet))
         {
             foreach (var setPatch in patchSet)
+            {
+                if (enemyObject == null)
+                    continue;
                 setPatch.RemovePatch(enemyObject.GetComponents<PlayMakerFSM>(), [enemyObject, enemyName]);
+            }
         }
     }
 
@@ -496,8 +416,4 @@ public interface IEnemyPatch
 {
     /// <summary>Name of the patch target</summary>
     public string EnemyName { get; set; }
-
-    public bool LatePatch { get; set; }
-
-    public bool ReInit { get; set; }
 }

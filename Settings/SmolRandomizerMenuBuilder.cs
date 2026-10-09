@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-
-using BepInEx.Configuration;
+﻿using BepInEx.Configuration;
 
 using Silksong.ModMenu.Elements;
 using Silksong.ModMenu.Models;
 using Silksong.ModMenu.Plugin;
 using Silksong.ModMenu.Screens;
+
+using System;
+using System.Collections.Generic;
 
 using UnityEngine;
 

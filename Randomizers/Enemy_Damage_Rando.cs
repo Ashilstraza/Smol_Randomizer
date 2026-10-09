@@ -135,19 +135,15 @@ internal class Enemy_Damage_Rando : Rando_Base
         string operatingScene = damager.gameObject.scene.name;
 
         int damageValue = damager.damageDealt;
-        string name = damager.name;
 
         // Name of attack
-        int cullIndex = name.IndexOf('(');
-        if (cullIndex > 0) name = name[..cullIndex].TrimEnd(' ');
+        string name = CuteRandoCore.CullName(damager.name);
 
         // Name of enemy
         string enemyName;
         if (EnemyAttackConsistancy && enemyHealthManager != null)
         {
-            enemyName = enemyHealthManager.name;
-            cullIndex = enemyName.IndexOf('(');
-            if (cullIndex > 0) enemyName = enemyName[..cullIndex].TrimEnd(' ');
+            enemyName = CuteRandoCore.CullName(enemyHealthManager.name);
 
             if (name != enemyName && char.IsDigit(name, name.Length - 1))
             {

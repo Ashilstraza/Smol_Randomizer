@@ -1,13 +1,6 @@
 ﻿#if TESTING
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
-using HarmonyLib;
-
 using HutongGames.PlayMaker;
-using HutongGames.PlayMaker.Actions;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -15,6 +8,10 @@ using Newtonsoft.Json.Linq;
 using Smol_Randomizer.Patchers.Enemy;
 using Smol_Randomizer.Patchers.Scene;
 using Smol_Randomizer.Randomizers;
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 using UnityEngine;
 
@@ -174,8 +171,8 @@ internal class External_Patches
                         }
                         var u = sceneStatePatch.Unpatch?.GeneratePatch();
                         SceneStatePatch compiledPatch = new SceneStatePatch(sceneStatePatch.SceneName, sceneStatePatch.ObjectName, sceneStatePatch.Name, p, u, sceneStatePatch.FSMName);
-                        if (rawPatch.Overwrite)
-                            appliedPatch = SceneFSMPatches.OverwritePatch(compiledPatch);
+
+                        appliedPatch = SceneFSMPatches.OverwritePatch(compiledPatch);
                         if (!appliedPatch)
                             SceneFSMPatches.sceneStateCollection.RegisterPatchInCollection(sceneStatePatch.SceneName, sceneStatePatch.ObjectName, compiledPatch);
                         AddPatchToDictionary(rawPatch.PatchType, compiledPatch);
@@ -199,8 +196,8 @@ internal class External_Patches
                         }
                         var u = sceneStateActionPatch.Unpatch?.GeneratePatch();
                         SceneStateActionPatch compiledPatch = new SceneStateActionPatch(sceneStateActionPatch.SceneName, sceneStateActionPatch.ObjectName, sceneStateActionPatch.Name, sceneStateActionPatch.ActionType, p, u, sceneStateActionPatch.FSMName);
-                        if (rawPatch.Overwrite)
-                            appliedPatch = SceneFSMPatches.OverwritePatch(compiledPatch);
+
+                        appliedPatch = SceneFSMPatches.OverwritePatch(compiledPatch);
                         if (!appliedPatch)
                             SceneFSMPatches.sceneStateActionCollection.RegisterPatchInCollection(sceneStateActionPatch.SceneName, sceneStateActionPatch.ObjectName, compiledPatch);
                         AddPatchToDictionary(rawPatch.PatchType, compiledPatch);
@@ -218,8 +215,6 @@ internal class External_Patches
                         }
                         var u = enemyObjectPatch.Unpatch?.GeneratePatch();
                         EnemyObjectPatch compiledPatch = new EnemyObjectPatch(enemyObjectPatch.Name, p, u);
-                        if (rawPatch.Overwrite)
-                            CuteRandoCore.Log.LogError($"Overwrite patch failed, overwrite not implemented for Object Patches; Name: {rawPatch.Name}, Type: {rawPatch.PatchType}");
                         EnemyObjectPatchCollection.Instance.RegisterPatchInCollection(compiledPatch.Name, compiledPatch);
                         AddPatchToDictionary(rawPatch.PatchType, compiledPatch);
                     }
@@ -238,12 +233,11 @@ internal class External_Patches
                         EnemyStatePatch compiledPatch;
 
                         if (enemyStatePatch.Names.Length > 0)
-                            compiledPatch = new EnemyStatePatch(enemyStatePatch.EnemyName, enemyStatePatch.Names, p, u, enemyStatePatch.FSMName, enemyStatePatch.LatePatch, enemyStatePatch.ReInit);
+                            compiledPatch = new EnemyStatePatch(enemyStatePatch.EnemyName, enemyStatePatch.Names, p, u, enemyStatePatch.FSMName);
                         else
-                            compiledPatch = new EnemyStatePatch(enemyStatePatch.EnemyName, enemyStatePatch.Name, p, u, enemyStatePatch.FSMName, enemyStatePatch.LatePatch, enemyStatePatch.ReInit);
+                            compiledPatch = new EnemyStatePatch(enemyStatePatch.EnemyName, enemyStatePatch.Name, p, u, enemyStatePatch.FSMName);
 
-                        if (rawPatch.Overwrite)
-                            appliedPatch = EnemyFSMPatches.OverwritePatch(compiledPatch);
+                        appliedPatch = EnemyFSMPatches.OverwritePatch(compiledPatch);
                         if (!appliedPatch)
                             EnemyFSMPatches.enemyState.RegisterPatchInCollection(enemyStatePatch.EnemyName, compiledPatch);
                         AddPatchToDictionary(rawPatch.PatchType, compiledPatch);
@@ -267,15 +261,14 @@ internal class External_Patches
                         }
                         var u = enemyStateActionPatch.Unpatch?.GeneratePatch();
 
-                        EnemyStateActionPatch compiledPatch = new EnemyStateActionPatch(enemyStateActionPatch.EnemyName, enemyStateActionPatch.Name, enemyStateActionPatch.ActionType, p, u, enemyStateActionPatch.FSMName, enemyStateActionPatch.LatePatch);
+                        EnemyStateActionPatch compiledPatch = new EnemyStateActionPatch(enemyStateActionPatch.EnemyName, enemyStateActionPatch.Name, enemyStateActionPatch.ActionType, p, u);
 
                         if (enemyStateActionPatch.Names.Length > 0)
-                            compiledPatch = new EnemyStateActionPatch(enemyStateActionPatch.EnemyName, enemyStateActionPatch.Names, enemyStateActionPatch.ActionType, p, u, enemyStateActionPatch.FSMName, enemyStateActionPatch.LatePatch, enemyStateActionPatch.ReInit);
+                            compiledPatch = new EnemyStateActionPatch(enemyStateActionPatch.EnemyName, enemyStateActionPatch.Names, enemyStateActionPatch.ActionType, p, u, enemyStateActionPatch.FSMName);
                         else
-                            compiledPatch = new EnemyStateActionPatch(enemyStateActionPatch.EnemyName, enemyStateActionPatch.Name, enemyStateActionPatch.ActionType, p, u, enemyStateActionPatch.FSMName, enemyStateActionPatch.LatePatch, enemyStateActionPatch.ReInit);
+                            compiledPatch = new EnemyStateActionPatch(enemyStateActionPatch.EnemyName, enemyStateActionPatch.Name, enemyStateActionPatch.ActionType, p, u, enemyStateActionPatch.FSMName);
 
-                        if (rawPatch.Overwrite)
-                            appliedPatch = EnemyFSMPatches.OverwritePatch(compiledPatch);
+                        appliedPatch = EnemyFSMPatches.OverwritePatch(compiledPatch);
                         if (!appliedPatch)
                             EnemyFSMPatches.enemyStateAction.RegisterPatchInCollection(enemyStateActionPatch.EnemyName, compiledPatch);
                         AddPatchToDictionary(rawPatch.PatchType, compiledPatch);
@@ -334,7 +327,7 @@ internal class External_Patches
 
         public float[] FloatOptions = [];
 
-        public override Action<FsmState, object[]?> GeneratePatch()
+        public override Action<FsmState, object[]> GeneratePatch()
         {
             switch (PatchTarget)
             {
@@ -346,30 +339,9 @@ internal class External_Patches
                         BoolOptions.ElementAtOrDefault(0), // reverseX
                         BoolOptions.ElementAtOrDefault(1), // reverseY
                         FloatOptions.ElementAtOrDefault(3), // magicNumber
-                        BoolOptions.ElementAtOrDefault(2));  // tempInvincible
-                case "SetVelocity2d":
-                    return delegate (FsmState state, object[]? param)
-                    {
-                        if (param == null) return;
-
-                        SetVelocity2d velocity = new()
-                        {
-                            gameObject = new()
-                            {
-                                GameObject = (GameObject)param[0]
-                            },
-                            x = FloatOptions.ElementAtOrDefault(0),
-                            y = FloatOptions.ElementAtOrDefault(1),
-                            vector = new Vector2(FloatOptions.ElementAtOrDefault(0), FloatOptions.ElementAtOrDefault(1))
-                        };
-
-                        if (StartOfAction)
-                        {
-                            FsmStateAction[] bassAckwards = [velocity];
-                            state.Actions = bassAckwards.AddRangeToArray(state.Actions);
-                        }
-                        else state.Actions = state.Actions.AddItem(velocity).ToArray();
-                    };
+                        BoolOptions.ElementAtOrDefault(2),  // tempInvincible
+                        BoolOptions.ElementAtOrDefault(3), // skipRaycast
+                        BoolOptions.ElementAtOrDefault(4)); // cancelYVelocity
                 default:
                     throw new NotImplementedException();
             }
@@ -380,10 +352,6 @@ internal class External_Patches
     : ObjectExternalPatch_Base<FsmState>, IFSMPatch
     {
         public string FSMName { get; set; } = "";
-
-        public bool LatePatch = false;
-
-        public bool ReInit = false;
     }
 
     #endregion State Patches
@@ -413,7 +381,7 @@ internal class External_Patches
 
     public class StateActionPatchInfo : PatchInfo_Base<FsmStateAction>
     {
-        public override Action<FsmStateAction, object[]?> GeneratePatch()
+        public override Action<FsmStateAction, object[]> GeneratePatch()
         {
             throw new NotImplementedException();
         }
@@ -425,10 +393,6 @@ internal class External_Patches
         public string FSMName { get; set; } = "";
 
         public string ActionTypeString = "";
-
-        public bool LatePatch = false;
-
-        public bool ReInit = false;
 
         public Type ActionType
         {
@@ -452,7 +416,7 @@ internal class External_Patches
 
     public class ObjectPatchInfo : PatchInfo_Base<FsmStateAction>
     {
-        public override Action<FsmStateAction, object[]?> GeneratePatch()
+        public override Action<FsmStateAction, object[]> GeneratePatch()
         {
             throw new NotImplementedException();
         }
@@ -478,7 +442,7 @@ internal class External_Patches
     {
         public string PatchTarget { get; set; } = "";
 
-        public abstract Action<Target, object[]?> GeneratePatch();
+        public abstract Action<Target, object[]> GeneratePatch();
     }
 
     #endregion Base Abstract
@@ -488,7 +452,6 @@ internal class External_Patches
         public string Name { get; set; }
         public string[] Names { get; set; }
         public ExternalPatchTypes PatchType { get; set; }
-        public bool Overwrite { get; set; }
     }
 
     public interface ISmolExternalPatchInfo

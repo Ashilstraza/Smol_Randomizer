@@ -17,7 +17,7 @@ using Smol_Randomizer.Patchers.Scene;
 
 using Newtonsoft.Json;
 
-using Smol_Randomizer.DebugDrawing;
+using DebugDrawing;
 
 #endif
 
@@ -140,6 +140,7 @@ internal class Hero_Size_Rando : Rando_Base
     protected override void Register()
     {
         CuteRandoCore.RegisterRandomizer(eventOnSceneLoad);
+        CuteRandoCore.RegisterRandomizer(eventActiveHeroDamager);
 
         SceneFSMPatches.RegisterPatchCollection(sceneFSMPatches);
     }
@@ -147,6 +148,7 @@ internal class Hero_Size_Rando : Rando_Base
     protected override void Unregister()
     {
         CuteRandoCore.UnregisterRandomizer(eventOnSceneLoad);
+        CuteRandoCore.UnregisterRandomizer(eventActiveHeroDamager);
 
         SceneFSMPatches.UnregisterPatchCollection(sceneFSMPatches);
     }
@@ -155,6 +157,11 @@ internal class Hero_Size_Rando : Rando_Base
     {
         grabVariables = true;
         heroSizeChanged = false;
+    }
+
+    protected override void OnUnload()
+    {
+        ReturnToDefault();
     }
 
 #if TESTING // Enable Saving Data
@@ -472,11 +479,11 @@ internal class Hero_Size_Rando : Rando_Base
         // Hitboxes for initial checks
         Quaternion rotation = Instance.heroTransform.rotation;
 
-        DebugDrawer.Circle(farOrigin, 0.1f, rotation);
-        DebugDrawer.Circle(nearOrigin, 0.1f, rotation);
+        DebugDrawer.Circle(farOrigin, 0.1f, rotation, duration: 1f);
+        DebugDrawer.Circle(nearOrigin, 0.1f, rotation, duration: 1f);
 
         bool directAbove = Helper.IsRayHittingNoTriggers(vector + heightOffset, facingDirection, 0.75f, LAYERMASK);
-        DebugDrawer.Line(vector + heightOffset, vector + heightOffset + facingDirection * 0.75f, directAbove ? Color.red : Color.cyan);
+        DebugDrawer.Arrow(vector + heightOffset, vector + heightOffset + facingDirection * 0.75f, 0.25f, directAbove ? Color.red : Color.cyan, duration: 1f);
 
         if (directAbove) // Directly Above, different than CheckNearRoof, probably allows for clambering through a gap?
             return;
@@ -488,13 +495,13 @@ internal class Hero_Size_Rando : Rando_Base
         bool heightGood = !Helper.IsRayHittingNoTriggers(heightGoodVector, Vector2.up, ceiling, LAYERMASK, out var heightHit);
 
         // Hitboxes for landing points
-        DebugDrawer.Line(heightGoodVector, heightGoodVector + Vector2.up * ceiling, heightGood ? Color.cyan : Color.red);
+        DebugDrawer.Arrow(heightGoodVector, heightGoodVector + Vector2.up * ceiling, 0.25f, heightGood ? Color.cyan : Color.red, duration: 1f);
 
         if (!heightGood)
             return;
 
-        DebugDrawer.Line(farOrigin, farOrigin + Vector2.down * ceiling, farGood ? Color.green : Color.red);
-        DebugDrawer.Line(nearOrigin, nearOrigin + Vector2.down * ceiling, nearGood ? Color.green : Color.red);
+        DebugDrawer.Arrow(farOrigin, farOrigin + Vector2.down * ceiling, 0.25f, farGood ? Color.green : Color.red, duration: 1f);
+        DebugDrawer.Arrow(nearOrigin, nearOrigin + Vector2.down * ceiling, 0.25f, nearGood ? Color.green : Color.red, duration: 1f);
 
         if (!farGood || !nearGood) // One or both are not good
             return;
@@ -502,8 +509,8 @@ internal class Hero_Size_Rando : Rando_Base
         Vector2 farHitPoint = closestFarHit.point;
         Vector2 nearHitPoint = closestNearHit.point;
 
-        DebugDrawer.Circle(farHitPoint, 0.1f, rotation);
-        DebugDrawer.Circle(nearHitPoint, 0.1f, rotation);
+        DebugDrawer.Circle(farHitPoint, 0.1f, rotation, duration: 1f);
+        DebugDrawer.Circle(nearHitPoint, 0.1f, rotation, duration: 1f);
 
         clamberedCollider = closestNearHit.collider;
 
@@ -827,13 +834,13 @@ internal class Hero_Size_Rando : Rando_Base
         "Mantle",
         [new StatePatch(
             "Vault",
-            delegate (FsmState state, object[]? param)
+            delegate (FsmState state, object[] param)
             {
                 state.Actions = state.Actions.AddToArray(clamberSquishBox);
             }),
         new StatePatch(
             "Idle",
-            delegate(FsmState state, object[]? param)
+            delegate(FsmState state, object[] param)
             {
                 state.Actions = state.Actions.AddToArray(clamberUnsquishBox);
             })
@@ -862,7 +869,7 @@ internal class Hero_Size_Rando : Rando_Base
             offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y)
         };
 
-        mantleFSMPatchSet.ApplyPatches(HeroController.instance.mantleFSM);
+        mantleFSMPatchSet.ApplyPatches(HeroController.instance.mantleFSM, []);
     }
 
     /// <summary>Updates the Mantle squish sizes when called</summary>
@@ -907,10 +914,27 @@ internal class Hero_Size_Rando : Rando_Base
     }
 
     /// <summary>Update all the water surfaces in the current scene</summary>
-    private static void UpdateWaterSurfaces()
+    private static void UpdateWaterSurfaces(bool getSurfaces = false)
     {
+        if (getSurfaces)
+        {
+            var detectors = SceneManager.GetActiveScene().GetRootGameObjects().Where(obj => obj.layer == LayerMask.NameToLayer("Hero Detector")).ToArray();
+            foreach (var detector in detectors)
+            {
+                var swr = detector.GetComponent<SurfaceWaterRegion>();
+                if (swr != null)
+                {
+                    float offset = detector.GetComponent<BoxCollider2D>().offset.y;
+                    Instance.waterRegions.TryAdd(swr, offset);
+                }
+            }
+        }
+
         foreach (var region in Instance.waterRegions)
         {
+            if (region.Key == null)
+                continue;
+
             UpdateWaterSurface(region.Key, Instance.heroScale.x, region.Value);
         }
     }
@@ -937,7 +961,7 @@ internal class Hero_Size_Rando : Rando_Base
             "Churchkeeper Intro Scene",
             "Wait for Hero Grounded",
             typeof(FloatCompare),
-            delegate(FsmStateAction action, object[]? param)
+            delegate(FsmStateAction action, object[] param)
             {
                 ((FloatCompare)action).float2.Value *= Instance.heroScale.y;
             },
@@ -946,7 +970,7 @@ internal class Hero_Size_Rando : Rando_Base
             "Floor Control Scene",
             "Flip",
             typeof(CheckYPosition),
-            delegate(FsmStateAction action, object[]? param)
+            delegate(FsmStateAction action, object[] param)
             {
                 ((CheckYPosition)action).compareTo.Value *= Instance.heroScale.y;
             },
@@ -990,28 +1014,28 @@ internal class Hero_Size_Rando : Rando_Base
         "Sprint",
         [new StatePatch(
             ["Dashed", "Start Sprint"],
-            delegate (FsmState state, object[]? param)
+            delegate (FsmState state, object[] param)
             {
                 if(sprintSquishBox == null) return;
 
                 FsmStateAction[] bassAckwards = [sprintSquishBox];
                 state.Actions = bassAckwards.AddRangeToArray(state.Actions);
             },
-            delegate (FsmState state, object[]? param){
+            delegate (FsmState state, object[] param){
                 if(sprintSquishBox == null) return;
 
                 state.Actions = state.Actions.Except([sprintSquishBox]).ToArray();
             }),
         new StatePatch(
             ["Idle", "Dash Stab Dir"],
-            delegate(FsmState state, object[]? param)
+            delegate(FsmState state, object[] param)
             {
                 if(sprintUnsquishBox == null) return;
 
                 FsmStateAction[] bassAckwards = [sprintUnsquishBox];
                 state.Actions = bassAckwards.AddRangeToArray(state.Actions);
             },
-            delegate(FsmState state, object[]? param){
+            delegate(FsmState state, object[] param){
                 if(sprintUnsquishBox == null) return;
 
                 state.Actions = state.Actions.Except([sprintUnsquishBox]).ToArray();
@@ -1041,13 +1065,13 @@ internal class Hero_Size_Rando : Rando_Base
             offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y)
         };
 
-        sprintFSMPatchSet.ApplyPatches(HeroController.instance.sprintFSM);
+        sprintFSMPatchSet.ApplyPatches(HeroController.instance.sprintFSM, []);
     }
 
     /// <summary>Removes the Sprint FSM patches that adjust Hornet's hitbox when dashing</summary>
     private void UnpatchSprintFSM()
     {
-        sprintFSMPatchSet.RemovePatches(HeroController.instance.sprintFSM);
+        sprintFSMPatchSet.RemovePatches(HeroController.instance.sprintFSM, []);
     }
 
     /// <summary>Patch to listen for if we are air dashing and adjust the collider accordingly</summary>
@@ -1119,27 +1143,23 @@ internal class Hero_Size_Rando : Rando_Base
     private void OnSceneLoad(Scene scene, LoadSceneMode _)
     {
         currentScene = scene;
-        SetSize();
         waterRegions.Clear();
-    }
-
-    protected override void OnUnload()
-    {
+        SetSize();
     }
 
     /// <summary>Patch to watch for when Hornet gets damaged</summary>
     /// <param name="instance">The HeroDamager we want to attach a listener to</param>
     /// <param name="_">       Discarded HealthManager</param>
-    private static void DamageHero_OnEnable(ref DamageHero instance, ref HealthManager _)
+    private void DamageHero_OnEnable(DamageHero instance, HealthManager _)
     {
         if (Instance.PlayerSizeRando && Instance.HeroSizeConsistency == RandomizerConsistencyC.OnDamageTaken)
             instance.OnDamagedHero.AddListener(HeroDamaged);
     }
 
     /// <summary>Called when DamageHero fires OnDamagedHero</summary>
-    public static void HeroDamaged()
+    public void HeroDamaged()
     {
-        Instance.SetSize(true);
+        SetSize(true);
     }
 
     // TODO: tall hornet breaks some triggers and breaks the universe;
@@ -1298,7 +1318,7 @@ internal class Hero_Size_Rando : Rando_Base
 
         FsmVariables sprintFSMVariables = HeroController.instance.sprintFSM.FsmVariables;
 
-        heroTransform.localScale = heroTransform.localScale.x > 0f ? new(1f, 1f, 1f) : new(-1f, 1f, 1f);
+        heroTransform.localScale = heroTransform.localScale.x > 0f ? Vector3.one : new(-1f, 1f, 1f);
         sprintFSMVariables.FindFsmFloat("Dash Speed").Value = hornetBaseDashSpeed;
         sprintFSMVariables.FindFsmFloat("Sprint Speed Regular").Value = hornetBaseSprintSpeed;
         sprintFSMVariables.FindFsmFloat("Sprint Start Speed").Value = hornetBaseSprintStartSpeed;
@@ -1450,6 +1470,7 @@ internal class Hero_Size_Rando : Rando_Base
         }
         ResetAllLists();
         SetSize(true);
+        UpdateWaterSurfaces(true);
 
         // Try applying transpiler patch mid game if enabled after load
         if (PlayerSizeRando && !transpilerAttempted)

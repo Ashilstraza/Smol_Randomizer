@@ -80,6 +80,7 @@
       <Version>13.0.4</Version>
     </PackageReference>
     <PackageReference Include="Silksong.DataManager" Version="1.2.2" />
+    <PackageReference Include="Silksong.ModMenu" Version="0.8.0" />
     <PackageReference Include="UnityEngine.Modules" Version="6000.0.50" IncludeAssets="compile" />
   </ItemGroup>
   <ItemGroup>
@@ -96,6 +97,9 @@
     <Content Include=".gitignore" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\DebugDrawer\DebugDrawer.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <Reference Include="Assembly-CSharp">
       <HintPath>References\Assembly-CSharp.dll</HintPath>
     </Reference>
@@ -104,9 +108,6 @@
     </Reference>
     <Reference Include="PlayMaker">
       <HintPath>References\PlayMaker.dll</HintPath>
-    </Reference>
-    <Reference Include="Silksong.ModMenu">
-      <HintPath>References\Silksong.ModMenu.dll</HintPath>
     </Reference>
     <Reference Include="TeamCherry.TK2D">
       <HintPath>References\TeamCherry.TK2D.dll</HintPath>
@@ -129,9 +130,11 @@
       <ThunderstoreDir>$(ProjectDir)/thunderstore</ThunderstoreDir>
     </PropertyGroup>
     <!-- Local install -->
-	<Delete Files="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)/$(AssemblyTitle).pdb" TreatErrorsAsWarnings="true" Condition= " '$(Configuration)|$(Platform)' == 'Release|AnyCPU' "/>
-    <Copy SourceFiles="@(Binaries)" DestinationFolder="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)/%(Binaries.LocalDir)" Condition="'$(SilksongPluginsFolder)' != '' And Exists('$(SilksongPluginsFolder)')" />
-	
+    <Delete Files="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)/$(AssemblyTitle)copy.pdb" />
+    <Delete Files="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)/$(AssemblyTitle)copy.dll" />
+	<Delete Files="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)/$(AssemblyTitle).pdb" TreatErrorsAsWarnings="true" Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' " />
+    <Copy SourceFiles="@(Binaries)" DestinationFolder="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)/%(Binaries.LocalDir)" ContinueOnError="ErrorAndStop"  Retries="0" Condition="'$(SilksongPluginsFolder)' != '' And Exists('$(SilksongPluginsFolder)')" />
+    	
     <!-- Thunderstore packaging -->
     <RemoveDir Directories="$(ThunderstoreDir)/temp;$(ThunderstoreDir)/dist" />
     <MakeDir Directories="$(ThunderstoreDir)/temp" />
@@ -141,5 +144,11 @@
     </PropertyGroup>
     <Exec Command="dotnet tool restore" />
     <Exec Command="dotnet tcli build --config-path &quot;$(ThunderstoreDir)/thunderstore.toml&quot; --package-name &quot;$(AssemblyTitle)&quot; --package-version $(ThunderstorePkgVersion)" StandardOutputImportance="High" StandardErrorImportance="High" />
+    <OnError ExecuteTargets="OtherCopy" />
+  </Target>
+  <Target Name="OtherCopy">
+      
+      <Copy SourceFiles="$(OutputPath)/$(AssemblyTitle).pdb" DestinationFiles="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)/$(AssemblyTitle)copy.pdb" />
+      <Copy SourceFiles="$(OutputPath)/$(AssemblyTitle).dll" DestinationFiles="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)/$(AssemblyTitle)copy.dll" />
   </Target>
 </Project>

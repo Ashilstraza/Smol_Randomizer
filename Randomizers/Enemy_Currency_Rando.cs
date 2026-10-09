@@ -183,10 +183,7 @@ internal class Enemy_Currency_Rando : Rando_Base
         int initialShellShardDrops = (int)shellShardDropTraverse.GetValue();
 
         int shards;
-        string name = thing.name;
-
-        int cullIndex = name.IndexOf('(');
-        if (cullIndex > 0) name = name[..cullIndex].TrimEnd();
+        string name = CuteRandoCore.CullName(thing.name);
 
         switch (RandomizerConsistency)
         {
@@ -251,10 +248,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
     private void RandomizeGeo(HealthManager thing, out RandomizedGeoSet geoSet)
     {
-        string name = thing.name;
-
-        int cullIndex = name.IndexOf('(');
-        if (cullIndex > 0) name = name[..cullIndex].TrimEnd();
+        string name = CuteRandoCore.CullName(thing.name);
 
         switch (RandomizerConsistency)
         {

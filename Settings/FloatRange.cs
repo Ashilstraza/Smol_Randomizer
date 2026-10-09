@@ -1,6 +1,6 @@
-﻿using System;
+﻿using BepInEx.Configuration;
 
-using BepInEx.Configuration;
+using System;
 
 namespace Smol_Randomizer.Settings;
 

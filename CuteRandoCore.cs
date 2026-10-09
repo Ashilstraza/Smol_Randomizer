@@ -150,11 +150,15 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <summary>On Loading (window visible)</summary>
     private void Start()
     {
-        DebugDrawing.UnityDebugPatches.RegisterHarmonyPatches();
-
         TrySetDataLocation();
 
         SceneManager.sceneLoaded += OnSceneLoaded;
+
+        currentScene = SceneManager.GetActiveScene();
+
+        harmony.Patch(AccessTools.Method(
+            typeof(Fsm), "Start"),
+            prefix: new HarmonyMethod(typeof(CuteRandoCore), nameof(Fsm_Start_Prefix)));
 
         foreach (KeyValuePair<string, Action> rando in activeGameStartup)
             rando.Value();
@@ -166,7 +170,9 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     {
         if (string.IsNullOrEmpty(DataLocation) && !string.IsNullOrEmpty(Info.Location))
         {
-            DataLocation = Info.Location.TrimEnd("\\\\Smol_Randomizer.dll".ToCharArray()) + "Smol_Randomizer";
+            string checkString = "Ashilstraza-Smol_Randomizer";
+            int index = Info.Location.IndexOf("Ashilstraza-Smol_Randomizer");
+            DataLocation = Info.Location.Substring(0, index + checkString.Length);
             return true;
         }
         else if (!string.IsNullOrEmpty(DataLocation))
@@ -197,8 +203,6 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         {
             foreach (KeyValuePair<string, Action<Scene>> randomizer in activeOnFirstSceneFrame)
                 randomizer.Value(currentScene);
-
-            EnemyFSMPatches.OnFirstFrame();
 
             updateOnFirstSceneFrame = false;
         }
@@ -246,7 +250,6 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         updateActiveLimitRegions = true;
 
         SceneFSMPatches.ApplyPatches(scene);
-        EnemyFSMPatches.OnSceneLoaded();
 
         EnemyObjectPatchCollection.OnSceneLoaded();
     }
@@ -289,8 +292,6 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     {
         if (!randomize) return;
 
-        EnemyFSMPatches.ApplyPatches(__instance);
-
         foreach (KeyValuePair<string, Action<HealthManager>> randomizer in activeEnemy)
             randomizer.Value(__instance);
 
@@ -306,6 +307,13 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
         foreach (KeyValuePair<string, Action<DamageHero, HealthManager>> randomizer in activeHeroDamager)
             randomizer.Value(__instance, ___healthManager);
+    }
+
+    private static bool Fsm_Start_Prefix(ref Fsm __instance)
+    {
+        if (__instance.GameObject != null)
+            EnemyFSMPatches.ApplyPatches(__instance.GameObject);
+        return true;
     }
 
     #endregion Randomizer Harmony Patches
@@ -743,6 +751,14 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         }
 
         return false;
+    }
+
+    public static string CullName(string name)
+    {
+        int cullIndex = name.IndexOf('(');
+        if (cullIndex > 0) name = name[..cullIndex].TrimEnd();
+
+        return name;
     }
 
     #endregion Helper_Functions

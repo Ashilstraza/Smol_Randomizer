@@ -1,8 +1,8 @@
-﻿using System;
+﻿using HutongGames.PlayMaker;
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using HutongGames.PlayMaker;
 
 using UnityEngine;
 
@@ -36,6 +36,8 @@ internal class SceneFSMPatches
     /// <param name="scene">The scene to unpatch</param>
     internal static void RemovePatches(UnityEngine.SceneManagement.Scene scene)
     {
+        if (!scene.IsValid()) // Something is fishy, abort.
+            return;
         HashSet<GameObject> objects = scene.GetRootGameObjects().ToHashSet();
 
         sceneStateActionCollection.RemovePatches(scene, objects);
@@ -168,7 +170,7 @@ public class SceneStateActionPatchSet(string sceneName, string objectName, List<
 /// <param name="fsmName">   
 /// Optional fsm name, used when calling either ApplyPatch or RemovePatch with an array of PlayMakerFSMs
 /// </param>
-public class SceneStateActionPatch(string sceneName, string objectName, string stateName, Type actionType, Action<FsmStateAction, object[]?> patch, Action<FsmStateAction, object[]?>? unpatch = null, string fsmName = "")
+public class SceneStateActionPatch(string sceneName, string objectName, string stateName, Type actionType, Action<FsmStateAction, object[]> patch, Action<FsmStateAction, object[]>? unpatch = null, string fsmName = "")
     : StateActionPatch_Base(stateName, actionType, patch, unpatch, fsmName), ISceneFSMPatch
 {
     /// <summary>Patch for a Scene State Action</summary>
@@ -181,7 +183,7 @@ public class SceneStateActionPatch(string sceneName, string objectName, string s
     /// <param name="fsmName">   
     /// Optional fsm name, used when calling either ApplyPatch or RemovePatch with an array of PlayMakerFSMs
     /// </param>
-    public SceneStateActionPatch(string sceneName, string objectName, string[] stateNames, Type actionType, Action<FsmStateAction, object[]?> patch, Action<FsmStateAction, object[]?>? unpatch = null, string fsmName = "")
+    public SceneStateActionPatch(string sceneName, string objectName, string[] stateNames, Type actionType, Action<FsmStateAction, object[]> patch, Action<FsmStateAction, object[]>? unpatch = null, string fsmName = "")
         : this(sceneName, objectName, "", actionType, patch, unpatch, fsmName)
     {
         NameArray = stateNames;
@@ -195,8 +197,8 @@ public class SceneStateActionPatch(string sceneName, string objectName, string s
     public override object Clone()
     {
         if (NameArray.Length > 0)
-            return new SceneStateActionPatch(SceneName, ObjectName, NameArray, Type, (Action<FsmStateAction, object[]?>)Patch.Clone(), (Action<FsmStateAction, object[]?>?)Unpatch?.Clone(), FSMName);
-        return new SceneStateActionPatch(SceneName, ObjectName, Name, Type, (Action<FsmStateAction, object[]?>)Patch.Clone(), (Action<FsmStateAction, object[]?>?)Unpatch?.Clone(), FSMName);
+            return new SceneStateActionPatch(SceneName, ObjectName, NameArray, Type, (Action<FsmStateAction, object[]>)Patch.Clone(), (Action<FsmStateAction, object[]>?)Unpatch?.Clone(), FSMName);
+        return new SceneStateActionPatch(SceneName, ObjectName, Name, Type, (Action<FsmStateAction, object[]>)Patch.Clone(), (Action<FsmStateAction, object[]>?)Unpatch?.Clone(), FSMName);
     }
 }
 
@@ -248,7 +250,7 @@ public class SceneStatePatchSet(string sceneName, string objectName, List<SceneS
 /// <param name="fsmName">  
 /// Optional fsm name, used when calling either ApplyPatch or RemovePatch with an array of PlayMakerFSMs
 /// </param>
-public class SceneStatePatch(string sceneName, string objectName, string stateName, Action<FsmState, object[]?> patch, Action<FsmState, object[]?>? unpatch = null, string fsmName = "")
+public class SceneStatePatch(string sceneName, string objectName, string stateName, Action<FsmState, object[]> patch, Action<FsmState, object[]>? unpatch = null, string fsmName = "")
 : StatePatch_Base(stateName, patch, unpatch, fsmName), ISceneFSMPatch
 {
     /// <summary>Patch for a Scene State</summary>
@@ -259,7 +261,7 @@ public class SceneStatePatch(string sceneName, string objectName, string stateNa
     /// <param name="fsmName">   
     /// Optional fsm name, used when calling either ApplyPatch or RemovePatch with an array of PlayMakerFSMs
     /// </param>
-    public SceneStatePatch(string sceneName, string objectName, string[] stateNames, Action<FsmState, object[]?> patch, Action<FsmState, object[]?>? unpatch = null, string fsmName = "")
+    public SceneStatePatch(string sceneName, string objectName, string[] stateNames, Action<FsmState, object[]> patch, Action<FsmState, object[]>? unpatch = null, string fsmName = "")
         : this(sceneName, objectName, "", patch, unpatch, fsmName)
     {
         NameArray = stateNames;
@@ -273,8 +275,8 @@ public class SceneStatePatch(string sceneName, string objectName, string stateNa
     public override object Clone()
     {
         if (NameArray.Length > 0)
-            return new SceneStatePatch(SceneName, ObjectName, NameArray, (Action<FsmState, object[]?>)Patch.Clone(), (Action<FsmState, object[]?>?)Unpatch?.Clone(), FSMName);
-        return new SceneStatePatch(SceneName, ObjectName, Name, (Action<FsmState, object[]?>)Patch.Clone(), (Action<FsmState, object[]?>?)Unpatch?.Clone(), FSMName);
+            return new SceneStatePatch(SceneName, ObjectName, NameArray, (Action<FsmState, object[]>)Patch.Clone(), (Action<FsmState, object[]>?)Unpatch?.Clone(), FSMName);
+        return new SceneStatePatch(SceneName, ObjectName, Name, (Action<FsmState, object[]>)Patch.Clone(), (Action<FsmState, object[]>?)Unpatch?.Clone(), FSMName);
     }
 }
 
@@ -311,7 +313,7 @@ public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, Pat
             foreach (var patchGroup in patches)
             {
                 foreach (var setPatch in patchGroup.Value)
-                    setPatch.ApplyPatch(objects.FirstOrDefault(obj => obj.name.Equals(patchGroup.Key)).GetComponents<PlayMakerFSM>());
+                    setPatch.ApplyPatch(objects.FirstOrDefault(obj => obj.name.Equals(patchGroup.Key)).GetComponents<PlayMakerFSM>(), []);
             }
         }
     }
@@ -326,7 +328,7 @@ public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, Pat
             foreach (var patchGroup in patches)
             {
                 foreach (var setPatch in patchGroup.Value)
-                    setPatch.RemovePatch(objects.FirstOrDefault(obj => obj.name.Equals(patchGroup.Key)).GetComponents<PlayMakerFSM>());
+                    setPatch.RemovePatch(objects.FirstOrDefault(obj => obj.name.Equals(patchGroup.Key)).GetComponents<PlayMakerFSM>(), []);
             }
         }
     }

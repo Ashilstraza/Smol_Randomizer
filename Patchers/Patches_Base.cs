@@ -10,39 +10,39 @@ namespace Smol_Randomizer.Patchers;
 /// <param name="objectName">Name of the object the patch is for</param>
 /// <param name="patch">     The delegate to patch the object</param>
 /// <param name="unpatch">   Optional delegate to unpatch the object</param>
-public abstract class ObjectPatch_Base<PatchTarget, ObjectType>(string objectName, Action<PatchTarget, object[]?> patch, Action<PatchTarget, object[]?>? unpatch = null)
+public abstract class ObjectPatch_Base<PatchTarget, ObjectType>(string objectName, Action<PatchTarget, object[]> patch, Action<PatchTarget, object[]>? unpatch = null)
     : ISmolPatch
 {
     public string Name => objectName;
     public string[] NameArray { get; protected set; } = [];
 
     /// <summary>The delegate to patch the object</summary>
-    public Action<PatchTarget, object[]?> Patch { get; } = patch;
+    public Action<PatchTarget, object[]> Patch { get; } = patch;
 
     /// <summary>Optional delegate to unpatch the object</summary>
-    public Action<PatchTarget, object[]?>? Unpatch { get; } = unpatch;
+    public Action<PatchTarget, object[]>? Unpatch { get; } = unpatch;
 
     /// <summary>Patches an object</summary>
     /// <param name="patchTarget">The object to patch</param>
     /// <param name="param">      An array of extra arguments the patcher may want</param>
-    public abstract void ApplyPatch(ObjectType patchTarget, object[]? param = null);
+    public abstract void ApplyPatch(ObjectType patchTarget, object[] param);
 
     /// <summary>Patches an object</summary>
     /// <param name="patchTargets">The objects to patch</param>
     /// <param name="param">       An array of extra arguments the patcher may want</param>
-    public abstract void ApplyPatch(ObjectType[] patchTargets, object[]? param = null);
+    public abstract void ApplyPatch(ObjectType[] patchTargets, object[] param);
 
     public abstract object Clone();
 
     /// <summary>Unpatches an object</summary>
     /// <param name="patchTarget">The object to patch</param>
     /// <param name="param">      An array of extra arguments the patcher may want</param>
-    public abstract void RemovePatch(ObjectType patchTarget, object[]? param = null);
+    public abstract void RemovePatch(ObjectType patchTarget, object[] param);
 
     /// <summary>Unpatches an object</summary>
     /// <param name="patchTargets">The object to patch</param>
     /// <param name="param">       An array of extra arguments the patcher may want</param>
-    public abstract void RemovePatch(ObjectType[] patchTargets, object[]? param = null);
+    public abstract void RemovePatch(ObjectType[] patchTargets, object[] param);
 }
 
 /// <summary>Base class of patch sets for patching objects</summary>
@@ -64,7 +64,7 @@ public abstract class ObjectPatchSet_Base<PatchType, ObjectType, PatchTarget>(st
     /// <summary>Applies the patches to the given target when called</summary>
     /// <param name="patchTarget">The target to apply patches to</param>
     /// <param name="param">      An array of extra arguments that patches may want</param>
-    public virtual void ApplyPatches(ObjectType patchTarget, object[]? param = null)
+    public virtual void ApplyPatches(ObjectType patchTarget, object[] param)
     {
         foreach (var patch in Patches)
         {
@@ -75,7 +75,7 @@ public abstract class ObjectPatchSet_Base<PatchType, ObjectType, PatchTarget>(st
     /// <summary>Applies the patches to the given targets when called</summary>
     /// <param name="patchTargets">The target to apply patches to</param>
     /// <param name="param">       An array of extra arguments that patches may want</param>
-    public virtual void ApplyPatches(ObjectType[] patchTargets, object[]? param = null)
+    public virtual void ApplyPatches(ObjectType[] patchTargets, object[] param)
     {
         foreach (var patch in Patches)
         {
@@ -86,7 +86,7 @@ public abstract class ObjectPatchSet_Base<PatchType, ObjectType, PatchTarget>(st
     /// <summary>Removes the patches from the given target when called</summary>
     /// <param name="patchTarget">The target to remove patches from</param>
     /// <param name="param">      An array of extra arguments that unpatchers may want</param>
-    public virtual void RemovePatches(ObjectType patchTarget, object[]? param = null)
+    public virtual void RemovePatches(ObjectType patchTarget, object[] param)
     {
         foreach (var patch in Patches)
         {
@@ -97,7 +97,7 @@ public abstract class ObjectPatchSet_Base<PatchType, ObjectType, PatchTarget>(st
     /// <summary>Removes the patches from the given targets when called</summary>
     /// <param name="patchTargets">The targets to remove patches from</param>
     /// <param name="param">       An array of extra arguments that unpatchers may want</param>
-    public virtual void RemovePatches(ObjectType[] patchTargets, object[]? param = null)
+    public virtual void RemovePatches(ObjectType[] patchTargets, object[] param)
     {
         foreach (var patch in Patches)
         {
@@ -145,7 +145,7 @@ public abstract class ObjectPatchCollection_Base<PatchType, PatchSetType, Object
         {
             foreach (var patch in patchSet)
             {
-                patch.ApplyPatch(obj);
+                patch.ApplyPatch(obj, [objectName]);
             }
         }
     }
@@ -159,7 +159,7 @@ public abstract class ObjectPatchCollection_Base<PatchType, PatchSetType, Object
         {
             foreach (var patch in patchSet)
             {
-                patch.RemovePatch(obj);
+                patch.RemovePatch(obj, [objectName]);
             }
         }
     }
