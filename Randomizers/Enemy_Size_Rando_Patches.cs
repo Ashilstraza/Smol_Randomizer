@@ -617,7 +617,67 @@ internal partial class Enemy_Size_Rando
             CreateShiftToBaseDelegate(),
             fsmName: "Control"),
 
-        // TODO: Patch Conch Drillers
+        new EnemyStatePatch("Coral Conch Driller",
+            "Init",
+            CreateShiftToBaseDelegate(skipRaycast: true),
+            fsmName: "Control"),
+
+        new EnemyStateActionPatchSet("Coral Conch Driller",
+            [new("",
+                ["Aim D", "Antic1 D"],
+                typeof(ChaseObjectVertical),
+                delegate(FsmStateAction action, object[] param)
+                {
+                    ((ChaseObjectVertical)action).offset.Value *= Math.Abs(((GameObject)param[0]).transform.GetScaleY());
+                }),
+            new("",
+                ["Aim F", "Antic1 L", "Antic2 R"],
+                typeof(DistanceFly),
+                delegate(FsmStateAction action, object[] param)
+                {
+                    ((DistanceFly)action).distance.Value *= Math.Abs(((GameObject)param[0]).transform.GetScaleY());
+                }),
+            new("",
+                ["Drill In D", "Drill In L", "Drill In R"],
+                typeof(AnimatePositionBy),
+                delegate(FsmStateAction action, object[] param)
+                {
+                    ((AnimatePositionBy)action).shiftBy.Value = ((AnimatePositionBy)action).shiftBy.Value.MultiplyElements(((GameObject)param[0]).transform.localScale.Abs());
+                }),
+            new("",
+                ["Emerge 1 D", "Emerge 1 L", "Emerge 1 R"],
+                typeof(AnimatePositionBy),
+                delegate(FsmStateAction action, object[] param)
+                {
+                    GameObject enemy = (GameObject)param[0];
+
+                    if(enemy.transform.GetScaleY() < 1)
+                        return;
+                    ((AnimatePositionBy)action).shiftBy.Value = ((AnimatePositionBy)action).shiftBy.Value.MultiplyElements(enemy.transform.localScale.Abs());
+                }),
+            new("",
+                ["Under D", "Under L", "Under R"],
+                typeof(Translate),
+                delegate(FsmStateAction action, object[] param)
+                {
+                    Translate translate = (Translate)action;
+                    GameObject enemy = (GameObject)param[0];
+
+                    translate.x.Value *= Math.Abs(enemy.transform.GetScaleX());
+                    translate.y.Value *= Math.Abs(enemy.transform.GetScaleY());
+                }),
+            new("",
+                ["Under Aim D", "Under Aim L", "Under Aim R", "Shoot L", "Shoot R", "Shoot D"],
+                typeof(RayCast2dV2),
+                delegate(FsmStateAction action, object[] param){
+                    GameObject enemy = (GameObject)param[0];
+
+                    if(enemy.transform.GetScaleY() < 1)
+                        return;
+                    ((RayCast2dV2)action).distance.Value *= Math.Abs(enemy.transform.GetScaleY());
+                })
+            ],
+            fsmName: "Control"),
 
 #endregion Blasted Steps & Sands of Karak
 

@@ -264,8 +264,11 @@ public class EnemyStateActionPatch(string enemyName, string stateName, Type acti
     }
 }
 
-public class EnemyStateActionPatchSet(string enemyName, string objectName, List<EnemyStateActionPatch> patches, string fsmName = "")
-    : StateActionPatchSet_Base<EnemyStateActionPatch>(objectName, patches, fsmName), IEnemyFSMPatchSet
+#pragma warning disable CS9107 // Parameter is captured into the state of the enclosing type and its value is also passed to the base constructor. The value might be captured by the base class as well.
+
+public class EnemyStateActionPatchSet(string enemyName, List<EnemyStateActionPatch> patches, string fsmName = "")
+    : StateActionPatchSet_Base<EnemyStateActionPatch>(enemyName, patches, fsmName), IEnemyFSMPatchSet
+#pragma warning restore CS9107 // Parameter is captured into the state of the enclosing type and its value is also passed to the base constructor. The value might be captured by the base class as well.
 {
     public string EnemyName { get => enemyName; set => enemyName = value; }
 
@@ -276,7 +279,7 @@ public class EnemyStateActionPatchSet(string enemyName, string objectName, List<
         foreach (var patch in Patches)
             newList.Add(patch);
 
-        return new EnemyStateActionPatchSet(EnemyName, Name, newList, FSMName);
+        return new EnemyStateActionPatchSet(EnemyName, newList, FSMName);
     }
 }
 
@@ -314,11 +317,11 @@ public abstract class EnemyFSMPatchCollections_Base<PatchType, PatchSetType, Pat
         }
     }
 
-    public void RegisterEnemyPatchCollection(List<PatchType> patchCollection)
+    public void RegisterEnemyPatchCollection(List<PatchType> patchCollection, string enemyName)
     {
         foreach (var patch in patchCollection)
         {
-            RegisterPatchInCollection(patch.EnemyName, patch);
+            RegisterPatchInCollection(patch.EnemyName.Equals("") ? enemyName : patch.EnemyName, patch);
         }
     }
 
@@ -362,13 +365,13 @@ public abstract class EnemyFSMPatchCollections_Base<PatchType, PatchSetType, Pat
         }
         else if (smolPatch is PatchSetType patchSet)
         {
-            RegisterEnemyPatchCollection(patchSet.Patches);
+            RegisterEnemyPatchCollection(patchSet.Patches, patchSet.EnemyName);
         }
         else
             CuteRandoCore.Log.LogWarning($"Register patch called with invalid patch type, Name: {smolPatch.Name}, Enemy Name: {smolPatch.EnemyName}, Type: {smolPatch.GetType()}");
     }
 
-    public void UnregisterEnemyPatchCollection(List<PatchType> patchCollection)
+    public void UnregisterEnemyPatchCollection(List<PatchType> patchCollection, string enemyName)
     {
         foreach (var patch in patchCollection)
         {
@@ -401,7 +404,7 @@ public abstract class EnemyFSMPatchCollections_Base<PatchType, PatchSetType, Pat
         }
         else if (smolPatch is PatchSetType patchSet)
         {
-            UnregisterEnemyPatchCollection(patchSet.Patches);
+            UnregisterEnemyPatchCollection(patchSet.Patches, patchSet.EnemyName);
         }
         else
             CuteRandoCore.Log.LogWarning($"Unregister patch called with invalid patch type, Name: {smolPatch.Name}, Type: {smolPatch.GetType()}");

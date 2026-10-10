@@ -321,10 +321,10 @@ internal partial class Enemy_Size_Rando : Rando_Base
                 }
 
                 if (__instance.x.Value != xScale && __instance.x.Value != 0f)
-                    __instance.x = xScale;
+                    __instance.x = Math.Abs(xScale) * (__instance.x.Value < 0 ? -1 : 1);
 
                 if (__instance.y.Value != yScale && __instance.y.Value != 0f)
-                    __instance.y = yScale;
+                    __instance.y = Math.Abs(yScale) * (__instance.y.Value < 0 ? -1 : 1);
             }
         }
 
@@ -429,7 +429,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
                 if (!alternateNullColliderScale)
                     target.position = (target.position - obj.transform.position).MultiplyElements(target.localScale.Abs()) + obj.transform.position;
                 else
-                    target.localPosition = new(target.localPosition.x * parentScale.x, target.localPosition.y * parentScale.y);
+                    target.localPosition = new(target.localPosition.x * ((3 * parentScale.x) / 4), target.localPosition.y * ((3 * parentScale.y) / 4));
 #if TESTING
                 DebugDrawer.Circle(target.position, 0.1f, color: Color.red, duration: 10f);
                 DebugDrawer.Square(obj.transform.position, 0.2f, color: Color.red, duration: 10f);
