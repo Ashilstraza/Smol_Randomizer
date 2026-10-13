@@ -24,7 +24,6 @@ using Smol_Randomizer.Settings;
 
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UIElements;
 
 namespace Smol_Randomizer.Randomizers;
 
@@ -40,10 +39,10 @@ internal partial class Enemy_Size_Rando : Rando_Base
     /// <summary>Dictionary of the enemy sizes in current game instance</summary>
     private readonly Dictionary<string, float> enemySizes = [];
 
-    /// <summary>Dictionary of the scene enemy sizes in current game instance</summary>
+    /// <summary>Dictionary of the <see cref="Scene" /> enemy sizes in current game instance</summary>
     private readonly Dictionary<string, Dictionary<string, float>> sceneEnemySizes = [];
 
-    /// <summary>Set of enemies that we have touched in this scene</summary>
+    /// <summary>Set of enemies that we have touched in this <see cref="Scene" /></summary>
     private readonly Dictionary<HealthManager, Vector3> currentEnemyHealthManagers = [];
 
     public readonly HashSet<string> excludedEnemies = ["Splinter Queen Spike"];
@@ -53,16 +52,14 @@ internal partial class Enemy_Size_Rando : Rando_Base
     /// <summary>Used for registering this randomizer in the core for when enemies activate</summary>
     private Randomizer_Info eventActiveEnemy;
 
-    /// <summary>Used for registering this randomizer in the core for when a scene loads</summary>
+    /// <summary>Used for registering this randomizer in the core for when a <see cref="Scene" /> loads</summary>
     private Randomizer_Info eventOnFirstSceneFrame;
 
     #endregion Randomizer_Info
 
     /// <summary>Constructor for this singleton</summary>
     private Enemy_Size_Rando()
-    {
-        InitRandomizer();
-    }
+        => InitRandomizer();
 
     protected override void InitRandomizer()
     {
@@ -141,7 +138,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
 
 #endif
 
-    /// <summary>Patch HealthManager.OnEnable on game startup</summary>
+    /// <summary>Patch <see cref="HealthManager.OnEnable" /> on game startup</summary>
     private void GameStartup()
     {
         CuteRandoCore.harmony.Patch(AccessTools.Method(
@@ -159,19 +156,31 @@ internal partial class Enemy_Size_Rando : Rando_Base
     }
 
     /// <summary>
-    /// On First Frame, clean the active health manager list. This is done on the first frame since some health managers
-    /// get added before the scene is loaded, and some afterwards.
+    /// On First Frame, clean the active <see cref="HealthManager" /> list. This is done on the first frame since some
+    /// <see cref="HealthManager" /> s get added before the <see cref="Scene" /> is loaded, and some afterwards.
     /// </summary>
-    /// <param name="scene">The scene we are in</param>
+    /// <param name="scene">The <see cref="Scene" /> we are in</param>
     private void OnFirstSceneFrame(Scene scene)
-    {
-        CleanCurrentHealthManagerList();
-    }
+        => CleanCurrentHealthManagerList();
 
     #region Crawler ShouldTurn()
 
 #if TESTING
 
+    /// <summary>Postfix of <see cref="Crawler" />.ShouldTurn() to adjust the length check of the rays</summary>
+    /// <param name="__instance">            The instance of <see cref="Crawler" />.</param>
+    /// <param name="drawGizmos">            <see langword="true" /> if the gismos should be drawn</param>
+    /// <param name="___isTurnScheduled">    Private Variable: <see langword="true" /> if the enemy wants to turn anyway</param>
+    /// <param name="___collider">           Private Variable: <see cref="BoxCollider2D" /> fo the enemy</param>
+    /// <param name="___rayFrontDistance">   Private Variable: The distance the front facing ray should check</param>
+    /// <param name="___spriteFacesRight">
+    /// Private Variable: <see langword="true" /> if the enemy is facing right, <see langword="false" /> if facing left
+    /// </param>
+    /// <param name="___velocity">           Private Variable: <see cref="Vector2" /> velocity of the enemy</param>
+    /// <param name="___rayDownFrontPadding">Private Variable: Offsets the x value of the front down ray</param>
+    /// <param name="__result">
+    /// Return Variable: <see langword="true" /> if the enemy should turn, <see langword="false" /> otherwise
+    /// </param>
     private static void Crawler_ShouldTurn_Postfix(ref Crawler __instance,
                                                     ref bool drawGizmos,
                                                     ref bool ___isTurnScheduled,
@@ -261,6 +270,10 @@ internal partial class Enemy_Size_Rando : Rando_Base
         return scale / 1.5f + 0.43333f;
     }
 
+    /// <summary>Transpiler of <see cref="Crawler" />.ShouldTurn() to adjust the length check of the rays</summary>
+    /// <param name="instructions">List of IL instructions</param>
+    /// <param name="ilGenerator"> The <see cref="ILGenerator" /></param>
+    /// <returns>Emits new List of IL instructions</returns>
     private static IEnumerable<CodeInstruction> Crawler_ShouldTurn_Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
     {
         var getComponent = AccessTools.Method(typeof(Component), nameof(Component.GetComponent), generics: [typeof(Transform)]);
@@ -331,8 +344,12 @@ internal partial class Enemy_Size_Rando : Rando_Base
         return true;
     }
 
-    private static bool resizing = false;
+    /// <summary>
+    /// <see langword="true" /> if a request to resize everything is happening, <see langword="false" /> if we are not
+    /// </summary>
+    private static bool resizing;
 
+    /// <summary>Updates all enemy sizes in the <see cref="HealthManager" /> list</summary>
     private void UpdateCurrentEnemies()
     {
         CleanCurrentHealthManagerList();
@@ -344,6 +361,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
         resizing = false;
     }
 
+    /// <summary>Dictionary containing the various ignored child <see cref="GameObject" /> s</summary>
     private static Dictionary<string, string[]> ignoredChildAdjusts = new()
     {
         { "Bone Roller", ["All"] },
@@ -356,12 +374,17 @@ internal partial class Enemy_Size_Rando : Rando_Base
         { "Roachkeeper", ["Attack Range"] }
     };
 
+    /// <summary>Dictionary containing options for child <see cref="GameObject" /> s</summary>
     private static Dictionary<string, bool[]> childAdjustsOptions = new()
     {
         { "Roof Crab", [false, true] }, // unused currently
         //{ "Bone Hunter Child", [false, false, false]}
     };
 
+    /// <summary>
+    /// <see cref="Array" /> of <see langword="string" /> names for additional child <see cref="GameObject" /> s besides
+    /// any that contain 'Range' that need to be adjusted
+    /// </summary>
     private static string[] extraChildAdjusts =
         ["Route", // Aspid wanderings
         "Start Point",
@@ -375,7 +398,8 @@ internal partial class Enemy_Size_Rando : Rando_Base
         ];
 
     /// <summary>Fixes any and all Alert style Ranges to be their default pre-scaled size.</summary>
-    /// <param name="obj"></param>
+    /// <param name="obj"> The enemy <see cref="GameObject" /> whos children need to be adjusted</param>
+    /// <param name="name">The name of the enemy</param>
     public static void AdjustChildren(GameObject obj, string name)
     {
         if (ignoredChildAdjusts.ContainsKey(name) && ignoredChildAdjusts[name].Contains("All")) return;
@@ -457,6 +481,11 @@ internal partial class Enemy_Size_Rando : Rando_Base
         }
     }
 
+    /// <summary>Calculates a new position</summary>
+    /// <param name="position">The old child position</param>
+    /// <param name="offset">  The offset of the child</param>
+    /// <param name="scale">   The scale of the parent</param>
+    /// <returns>New position value</returns>
     public static float AdjustChildPosition(
         float position,
         float offset,
@@ -472,7 +501,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
 
     /// <summary>Updates an enemy with a new size</summary>
     /// <param name="thing">The health manager of the enemy we want to change</param>
-    /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
+    /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type</exception>
     private void SetSize(HealthManager thing)
     {
         if (thing?.transform == null || (!resizing && !Instance.currentEnemyHealthManagers.TryAdd(thing, thing.transform.localScale))) return;
@@ -533,6 +562,12 @@ internal partial class Enemy_Size_Rando : Rando_Base
         AdjustChildren(thing.gameObject, name);
     }
 
+    /// <summary>Randomizes the size of a given <see cref="Transform" /></summary>
+    /// <param name="boss">     <see langword="true" /> if the enemy is a boss</param>
+    /// <param name="transform">The <see cref="Transform" /> of the enemy to be scaled</param>
+    /// <param name="walker">   <see langword="true" /> if the enemy is a 'walker'</param>
+    /// <param name="seed">     A value to use when randomizing so that the result is the same</param>
+    /// <returns>The multiplier used to scale the enemy by</returns>
     public float RandomizeSize(bool boss, Transform transform, Walker? walker = null, int seed = int.MinValue)
     {
         float multiplier = CuteRandoCore.RandomFloat(boss ? BossSizePercentRange.AsTuple() : EnemySizePercentRange.AsTuple(), seed);
@@ -540,6 +575,9 @@ internal partial class Enemy_Size_Rando : Rando_Base
         return multiplier;
     }
 
+    /// <summary>Scales the given <see cref="Transform" /> by the multiplier</summary>
+    /// <inheritdoc cref="RandomizeSize" />
+    /// <param name="multiplier">The value used to scale the enemy by</param>
     private void ApplySize(Transform transform, float multiplier, Walker? walker)
     {
         if (resizing)
@@ -554,7 +592,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
         }
     }
 
-    /// <summary>Cleans the current scene's HealthManager list</summary>
+    /// <summary>Cleans the current <see cref="Scene" />'s <see cref="HealthManager" /> list</summary>
     private void CleanCurrentHealthManagerList()
     {
         for (int i = currentEnemyHealthManagers.Count - 1; i >= 0; i--)
@@ -566,7 +604,6 @@ internal partial class Enemy_Size_Rando : Rando_Base
 
     protected override void ResetAllLists()
     {
-        //currentEnemyHealthManagers.Clear();
         enemySizes.Clear();
         sceneEnemySizes.Clear();
     }
@@ -580,6 +617,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
         internal set => randomizerConsistency.Value = value;
     }
 
+    /// <inheritdoc cref="RandomizerConsistency" />
     private ConfigEntry<RandomizerConsistencyA> randomizerConsistency;
 
     /// <summary>Default setting for how consistent the enemy size should be</summary>
@@ -592,6 +630,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
         internal set => enemySizeRandomizerSetting.Value = value;
     }
 
+    /// <inheritdoc cref="EnemySizeRandomizerSetting" />
     private ConfigEntry<RandomizerEnemyTypeFlags> enemySizeRandomizerSetting;
 
     /// <summary>Default choice for the size randomizer</summary>
@@ -604,6 +643,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
         internal set => enemySizePercentRange.Value = value;
     }
 
+    /// <inheritdoc cref="EnemySizePercentRange" />
     private ConfigEntry<FloatRange> enemySizePercentRange;
 
     /// <summary>Default choice for enemy size randomizer</summary>
@@ -616,6 +656,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
         internal set => bossSizePercentRange.Value = value;
     }
 
+    /// <inheritdoc cref="BossSizePercentRange" />
     private ConfigEntry<FloatRange> bossSizePercentRange;
 
     /// <summary>Default choice for boss size randomizer</summary>
@@ -632,13 +673,15 @@ internal partial class Enemy_Size_Rando : Rando_Base
         get => useRaycastBasing.Value;
         set => useRaycastBasing.Value = value;
     }
+
+    /// <inheritdoc cref="UseRaycastBasing" />
     private ConfigEntry<bool> useRaycastBasing;
 
     /// <summary>Default choice for raycasting</summary>
     public static readonly bool defaultUseRaycastBasing = true;
 #endif
 
-    // Used for determining if we need to update
+    /// <summary>Used for determining if we need to update</summary>
     private RandomizerEnemyTypeFlags currentSizeRandomizerSetting;
 
     protected override void InitSettings()

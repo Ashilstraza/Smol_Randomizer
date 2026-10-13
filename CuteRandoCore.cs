@@ -22,7 +22,7 @@ using Silksong.ModMenu.Plugin;
 using Silksong.ModMenu.Screens;
 
 using Smol_Randomizer.Patchers.Enemy;
-using Smol_Randomizer.Patchers.Scene;
+using Smol_Randomizer.Patchers.gameScene;
 using Smol_Randomizer.Randomizers;
 using Smol_Randomizer.Settings;
 
@@ -51,10 +51,10 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     public const string VERSION = "0.1.2";
 
     /// <summary>If we should update the active limit regions after a scene load</summary>
-    private bool updateActiveLimitRegions = false;
+    private bool updateActiveLimitRegions;
 
     /// <summary>If we should update on next frame</summary>
-    private bool updateOnFirstSceneFrame = false;
+    private bool updateOnFirstSceneFrame;
 
     /// <summary>The current scene loaded</summary>
     private Scene currentScene;
@@ -78,12 +78,13 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         internal set => testing = value;
     }
 
-    private static bool testing = false;
+    /// <inheritdoc cref="Testing" />
+    private static bool testing;
 
     /// <summary>If we actually want to randomize</summary>
     internal static bool randomize = true;
 
-    /// <summary>Our reference for harmony</summary>
+    /// <summary>Our reference for <see cref="Harmony" /></summary>
     internal static readonly Harmony harmony = new(GUID);
 
     /// <summary>The ModMenu settings menu window</summary>
@@ -95,16 +96,16 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <summary>Reference to our log source</summary>
     internal static ManualLogSource Log;
 
-    /// <summary>If we have patched the HealthManager's OnEnable</summary>
+    /// <summary>If we have patched <see cref="HealthManager.OnEnable" /></summary>
     private static bool patchedHealthManager = false;
 
-    /// <summary>If we have patched the DamageHero's OnEnable</summary>
+    /// <summary>If we have patched <see cref="DamageHero" />'s OnEnable</summary>
     private static bool patchedDamageHero = false;
 
-    /// <summary>Dictionary containing the randomizers that want to update the active limit regions</summary>
+    /// <summary>Dictionary containing the randomizers that want to update the active <see cref="ICurrencyLimitRegion" /></summary>
     private static readonly Dictionary<string, Action<ICurrencyLimitRegion>> activeLimitRegions = [];
 
-    /// <summary>Dictionary containing the randomizers that want to update on scene load</summary>
+    /// <summary>Dictionary containing the randomizers that want to update on <see cref="Scene" /> load</summary>
     private static readonly Dictionary<string, Action<Scene, LoadSceneMode>> activeOnSceneLoad = [];
 
     /// <summary>Dictionary containing the randomizers that want to update on game startup</summary>
@@ -113,7 +114,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <summary>Dictionary containing the randomizers that want to update on game shutdown</summary>
     private static readonly Dictionary<string, Action> activeGameShutdown = [];
 
-    /// <summary>Dictionary containing the randomizers that want to update on first frame of a new scene</summary>
+    /// <summary>Dictionary containing the randomizers that want to update on first frame of a new <see cref="Scene" /></summary>
     private static readonly Dictionary<string, Action<Scene>> activeOnFirstSceneFrame = [];
 
     /// <summary>Dictionary containing the randomizers that want to update on unload</summary>
@@ -165,7 +166,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     }
 
     /// <summary>Grabs the data location if it is available</summary>
-    /// <returns>True if the DataLocation field is set</returns>
+    /// <returns><see langword="true" /> if the <see cref="DataLocation" /> field is set</returns>
     private bool TrySetDataLocation()
     {
         if (string.IsNullOrEmpty(DataLocation) && !string.IsNullOrEmpty(Info.Location))
@@ -215,9 +216,8 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     }
 
     /// <summary>Update the settings we care about</summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">  The setting that was changed</param>
-    internal static void UpdateSettings(object sender, EventArgs args)
+    /// <param name="args">The BepInEx setting that was changed</param>
+    internal static void UpdateSettings(object _, EventArgs args)
     {
 #if TESTING
         testing = Settings.Settings.TestNewThings;
@@ -234,9 +234,11 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         SettingMenu.thisSettingMenu?.UpdateAllSubMenuColors();
     }
 
-    /// <summary>On Scene Transition, get ready to process the new scene</summary>
-    /// <param name="scene">The new scene</param>
-    /// <param name="mode"> We don't really care about it, but still pass it on</param>
+    /// <summary>On Scene Transition, get ready to process the new <see cref="Scene" /></summary>
+    /// <param name="scene">The new <see cref="Scene" /></param>
+    /// <param name="mode">
+    /// The <see cref="Scene" />'s <see cref="LoadSceneMode" />; We don't really care about it, but still pass it on
+    /// </param>
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         if (!randomize) return;
@@ -277,7 +279,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         harmony.UnpatchSelf();
     }
 
-    /// <summary>On Application Quit, we dump the world object dictionary to file</summary>
+    /// <summary>On Application Quit, call anything that cares about that</summary>
     private void OnApplicationQuit()
     {
         foreach (KeyValuePair<string, Action> randomizer in activeGameShutdown)
@@ -287,7 +289,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     #region Randomizer Harmony Patches
 
     /// <summary>Patch that hooks the end of OnEnable of objects that have a HealthManager</summary>
-    /// <param name="__instance">The HealthManager that we may want to adjust</param>
+    /// <param name="__instance">The <see cref="HealthManager" /> that we may want to adjust</param>
     private static void HealthManager_OnEnable_Postfix(ref HealthManager __instance)
     {
         if (!randomize) return;
@@ -300,7 +302,9 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
     /// <summary>Patch that hooks the end of OnEnable of damage hero objects</summary>
     /// <param name="__instance">      The hero damager</param>
-    /// <param name="___healthManager">The HealthManager of the hero damager if it was an enemy</param>
+    /// <param name="___healthManager">
+    /// Private Variable: The <see cref="HealthManager" /> of the hero damager if it was an enemy
+    /// </param>
     private static void DamageHero_OnEnable_Postfix(ref DamageHero __instance, ref HealthManager ___healthManager)
     {
         if (!randomize) return;
@@ -360,11 +364,15 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         }
     }
 
-    /// <summary>Imports a json file to a string object for further processing. Will auto append .json extension.</summary>
-    /// <param name="fileName">    the file's name without extension</param>
-    /// <param name="importTarget">string of the object to load into</param>
+    /// <summary>
+    /// Imports a json file to a <see langword="string" /> for further processing. Will auto append .json extension when
+    /// looking for the file.
+    /// </summary>
+    /// <param name="fileName">    The file's name without extension</param>
+    /// <param name="importTarget"><see langword="string" /> to load into</param>
     /// <param name="dataLocation">
-    /// string of custom location to read data; if not supplied, it will be read from the default Smol Rando folder
+    /// <see langword="string" /> of custom location to read data; if not supplied, it will be read from the default
+    /// Smol Rando folder
     /// </param>
     public static void ImportJsonFile(string fileName, out string importTarget, string dataLocation = "")
     {
@@ -385,11 +393,12 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         }
     }
 
-    /// <summary>Exports the given object to a json file. Will auto append .json extension.</summary>
-    /// <param name="fileName">    the file's name without extension</param>
-    /// <param name="exportTarget">the object to save</param>
+    /// <summary>Exports the given <see langword="object" /> to a json file. Will auto append .json extension.</summary>
+    /// <param name="fileName">    The file's name without extension</param>
+    /// <param name="exportTarget">The <see langword="object" /> to save</param>
     /// <param name="dataLocation">
-    /// string of custom location to place data; if not supplied, it will be placed in the default Smol Rando folder
+    /// <see langword="string" /> of custom location to place data; if not supplied, it will be placed in the default
+    /// Smol Rando folder
     /// </param>
     public static void ExportJsonFile(string fileName, object exportTarget, string dataLocation = "")
     {
@@ -435,10 +444,11 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
     /// <summary>Registers a new randomizer to be used.</summary>
     /// <param name="randomizer">
-    /// A Randomizer_Info object that contains the name of the randomizer, the type, and the method to call when needed.
+    /// A <see cref="Randomizer_Info" /> object that contains the name of the randomizer, the type, and the method to
+    /// call when needed.
     /// </param>
-    /// <returns>Returns true if the randomizer was registered, otherwise false is returned.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if the randomizer's info being registered is null</exception>
+    /// <returns><see langword="true" /> if the randomizer was registered, otherwise <see langword="false" /></returns>
+    /// <exception cref="ArgumentNullException">Thrown if the randomizer's info being registered is <see langword="null" /></exception>
     public static bool RegisterRandomizer(Randomizer_Info randomizer)
     {
         if (randomizer == null)
@@ -562,10 +572,11 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
     /// <summary>Unregisters a randomizer that was used.</summary>
     /// <param name="randomizer">
-    /// A Randomizer_Info object that contains the name of the randomizer, the type, and the method to call when needed.
+    /// A <see cref="Randomizer_Info" /> object that contains the name of the randomizer, the type, and the method to
+    /// call when needed.
     /// </param>
-    /// <returns>Returns true if the randomizer was unregistered, otherwise false is returned.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if the randomizer's info being registered is null</exception>
+    /// <returns><see langword="true" /> if the randomizer was unregistered, otherwise <see langword="false" /></returns>
+    /// <exception cref="ArgumentNullException">Thrown if the randomizer's info being unregistered is <see langword="null" /></exception>
     public static bool UnregisterRandomizer(Randomizer_Info randomizer)
     {
         if (randomizer == null)
@@ -627,31 +638,29 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <summary>Helper method for grabbing private variables</summary>
     /// <param name="type"> The private field's class.</param>
     /// <param name="field">The private field we want.</param>
-    /// <returns></returns>
+    /// <returns>A <see cref="Traverse" /> containing the private field</returns>
     public static Traverse TraverseCreator(object type, string field)
     {
         return Traverse.Create(type).Field(field);
     }
 
-    /// <summary>Helper to simplify using Tuples to get a random float value</summary>
-    /// <param name="tuple">The tuple to use as min and max float values</param>
-    /// ///
-    /// <param name="seed"> 
-    /// The seed to ensure that we are deterministic, if seed is int's minimum value then we don't use that.
+    /// <summary>Helper to simplify using <see cref="Tuple" /> s to get a random <see langword="float" /> value</summary>
+    /// <param name="tuple">The <see cref="Tuple" /> to use as min and max <see langword="float" /> values</param>
+    /// <param name="seed">
+    /// The seed to ensure that we are deterministic, if seed is <see cref="int.MinValue" /> then we don't use that.
     /// </param>
-    /// <returns>A random float between the min and max of the tuple</returns>
+    /// <returns>A random <see langword="float" /> between the min and max of the <see cref="Tuple" /></returns>
     public static float RandomFloat((float min, float max) tuple, int seed = int.MinValue)
     {
         return RandomFloat(tuple.min, tuple.max, seed);
     }
 
-    /// <summary>Helper to simplify using Tuples to get a random int value</summary>
-    /// <param name="tuple">The tuple to use as min and max int values</param>
-    /// ///
-    /// <param name="seed"> 
-    /// The seed to ensure that we are deterministic, if seed is int's minimum value then we don't use that.
+    /// <summary>Helper to simplify using <see cref="Tuple" /> to get a random <see langword="int" /> value</summary>
+    /// <param name="tuple">The <see cref="Tuple" /> to use as min and max <see langword="int" /> values</param>
+    /// <param name="seed">
+    /// The seed to ensure that we are deterministic, if seed is <see cref="int.MinValue" /> then we don't use that.
     /// </param>
-    /// <returns>A random int between the min and max of the tuple</returns>
+    /// <returns>A random <see langword="int" /> between the min and max of the <see cref="Tuple" /></returns>
     public static int RandomInt((int min, int max) tuple, int seed = int.MinValue)
     {
         return RandomInt(tuple.min, tuple.max, seed);
@@ -660,11 +669,10 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <summary>Helper to choose a random value</summary>
     /// <param name="min"> Minimum random value, is inclusive</param>
     /// <param name="max"> Maximum random value, is inclusive when seeded, exclusive when it is not.</param>
-    /// ///
     /// <param name="seed">
-    /// The seed to ensure that we are deterministic, if seed is int's minimum value then we don't use that.
+    /// The seed to ensure that we are deterministic, if seed is <see cref="int.MinValue" /> then we don't use that.
     /// </param>
-    /// <returns>A random float between the min and max</returns>
+    /// <returns>A random <see langword="float" /> between the min and max</returns>
     public static float RandomFloat(float min, float max, int seed = int.MinValue)
     {
         if (seed > int.MinValue)
@@ -679,11 +687,10 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <summary>Helper to choose a random value</summary>
     /// <param name="min"> Minimum random value, is inclusive</param>
     /// <param name="max"> Maximum random value, is inclusive</param>
-    /// ///
     /// <param name="seed">
-    /// The seed to ensure that we are deterministic, if seed is int's minimum value then we don't use that.
+    /// The seed to ensure that we are deterministic, if seed is <see cref="int.MinValue" /> then we don't use that.
     /// </param>
-    /// <returns>A random float between the min and max</returns>
+    /// <returns>A random <see langword="int" /> between the min and max</returns>
     public static int RandomInt(int min, int max, int seed = int.MinValue)
     {
         if (seed > int.MinValue)
@@ -696,8 +703,8 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
     public static int GetNewSaveSeed() => UnityEngine.Random.Range(int.MinValue + 1, int.MaxValue);
 
-    /// <summary>Inspired by SimpleEnemyRando's GetCode() for getting the bytes in a string.</summary>
-    /// <param name="modifier">A string to modify the seed.</param>
+    /// <summary>Inspired by SimpleEnemyRando's GetCode() for getting the <see langword="byte" /> s in a <see langword="string" />.</summary>
+    /// <param name="modifier">A <see langword="string" /> to modify the seed.</param>
     /// <returns>A modified seed</returns>
     public static int RNGSeed(string modifier)
     {
@@ -709,7 +716,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         return saveSeed;
     }
 
-    /// <summary>Array of bosses that we want to look for</summary>
+    /// <summary>Array of boss names that we want to look for</summary>
     public static readonly string[] bossFilter =
     [
         "Lace",
@@ -725,11 +732,11 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     ];
 
     /// <summary>
-    /// Checks to see if a given HealthManager is attached to a boss
+    /// Checks to see if a given <see cref="HealthManager" /> is attached to a boss
     /// <para>Logic borrowed from SimpleEnemyRando</para>
     /// </summary>
-    /// <param name="thing">HealthManager we want to check</param>
-    /// <returns>Returns true if it is a boss, otherwise false</returns>
+    /// <param name="thing"><see cref="HealthManager" /> we want to check</param>
+    /// <returns><see langword="true" /> if it is a boss, otherwise <see langword="false" /></returns>
     public static bool IsBoss(HealthManager thing)
     {
         // Test if thing is somehow null or it has no death effect (moss mother arena eggs for example)
@@ -753,6 +760,9 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         return false;
     }
 
+    /// <summary>Culls a <see langword="string" /> name to remove any trailing (X)</summary>
+    /// <param name="name">The name to cull</param>
+    /// <returns>The culled name</returns>
     public static string CullName(string name)
     {
         int cullIndex = name.IndexOf('(');

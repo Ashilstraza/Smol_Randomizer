@@ -9,7 +9,6 @@ using Smol_Randomizer.Patchers.FSM_Actions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Xml.Linq;
 
 using UnityEngine;
 
@@ -19,7 +18,36 @@ namespace Smol_Randomizer.Randomizers;
 
 internal partial class Enemy_Size_Rando
 {
-    /// <summary>Returns an Action to shift an enemy to its base</summary>
+    /// <summary>Creates a <see langword="delegate" /> for shifting an enemy toward its base</summary>
+    /// <param name="atStart">
+    /// Optional: <see langword="true" /> if <see cref="ShiftPosToBase" /> should be inserted at the start of the <see cref="FsmState" />
+    /// </param>
+    /// <param name="rotateAdjust">   Optional: Changes the direction the shift should come from in degrees</param>
+    /// <param name="backupSize">
+    /// Optional: <see cref="Vector2" /> containing the default size of the enemy, used when they don't have a <see cref="Collider" />
+    /// </param>
+    /// <param name="reverseX">
+    /// Optional: <see langword="true" /> if the X direction of the shifting should be reversed
+    /// </param>
+    /// <param name="reverseY">
+    /// Optional: <see langword="true" /> if the Y direction of the shifting should be reversed
+    /// </param>
+    /// <param name="magicNumber">
+    /// Optional: <see langword="float" /> value used to shift the enemy instead of calculating it, is multiplied by
+    /// their scale percentage to shift by that value
+    /// </param>
+    /// <param name="tempInvincible">
+    /// Optional: <see langword="true" /> if the enemy should be made invincible when loading them, fixes issues where
+    /// they die on spawn
+    /// </param>
+    /// <param name="skipRaycast">
+    /// Optional: <see langword="true" /> if the enemy should not use raycasting to shift them to their base
+    /// </param>
+    /// <param name="cancelYVelocity">
+    /// Optional: <see langword="true" /> if the enemy's Y velocity should be zeroed out, useful when they are spawned
+    /// in with their <see cref="Rigidbody2D.bodyType" /> is set to <see cref="RigidbodyType2D.Dynamic" />
+    /// </param>
+    /// <returns>The <see langword="delegate" /> for creating a new <see cref="ShiftPosToBase" /><see cref="FsmStateAction" /></returns>
     public static Action<FsmState, object[]> CreateShiftToBaseDelegate(
         bool atStart = true,
         float rotateAdjust = 0,
@@ -78,7 +106,7 @@ internal partial class Enemy_Size_Rando
         };
     }
 
-    /// <summary>Dictionary containing various FSM patches.</summary>
+    /// <summary>Dictionary containing various <see cref="PlayMakerFSM" /> patches.</summary>
     private static readonly HashSet<IEnemyFSMPatch> enemyFSMPatches = new()
     {
 #region Many Places

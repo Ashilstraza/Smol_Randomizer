@@ -27,36 +27,38 @@ internal class World_Currency_Drop_Rando : Rando_Base
     /// <summary>Externally visible instance of this rando</summary>
     public static World_Currency_Drop_Rando Instance => instance.Value;
 
-    /// <summary>Dictionary of multipliers per room</summary>
+    /// <summary>Dictionary of multipliers per <see cref="Scene" /></summary>
     private readonly Dictionary<string, float> sceneMultiplier = [];
 
-    /// <summary>Dictionary of Architect Crest multipliers per room</summary>
+    /// <summary>Dictionary of Architect Crest multipliers per <see cref="Scene" /></summary>
     private readonly Dictionary<string, float> sceneACMultiplier = [];
 
-    /// <summary>Shard multiplier when enemy consistancy is enabled (all regions drop same amount)</summary>
+    /// <summary>
+    /// Shard multiplier when enemy consistancy is enabled (all <see cref="ICurrencyLimitRegion" /> drop same amount)
+    /// </summary>
     private float consistantMultiplier;
 
-    /// <summary>Architect multiplier when enemy consistancy is enabled (all regions drop same amount)</summary>
+    /// <summary>
+    /// Architect multiplier when enemy consistancy is enabled (all <see cref="ICurrencyLimitRegion" /> drop same amount)
+    /// </summary>
     private float consistantACMultiplier;
 
-    /// <summary>The current scene we are in</summary>
+    /// <summary>The current <see cref="Scene" /> we are in</summary>
     private string currentScene = "";
 
     #region Randomizer_Info
 
-    /// <summary>Used for registering this randomizer in the core for first frame to update currency regions</summary>
+    /// <summary>Used for registering this randomizer in the core for first frame to update currency <see cref="ICurrencyLimitRegion" /></summary>
     private Randomizer_Info eventActiveLimitRegion;
 
-    /// <summary>Used for registering this randomizer in the core for when the scene loads</summary>
+    /// <summary>Used for registering this randomizer in the core for when the <see cref="Scene" /> loads</summary>
     private Randomizer_Info eventOnSceneLoad;
 
     #endregion Randomizer_Info
 
     /// <summary>Constructor for this singleton</summary>
     private World_Currency_Drop_Rando()
-    {
-        InitRandomizer();
-    }
+        => InitRandomizer();
 
     protected override void InitRandomizer()
     {
@@ -142,9 +144,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
     /// <param name="scene">The new scene that is loading</param>
     /// <param name="mode"> ?</param>
     private void OnSceneLoad(Scene scene, LoadSceneMode _)
-    {
-        currentScene = scene.name;
-    }
+        => currentScene = scene.name;
 
     /// <summary>Updates world currency drops with new currency values</summary>
     /// <param name="region">The region to adjust</param>
@@ -252,6 +252,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
         internal set => consistencySetting.Value = value;
     }
 
+    /// <inheritdoc cref="ConsistencySetting" />
     private ConfigEntry<RandomizerConsistencyB> consistencySetting;
 
     /// <summary>Default setting for how consistant the drop chances are</summary>
@@ -264,6 +265,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
         internal set => shardChanceEnable.Value = value;
     }
 
+    /// <inheritdoc cref="ShardChanceEnable" />
     private ConfigEntry<bool> shardChanceEnable;
 
     /// <summary>Default choice for wall shard drop chance randomizer</summary>
@@ -276,6 +278,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
         internal set => shardChanceMultiplier.Value = value;
     }
 
+    /// <inheritdoc cref="ShardChanceMultiplier" />
     private ConfigEntry<FloatRange> shardChanceMultiplier;
 
     /// <summary>Default percent range for regular shard drop chance multiplier</summary>
@@ -288,6 +291,7 @@ internal class World_Currency_Drop_Rando : Rando_Base
         internal set => architectChanceEnable.Value = value;
     }
 
+    /// <inheritdoc cref="ArchitectChanceEnable" />
     private ConfigEntry<bool> architectChanceEnable;
 
     /// <summary>Default choice for architect crest shard drop chance randomizer</summary>
@@ -300,14 +304,16 @@ internal class World_Currency_Drop_Rando : Rando_Base
         internal set => architectCrestMultiplier.Value = value;
     }
 
+    /// <inheritdoc cref="ArchitectCrestMultiplier" />
     private ConfigEntry<FloatRange> architectCrestMultiplier;
 
     /// <summary>Default percent range for architect crest multiplier</summary>
     public static readonly FloatRange defaultArchitectCrestMultiplier = new(1f, 3f);
 
-    // Used for determining if we need to update
+    /// <summary>Used for determining if we need to update</summary>
     private bool architectCrestChanging = false;
 
+    /// <summary>Used for determining if we need to update</summary>
     private bool shardChanceChanging = false;
 
     protected override void InitSettings()
@@ -369,6 +375,8 @@ internal class World_Currency_Drop_Rando : Rando_Base
 
         shardChanceEnable.SettingChanged += OnSettingsUpdated;
         architectChanceEnable.SettingChanged += OnSettingsUpdated;
+        shardChanceMultiplier.SettingChanged += OnRegularSettingsUpdated;
+        architectCrestMultiplier.SettingChanged += OnArchitectSettingsUpdated;
 
         // Set Setting Menu Button Color
         if (!shardChanceEnable.Value && !architectChanceEnable.Value)
@@ -395,12 +403,34 @@ internal class World_Currency_Drop_Rando : Rando_Base
         {
             Register();
             if (shardChanceEnable.Value)
+            {
                 SettingMenu.UpdateSubMenuColor(shardChanceEnable);
+                OnRegularSettingsUpdated(sender, args);
+            }
             else
+            {
                 SettingMenu.UpdateSubMenuColor(architectChanceEnable);
+                OnArchitectSettingsUpdated(sender, args);
+            }
         }
+    }
 
-        ResetAllLists();
+    /// <summary>Event Hook for when a setting related to the Architect Crest Shards is changed</summary>
+    /// <param name="args">The setting that was changed</param>
+    private void OnArchitectSettingsUpdated(object _, EventArgs args)
+    {
+        architectCrestChanging = true;
+        UpdateConsistantMultipliers();
+        sceneACMultiplier.Clear();
+    }
+
+    /// <summary>Event Hook for when a setting related to the Normal Shards is changed</summary>
+    /// <param name="args">The setting that was changed</param>
+    private void OnRegularSettingsUpdated(object _, EventArgs args)
+    {
+        shardChanceChanging = true;
+        UpdateConsistantMultipliers();
+        sceneMultiplier.Clear();
     }
     #endregion Settings
 }

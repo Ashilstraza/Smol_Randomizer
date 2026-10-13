@@ -17,15 +17,14 @@ public class SettingMenu : SmolRandomizerMenuBuilder
     /// <summary>Set of all the randomizer menu buttons</summary>
     private readonly HashSet<TextButton> randoMenuButtons = [];
 
-    private readonly HashSet<MenuElement> additionalElements = [];
-
     /// <summary>Dictionary for the initial randomizer menu button enabled/disabled setting</summary>
     private static readonly Dictionary<string, bool> preInitSetting = [];
 
     /// <summary>If the setting menu has been initialized</summary>
     public static SettingMenu thisSettingMenu;
 
-    public static EventHandler menuLoaded;
+    /// <summary>Called when the menu has been generated</summary>
+    public static EventHandler menuGenerated;
 
     /// <summary>Main randomizer menu</summary>
     /// <param name="title">Title of the menu (The mod's name)</param>
@@ -82,7 +81,7 @@ public class SettingMenu : SmolRandomizerMenuBuilder
             }
         }
 
-        menuLoaded?.Invoke(this, null);
+        menuGenerated?.Invoke(this, null);
     }
 
     /// <summary>Add reset to defaults and reset saved values</summary>
@@ -178,8 +177,7 @@ public class SettingMenu : SmolRandomizerMenuBuilder
         }
     }
 
-    private static OnScreenDebugInfo debugInfo = new OnScreenDebugInfo();
-
+    /// <summary>Resets the saved config data back to their defaults</summary>
     private static void ResetAllSavedData()
     {
         try
@@ -278,9 +276,8 @@ public class SettingMenu : SmolRandomizerMenuBuilder
     private static readonly HashSet<TextButton> randoResetButtons = [];
 
     /// <summary>Event hook to listen for updates on a specific setting</summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">  The setting that was changed</param>
-    internal static void OnRandomizerEnable(object sender, EventArgs args)
+    /// <param name="args">The setting that was changed</param>
+    internal static void OnRandomizerEnable(object _, EventArgs args)
     {
         UpdateSubMenuColor(((SettingChangedEventArgs)args).ChangedSetting);
     }
@@ -330,9 +327,8 @@ public class SettingMenu : SmolRandomizerMenuBuilder
     }
 
     /// <summary>Event hook to update the enabled/disabled colors</summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">  The setting that was changed</param>
-    internal static void OnEnabledRandomizerColorChanged(object sender, EventArgs args)
+    /// <param name="args">The setting that was changed</param>
+    internal static void OnEnabledRandomizerColorChanged(object _, EventArgs args)
     {
         ChangeColors((RandomizerColors)((SettingChangedEventArgs)args).ChangedSetting.BoxedValue);
     }

@@ -42,7 +42,6 @@ public abstract class Rando_Base
     protected abstract void Unregister();
 
     /// <summary>Event hook for when settings are loaded</summary>
-    /// <param name="hasSaveData">If the setting that were loaded had data or not</param>
     protected void OnSettingsLoaded()
     {
 #if TESTING // Enable Saving Data
@@ -89,33 +88,25 @@ public abstract class Rando_Base
     protected abstract void InitSettings();
 
     /// <summary>Event Hook for when registered settings are updated</summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">  The setting that was changed</param>
-    protected abstract void OnSettingsUpdated(object sender, EventArgs args);
+    /// <param name="args">The setting that was changed</param>
+    protected abstract void OnSettingsUpdated(object _, EventArgs args);
 
     /// <summary>Reset all tracked lists</summary>
     protected abstract void ResetAllLists();
 
     /// <summary>Add the randomizer's description into the core</summary>
     protected void AddRandoDescription()
-    {
-        CuteRandoCore.AddRandoDescription(RandomizerName, RandomizerDescription);
-    }
+        => CuteRandoCore.AddRandoDescription(RandomizerName, RandomizerDescription);
 
     /// <summary>Event hook for when the core enable setting for the randomizer is changed</summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">  The setting that was changed</param>
-    protected void RandoCoreSetting(object sender, EventArgs args)
+    /// <param name="args">The setting that was changed</param>
+    protected void RandoCoreSetting(object _, EventArgs args)
     {
         coreEnableRandomization = (bool)((SettingChangedEventArgs)args).ChangedSetting.BoxedValue;
 
         if (coreEnableRandomization)
-        {
             Register();
-        }
         else
-        {
             Unregister();
-        }
     }
 }

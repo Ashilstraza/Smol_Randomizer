@@ -9,22 +9,23 @@ namespace Smol_Randomizer.Patchers.Enemy;
 /// <summary>Class for containing a set of enemy patches</summary>
 public class EnemyObjectPatchCollection : ObjectPatchCollection_Base<EnemyObjectPatch, EnemyObjectPatchSet, GameObject, GameObject>
 {
+    /// <summary>Make a singleton of this class</summary>
     private static readonly Lazy<EnemyObjectPatchCollection> instance = new(() => new EnemyObjectPatchCollection());
 
     /// <summary>A set of enemy object patches</summary>
     public static EnemyObjectPatchCollection Instance => instance.Value;
 
-    /// <summary>Set of patched enemies</summary>
+    /// <summary>Set of patched enemy <see cref="GameObject" />s</summary>
     private static HashSet<GameObject> patchedEnemies = [];
 
-    /// <summary>Called when the scene loads to clear out unloaded enemies</summary>
+    /// <summary>Called when the <see cref="Scene" /> loads to clear out unloaded enemies</summary>
     internal static void OnSceneLoaded()
     {
         patchedEnemies.RemoveWhere(enemy => enemy == null);
     }
 
     /// <summary>Apply the various enemy patches</summary>
-    /// <param name="enemyHealthManager">The enemy to patch</param>
+    /// <param name="enemyHealthManager">The <see cref="HealthManager" /> of the enemy to patch</param>
     internal static void ApplyPatches(HealthManager enemyHealthManager)
     {
         string enemyName = CuteRandoCore.CullName(enemyHealthManager.name);
@@ -65,7 +66,7 @@ public class EnemyObjectPatchCollection : ObjectPatchCollection_Base<EnemyObject
     }
 
     /// <summary>Register a collection of patches</summary>
-    /// <param name="patchCollection">A list containing the patches to be applied</param>
+    /// <param name="patchCollection">A list containing the patches to register</param>
     public void RegisterPatchCollection(List<IEnemyObjectPatch> patchCollection)
     {
         foreach (var patch in patchCollection)
@@ -74,8 +75,8 @@ public class EnemyObjectPatchCollection : ObjectPatchCollection_Base<EnemyObject
         }
     }
 
-    /// <summary> Unregister a collection of patches </summary> <param name="patchCollection">A list containing the
-    /// patches to no longer be applied<</param>
+    /// <summary>Unregister a collection of patches</summary>
+    /// <param name="patchCollection">A list containing the patches to unregister</param>
     public void UnregisterPatchCollection(List<IEnemyObjectPatch> patchCollection)
     {
         foreach (var patch in patchCollection)
@@ -85,15 +86,14 @@ public class EnemyObjectPatchCollection : ObjectPatchCollection_Base<EnemyObject
     }
 }
 
-/// <summary>Set of patches for enemy objects</summary>
+/// <summary>Set of patches for enemy <see cref="GameObject" />s</summary>
 /// <param name="enemyName">Name of the enemy to patch</param>
 /// <param name="patches">  Set of patches to apply to the enemy</param>
 public class EnemyObjectPatchSet(string enemyName, List<EnemyObjectPatch> patches)
     : ObjectPatchSet_Base<EnemyObjectPatch, GameObject, GameObject>(enemyName, patches), IEnemyObjectPatchSet
 {
-    /// <summary>Set of patches for enemy objects</summary>
-    /// <param name="enemyNames">Array of names for enemies to patch</param>
-    /// <param name="patches">   Set of patches to apply to the enemy</param>
+    /// <inheritdoc cref="EnemyObjectPatchSet" />
+    /// <param name="enemyNames">Names of the enemies to patch</param>
     public EnemyObjectPatchSet(string[] enemyNames, List<EnemyObjectPatch> patches)
         : this("", patches)
     {
@@ -113,17 +113,15 @@ public class EnemyObjectPatchSet(string enemyName, List<EnemyObjectPatch> patche
     }
 }
 
-/// <summary>Patch for an enemy object</summary>
+/// <summary>Patch for an enemy <see cref="GameObject" /></summary>
 /// <param name="enemyName">Name of the enemy to patch</param>
 /// <param name="patch">    The patch for the enemy</param>
 /// <param name="unpatch">  Optional unpatcher for undoing the changes</param>
 public class EnemyObjectPatch(string enemyName, Action<GameObject, object[]> patch, Action<GameObject, object[]>? unpatch = null)
         : ObjectPatch_Base<GameObject, GameObject>(enemyName, patch, unpatch), IEnemyObjectPatch
 {
-    /// <summary>Patch for an enemy object</summary>
-    /// <param name="enemyNames">Array of names for enemies to patch</param>
-    /// <param name="patch">     The patch for the enemy</param>
-    /// <param name="unpatch">   Optional unpatcher for undoing the changes</param>
+    /// <inheritdoc cref="EnemyObjectPatch" />
+    /// <param name="enemyNames"><see cref="Array" /> of names for enemies to patch</param>
     public EnemyObjectPatch(string[] enemyNames, Action<GameObject, object[]> patch, Action<GameObject, object[]>? unpatch = null)
         : this("", patch, unpatch)
     {
@@ -168,7 +166,5 @@ public class EnemyObjectPatch(string enemyName, Action<GameObject, object[]> pat
 /// <summary>Marks a patch as an Enemy Object Patch</summary>
 public interface IEnemyObjectPatch : ISmolPatch;
 
-/// <summary>
-/// Marks a patch set as an Enemy Object Patch Set, includes the interface to additionally mark it as a patch
-/// </summary>
+/// <summary>Marks a patch set as an Enemy Object Patch Set</summary>
 public interface IEnemyObjectPatchSet : IEnemyObjectPatch, ISmolPatchSet;

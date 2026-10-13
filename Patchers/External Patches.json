@@ -10,7 +10,7 @@
       "PatchTarget": "ShiftPosToBase",
       "BoolOptions": [ false, false, false, false, true ],
       "FloatOptions": [ 0, 0, 0, 0 ],
-      "StartOfAction": true
+      "StartOfState": true
     }
   }
 ]

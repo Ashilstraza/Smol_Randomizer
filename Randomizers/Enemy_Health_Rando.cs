@@ -31,10 +31,10 @@ internal class Enemy_Health_Rando : Rando_Base
     /// <summary>Dictionary of the enemy health numbers in current game instance</summary>
     private readonly Dictionary<string, int> enemyHealthNumbers = [];
 
-    /// <summary>Dictionary of the scene health numbers in current game instance</summary>
+    /// <summary>Dictionary of the <see cref="Scene" /> health numbers in current game instance</summary>
     private readonly Dictionary<string, Dictionary<string, int>> sceneHealthNumbers = [];
 
-    /// <summary>Set of enemy HealthManagers that we have touched in this scene</summary>
+    /// <summary>Set of enemy HealthManagers that we have touched in this <see cref="Scene" /></summary>
     private readonly HashSet<HealthManager> currentEnemyHealthManagers = [];
 
     #region Randomizer_Info
@@ -42,16 +42,14 @@ internal class Enemy_Health_Rando : Rando_Base
     /// <summary>Used for registering this randomizer in the core for when enemies activate</summary>
     private Randomizer_Info eventActiveEnemy;
 
-    /// <summary>Used for registering this randomizer in the core for when a scene loads</summary>
+    /// <summary>Used for registering this randomizer in the core for when a <see cref="Scene" /> loads</summary>
     private Randomizer_Info eventOnFirstSceneFrame;
 
     #endregion Randomizer_Info
 
     /// <summary>Constructor for this singleton</summary>
     private Enemy_Health_Rando()
-    {
-        InitRandomizer();
-    }
+        => InitRandomizer();
 
     protected override void InitRandomizer()
     {
@@ -115,17 +113,15 @@ internal class Enemy_Health_Rando : Rando_Base
 #endif
 
     /// <summary>
-    /// On First Frame, clean the active health manager list. This is done on the first frame since some health managers
-    /// get added before the scene is loaded, and some afterwards.
+    /// On First Frame, clean the active <see cref="HealthManager" /> list. This is done on the first frame since some
+    /// <see cref="HealthManager" /> s get added before the <see cref="Scene" /> is loaded, and some afterwards.
     /// </summary>
-    /// <param name="scene">The scene we are in</param>
+    /// <param name="scene">The <see cref="Scene" /> we are in</param>
     private void OnFirstSceneFrame(Scene scene)
-    {
-        CleanCurrentHealthManagerList();
-    }
+        => CleanCurrentHealthManagerList();
 
     /// <summary>Updates an enemy with a new health value</summary>
-    /// <param name="thing">The HealthManager to adjust hp within</param>
+    /// <param name="thing">The <see cref="HealthManager" /> to adjust hp within</param>
     /// <exception cref="NotImplementedException">Consistency type is not implemented</exception>
     private void SetHealth(HealthManager thing)
     {
@@ -134,8 +130,7 @@ internal class Enemy_Health_Rando : Rando_Base
         Traverse initHp = CuteRandoCore.TraverseCreator(thing, "initHp");
         Traverse hp = CuteRandoCore.TraverseCreator(thing, "hp");
 
-        if ((int)initHp.GetValue() > 5000)
-            return;
+        if ((int)initHp.GetValue() > 5000) return;
 
         bool boss = CuteRandoCore.IsBoss(thing);
 
@@ -205,11 +200,9 @@ internal class Enemy_Health_Rando : Rando_Base
         }
     }
 
-    /// <summary>Cleans the current scene's HealthManager list</summary>
+    /// <summary>Cleans the current <see cref="Scene" />'s <see cref="HealthManager" /> list</summary>
     private void CleanCurrentHealthManagerList()
-    {
-        currentEnemyHealthManagers.RemoveWhere(x => x == null);
-    }
+        => currentEnemyHealthManagers.RemoveWhere(x => x == null);
 
     protected override void ResetAllLists()
     {
@@ -227,6 +220,7 @@ internal class Enemy_Health_Rando : Rando_Base
         internal set => randomizerConsistency.Value = value;
     }
 
+    /// <inheritdoc cref="RandomizerConsistency" />
     private ConfigEntry<RandomizerConsistencyA> randomizerConsistency;
 
     /// <summary>Default setting for how consistent the enemy health should be</summary>
@@ -239,6 +233,7 @@ internal class Enemy_Health_Rando : Rando_Base
         internal set => enemyHealthRandomizerSetting.Value = value;
     }
 
+    /// <inheritdoc cref="EnemyHealthRandomizerSetting" />
     private ConfigEntry<RandomizerEnemyTypeFlags> enemyHealthRandomizerSetting;
 
     /// <summary>Default choice for the health randomizer</summary>
@@ -251,6 +246,7 @@ internal class Enemy_Health_Rando : Rando_Base
         internal set => enemyHealthPercentRange.Value = value;
     }
 
+    /// <inheritdoc cref="EnemyHealthPercentRange" />
     private ConfigEntry<FloatRange> enemyHealthPercentRange;
 
     /// <summary>Default choice for enemy health randomizer</summary>
@@ -263,12 +259,13 @@ internal class Enemy_Health_Rando : Rando_Base
         internal set => bossHealthPercentRange.Value = value;
     }
 
+    /// <inheritdoc cref="BossHealthPercentRange" />
     private ConfigEntry<FloatRange> bossHealthPercentRange;
 
     /// <summary>Default choice for boss health randomizer</summary>
     public static readonly FloatRange defaultBossHealthPercentRange = new(0.75f, 1.25f);
 
-    // Used for determining if we need to update
+    /// <summary>Used for determining if we need to update</summary>
     private RandomizerEnemyTypeFlags currentHealthRandomizerSetting;
 
     protected override void InitSettings()
@@ -327,9 +324,7 @@ internal class Enemy_Health_Rando : Rando_Base
         SettingMenu.UpdateSubMenuColor(enemyHealthRandomizerSetting);
 
         if (!enemyHealthRandomizerSetting.Value.Equals(RandomizerEnemyTypeFlags.None))
-        {
             Register();
-        }
     }
 
     protected override void OnSettingsUpdated(object sender, EventArgs args)

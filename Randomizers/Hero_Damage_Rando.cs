@@ -37,9 +37,7 @@ internal class Hero_Damage_Rando : Rando_Base
 
     /// <summary>Constructor for this singleton</summary>
     private Hero_Damage_Rando()
-    {
-        InitRandomizer();
-    }
+        => InitRandomizer();
 
     protected override void InitRandomizer()
     {
@@ -119,9 +117,7 @@ internal class Hero_Damage_Rando : Rando_Base
     /// </summary>
     /// <param name="__result">The to-be returned nail damage amount</param>
     private static void DebugMod_Get_NailDamage_Postfix(ref int __result)
-    {
-        PlayerData_Get_NailDamage_Postfix(ref __result);
-    }
+        => PlayerData_Get_NailDamage_Postfix(ref __result);
 
     /// <summary>Patch that hooks get_NailDamage to tweak the nail's damage</summary>
     /// <param name="__result">The to-be returned nail damage amount</param>
@@ -151,9 +147,7 @@ internal class Hero_Damage_Rando : Rando_Base
 
             case PlayerNailDamageConsistancy.PerSave:
                 if (saveNailDamageOffset.Equals(int.MinValue))
-                {
                     saveNailDamageOffset = RollDamage(Settings.Settings.SaveData.SaveSeed);
-                }
 
                 nailDamage += saveNailDamageOffset;
                 break;
@@ -189,6 +183,7 @@ internal class Hero_Damage_Rando : Rando_Base
         internal set => consistancySetting.Value = value;
     }
 
+    /// <inheritdoc cref="ConsistancySetting" />
     private ConfigEntry<PlayerNailDamageConsistancy> consistancySetting;
 
     /// <summary>Default choice for nail damage consistancy</summary>
@@ -201,6 +196,7 @@ internal class Hero_Damage_Rando : Rando_Base
         internal set => playerNailDamageRando.Value = value;
     }
 
+    /// <inheritdoc cref="PlayerNailDamageRando" />
     private ConfigEntry<bool> playerNailDamageRando;
 
     /// <summary>Default choice for if nail damage should be randomized</summary>
@@ -213,6 +209,7 @@ internal class Hero_Damage_Rando : Rando_Base
         internal set => playerNailDamageMinimum.Value = value;
     }
 
+    /// <inheritdoc cref="PlayerNailDamageMinimum" />
     private ConfigEntry<bool> playerNailDamageMinimum;
 
     /// <summary>Default choice for minimum nail damage</summary>
@@ -225,6 +222,7 @@ internal class Hero_Damage_Rando : Rando_Base
         internal set => playerNailDamageShift.Value = value;
     }
 
+    /// <inheritdoc cref="PlayerNailDamageShift" />
     private ConfigEntry<int> playerNailDamageShift;
 
     /// <summary>Default choice for the nail damage shift</summary>
@@ -284,15 +282,11 @@ internal class Hero_Damage_Rando : Rando_Base
         SettingMenu.UpdateSubMenuColor(playerNailDamageRando);
 
         if (playerNailDamageRando.Value)
-        {
             Register();
-        }
     }
 
     protected override void OnSettingsUpdated(object sender, EventArgs args)
-    {
-        ResetAllLists();
-    }
+        => ResetAllLists();
 
     #endregion Settings
 }

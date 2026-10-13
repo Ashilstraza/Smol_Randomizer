@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using Smol_Randomizer.Patchers.Enemy;
-using Smol_Randomizer.Patchers.Scene;
+using Smol_Randomizer.Patchers.gameScene;
 using Smol_Randomizer.Randomizers;
 
 using System;
@@ -19,10 +19,13 @@ using static Smol_Randomizer.CuteRandoCore;
 
 namespace Smol_Randomizer.Patchers;
 
+/// <summary>Class to allow for loading external patches. These patches require a specific structure to load that is created beforehand.</summary>
 internal class External_Patches
 {
+    /// <summary>Dictionary containing all the externally loaded patches. These are removed prior to loading a new set of external patches.</summary>
     internal static Dictionary<ExternalPatchTypes, HashSet<ISmolPatch>> externalPatches = [];
 
+    /// <summary>Json Converter for converting external patches into their specific objects.</summary>
     public class ExternalPatchConverter : JsonConverter
     {
         public override bool CanConvert(Type objectType)
@@ -67,6 +70,7 @@ internal class External_Patches
         }
     }
 
+    /// <summary>Json Converter for seting up the type of patch that the external patch is supposed to be.</summary>
     public class ExternalPatchTextConverter : JsonConverter
     {
         public override bool CanConvert(Type objectType)
@@ -105,9 +109,15 @@ internal class External_Patches
         }
     }
 
+    /// <summary>Method to load the external patches.</summary>
+    /// <remarks>To load the external patches, first any previously loaded external patches are unregistered.
+    /// <para>Next, the Json file is read and then deserialized.</para>
+    /// <para>Following deserialization, the patches are then generated and then registered into their specific collections.</para></remarks>
     internal static void LoadPatches()
     {
         CuteRandoCore.Log.LogInfo("Loading External Patches");
+
+        // Unregister patches, then clear the dictionary containing the old patches
         foreach (var patchGroup in externalPatches)
         {
             switch (patchGroup.Key)
@@ -137,12 +147,15 @@ internal class External_Patches
                         EnemyFSMPatches.enemyStateAction.UnregisterPatchInCollection(patch.EnemyName, patch);
                     break;
 
-                default: throw new NotImplementedException();
+                default:
+                    Log.LogError($"Invalid patch type External Patches {patchGroup.Key}.");
+                    break;
             }
         }
 
         externalPatches.Clear();
 
+        // Import the external patches, then deserialize
         ImportJsonFile("External Patches", out string PatchString);
 
         JsonSerializerSettings settings = new JsonSerializerSettings()
@@ -154,6 +167,7 @@ internal class External_Patches
         };
         HashSet<ISmolExternalPatch> importedPatches = JsonConvert.DeserializeObject<HashSet<ISmolExternalPatch>>(PatchString, settings) ?? [];
 
+        // Process the imported patches by generating them and then registering them into their specific collections
         foreach (var rawPatch in importedPatches)
         {
             bool appliedPatch = false;
@@ -183,7 +197,7 @@ internal class External_Patches
                     if (rawPatch is SceneStateActionExternalPatch sceneStateActionPatch)
                     {
                         var p = sceneStateActionPatch.Patch.GeneratePatch();
-                        var t = sceneStateActionPatch.ActionType;
+                        var t = sceneStateActionPatch.Type;
                         if (p == null || t == null)
                         {
                             Log.LogError($"" +
@@ -195,7 +209,7 @@ internal class External_Patches
                             return;
                         }
                         var u = sceneStateActionPatch.Unpatch?.GeneratePatch();
-                        SceneStateActionPatch compiledPatch = new SceneStateActionPatch(sceneStateActionPatch.SceneName, sceneStateActionPatch.ObjectName, sceneStateActionPatch.Name, sceneStateActionPatch.ActionType, p, u, sceneStateActionPatch.FSMName);
+                        SceneStateActionPatch compiledPatch = new SceneStateActionPatch(sceneStateActionPatch.SceneName, sceneStateActionPatch.ObjectName, sceneStateActionPatch.Name, sceneStateActionPatch.Type, p, u, sceneStateActionPatch.FSMName);
 
                         appliedPatch = SceneFSMPatches.OverwritePatch(compiledPatch);
                         if (!appliedPatch)
@@ -248,7 +262,7 @@ internal class External_Patches
                     if (rawPatch is EnemyStateActionExternalPatch enemyStateActionPatch)
                     {
                         var p = enemyStateActionPatch.Patch.GeneratePatch();
-                        var t = enemyStateActionPatch.ActionType;
+                        var t = enemyStateActionPatch.Type;
                         if (p == null || t == null)
                         {
                             Log.LogError($"" +
@@ -261,12 +275,12 @@ internal class External_Patches
                         }
                         var u = enemyStateActionPatch.Unpatch?.GeneratePatch();
 
-                        EnemyStateActionPatch compiledPatch = new EnemyStateActionPatch(enemyStateActionPatch.EnemyName, enemyStateActionPatch.Name, enemyStateActionPatch.ActionType, p, u);
+                        EnemyStateActionPatch compiledPatch = new EnemyStateActionPatch(enemyStateActionPatch.EnemyName, enemyStateActionPatch.Name, enemyStateActionPatch.Type, p, u);
 
                         if (enemyStateActionPatch.Names.Length > 0)
-                            compiledPatch = new EnemyStateActionPatch(enemyStateActionPatch.EnemyName, enemyStateActionPatch.Names, enemyStateActionPatch.ActionType, p, u, enemyStateActionPatch.FSMName);
+                            compiledPatch = new EnemyStateActionPatch(enemyStateActionPatch.EnemyName, enemyStateActionPatch.Names, enemyStateActionPatch.Type, p, u, enemyStateActionPatch.FSMName);
                         else
-                            compiledPatch = new EnemyStateActionPatch(enemyStateActionPatch.EnemyName, enemyStateActionPatch.Name, enemyStateActionPatch.ActionType, p, u, enemyStateActionPatch.FSMName);
+                            compiledPatch = new EnemyStateActionPatch(enemyStateActionPatch.EnemyName, enemyStateActionPatch.Name, enemyStateActionPatch.Type, p, u, enemyStateActionPatch.FSMName);
 
                         appliedPatch = EnemyFSMPatches.OverwritePatch(compiledPatch);
                         if (!appliedPatch)
@@ -297,34 +311,40 @@ internal class External_Patches
 
     #region State Patches
 
-    public class SceneStateExternalPatch : StateExternalPatch_Base
+    /// <summary>Wrapper for patching a scene's <see cref="FsmState"/>
+    /// <para>No  currently implemented <see cref="PatchInfo_Base{Target}.PatchTarget"/>s</para></summary>
+    public class SceneStateExternalPatch : StateExternalPatch_Base, IScenePatch
     {
-        public string SceneName = "";
+        public string SceneName { get; set; } = "";
 
-        /// <summary>Name of the patch target</summary>
-        public string ObjectName = "";
+        public string ObjectName { get; set; } = "";
 
         public override PatchInfo_Base<FsmState> Patch { get; set; }
 
         public override PatchInfo_Base<FsmState>? Unpatch { get; set; }
     }
 
-    public class EnemyStateExternalPatch : StateExternalPatch_Base
+    /// <summary>Wrapper for patching an enemy's <see cref="FsmState"/></summary>
+    public class EnemyStateExternalPatch : StateExternalPatch_Base, IEnemyPatch
     {
-        public string EnemyName = "";
+        public string EnemyName { get; set; } = "";
 
         public override PatchInfo_Base<FsmState> Patch { get; set; }
 
         public override PatchInfo_Base<FsmState>? Unpatch { get; set; }
     }
 
+    /// <summary>Contains the patch information to patch an <see cref="FsmState"/> with a new <see cref="FsmStateAction"/></summary>
     public class StatePatchInfo : PatchInfo_Base<FsmState>
     {
-        public bool StartOfAction = true;
+        /// <summary>If the patch should add the <see cref="FsmStateAction"/> at the start of the <see cref="FsmState"/></summary>
+        public bool StartOfState = true;
 
-        // specific options
+        // per PatchTarget options
+        /// <summary>Bool arguments for the <see cref="PatchInfo_Base{Target}.PatchTarget"/></summary>
         public bool[] BoolOptions = [];
 
+        /// <summary>Float arguments for the <see cref="PatchInfo_Base{Target}.PatchTarget"/></summary>
         public float[] FloatOptions = [];
 
         public override Action<FsmState, object[]> GeneratePatch()
@@ -333,7 +353,7 @@ internal class External_Patches
             {
                 case "ShiftPosToBase":
                     return Enemy_Size_Rando.CreateShiftToBaseDelegate(
-                        StartOfAction, // atStart
+                        StartOfState, // atStart
                         FloatOptions.ElementAtOrDefault(0), // rotateAdjust
                         new Vector2(FloatOptions.ElementAtOrDefault(1), FloatOptions.ElementAtOrDefault(2)), // backupSize
                         BoolOptions.ElementAtOrDefault(0), // reverseX
@@ -348,6 +368,7 @@ internal class External_Patches
         }
     }
 
+    /// <summary>Abstract class for wrapping an externally loaded <see cref="FsmState"/> patch</summary>
     public abstract class StateExternalPatch_Base
     : ObjectExternalPatch_Base<FsmState>, IFSMPatch
     {
@@ -358,27 +379,32 @@ internal class External_Patches
 
     #region State Action
 
-    public class EnemyStateActionExternalPatch : StateActionExternalPatch_Base
+    /// <summary>Wrapper for patching an enemy's <see cref="FsmStateAction" />
+    /// <para>Not currently implemented.</para></summary>
+    public class EnemyStateActionExternalPatch : StateActionExternalPatch_Base, IEnemyPatch
     {
-        public string EnemyName = "";
+        public string EnemyName { get; set; } = "";
 
         public override PatchInfo_Base<FsmStateAction> Patch { get; set; }
 
         public override PatchInfo_Base<FsmStateAction>? Unpatch { get; set; }
     }
 
-    public class SceneStateActionExternalPatch : StateActionExternalPatch_Base
+    /// <summary>Wrapper for patching a <see cref="Scene" /> <see cref="FsmStateAction" />
+    /// <para>Not currently implemented.</para></summary>
+    public class SceneStateActionExternalPatch : StateActionExternalPatch_Base, IScenePatch
     {
-        public string SceneName = "";
+        public string SceneName { get; set; } = "";
 
-        /// <summary>Name of the patch target</summary>
-        public string ObjectName = "";
+        public string ObjectName { get; set; } = "";
 
         public override PatchInfo_Base<FsmStateAction> Patch { get; set; }
 
         public override PatchInfo_Base<FsmStateAction>? Unpatch { get; set; }
     }
 
+    /// <summary>Contains the patch information to patch an <see cref="FsmStateAction"/>
+    /// <para>Not currently implemented.</para></summary>
     public class StateActionPatchInfo : PatchInfo_Base<FsmStateAction>
     {
         public override Action<FsmStateAction, object[]> GeneratePatch()
@@ -387,14 +413,16 @@ internal class External_Patches
         }
     }
 
+    /// <summary>Abstract class for wrapping an externally loaded <see cref="FsmStateAction"/> patch</summary>
     public abstract class StateActionExternalPatch_Base()
-   : ObjectExternalPatch_Base<FsmStateAction>, IFSMPatch
+   : ObjectExternalPatch_Base<FsmStateAction>, IFSMPatch, IFSMActionPatch
     {
         public string FSMName { get; set; } = "";
 
+        /// <summary>The type as a <see langword="string" /></summary>
         public string ActionTypeString = "";
 
-        public Type ActionType
+        public Type Type
         {
             get
             {
@@ -407,6 +435,8 @@ internal class External_Patches
 
     #region Object Patches
 
+    /// <summary>Wrapper for patching a <see cref="GameObject" />
+    /// <para>Not currently implemented.</para></summary>
     public class EnemyObjectExternalPatch : ObjectExternalPatch_Base<GameObject>
     {
         public override PatchInfo_Base<GameObject> Patch { get; set; }
@@ -414,9 +444,11 @@ internal class External_Patches
         public override PatchInfo_Base<GameObject>? Unpatch { get; set; }
     }
 
-    public class ObjectPatchInfo : PatchInfo_Base<FsmStateAction>
+    /// <summary>Contains the patch information to patch a <see cref="GameObject" />
+    /// <para>Not currently implemented.</para></summary>
+    public class ObjectPatchInfo : PatchInfo_Base<GameObject>
     {
-        public override Action<FsmStateAction, object[]> GeneratePatch()
+        public override Action<GameObject, object[]> GeneratePatch()
         {
             throw new NotImplementedException();
         }
@@ -426,39 +458,57 @@ internal class External_Patches
 
     #region Base Abstract
 
+    /// <summary>Abstract class for the patch wrapper</summary>
+    /// <typeparam name="PatchTarget">The thing that is being patched</typeparam>
     public abstract class ObjectExternalPatch_Base<PatchTarget>()
     : ISmolExternalPatch
     {
         public string Name { get; set; } = "";
         public string[] Names { get; set; } = [];
         public ExternalPatchTypes PatchType { get; set; }
-        public bool Overwrite { get; set; }
+
+        /// <summary>Information to create the patch that will be appiled</summary>
         public abstract PatchInfo_Base<PatchTarget> Patch { get; set; }
+
+        /// <summary>Information to create the unpatcher that will remove the applied patch</summary>
         public abstract PatchInfo_Base<PatchTarget>? Unpatch { get; set; }
     }
 
+    /// <summary>Abstract class for the patch</summary>
+    /// <typeparam name="Target">The type of thing that is being patched</typeparam>
     public abstract class PatchInfo_Base<Target>
         : ISmolExternalPatchInfo
     {
         public string PatchTarget { get; set; } = "";
 
+        /// <summary>Called to generate the patch</summary>
+        /// <returns>The generated patch</returns>
         public abstract Action<Target, object[]> GeneratePatch();
     }
 
     #endregion Base Abstract
 
+    /// <summary>Interface for external patch setup</summary>
     public interface ISmolExternalPatch
     {
+        /// <summary>Name of what is being patched</summary>
         public string Name { get; set; }
+
+        /// <summary><see cref="Array" /> of names for what is being patched</summary>
         public string[] Names { get; set; }
+
+        /// <summary>The type of patch that is being imported</summary>
         public ExternalPatchTypes PatchType { get; set; }
     }
 
+    /// <summary>Interface for external patch information</summary>
     public interface ISmolExternalPatchInfo
     {
+        /// <summary>The target of the patch</summary>
         public string PatchTarget { get; set; }
     }
 
+    /// <summary>The types of patches that can be imported.</summary>
     public enum ExternalPatchTypes
     {
         Scene_State_Action_FSM,

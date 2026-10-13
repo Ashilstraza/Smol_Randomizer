@@ -11,7 +11,10 @@ namespace Smol_Randomizer.Settings;
 /// </summary>
 public class IntRange
 {
+    /// <summary>The minimum value.</summary>
     private int min;
+
+    /// <summary>The maximum value.</summary>
     private int max;
 
     /// <summary>The minimum value. Will check if it is less than the max value when set.</summary>
@@ -38,7 +41,7 @@ public class IntRange
         }
     }
 
-    /// <summary>Workaround to allow casting an int to an IntRange</summary>
+    /// <summary>Workaround to allow casting a <see langword="int" /> to a <see cref="IntRange" /></summary>
     private int Both
     {
         get => min == max ? min : max / min;  // Doesn't get used
@@ -49,14 +52,14 @@ public class IntRange
         }
     }
 
-    /// <summary>Returns the range as a Tuple.</summary>
+    /// <summary>Returns the range as a <see cref="Tuple" />.</summary>
     /// <returns>(min, max)</returns>
     public (int min, int max) AsTuple()
     {
         return (min, max);
     }
 
-    /// <summary>Creates a new Range with the given values</summary>
+    /// <summary>Creates a new <see cref="IntRange" /> with the given values</summary>
     /// <param name="min">The minimum value of the range.</param>
     /// <param name="max">The maximum value of the range.</param>
     /// <exception cref="ArgumentException">Is thrown if the given values are invalid.</exception>
@@ -74,17 +77,21 @@ public class IntRange
         }
     }
 
-    /// <summary>Cast an int to an IntRange where both the minimum and maximum values equal the int</summary>
-    /// <param name="ir">The int</param>
+    /// <summary>
+    /// Cast a <see langword="int" /> to a <see cref="IntRange" /> where both the minimum and maximum values equal the <see langword="int" />.
+    /// </summary>
+    /// <param name="ir">The <see cref="IntRange" /></param>
     public static implicit operator int(IntRange ir) => ir.Both;
 
-    /// <summary>Cast an int to an IntRange where both the minimum and maximum values equal the int</summary>
-    /// <param name="i">The int</param>
+    /// <summary>
+    /// Cast a <see langword="int" /> to a <see cref="IntRange" /> where both the minimum and maximum values equal the <see langword="int" />.
+    /// </summary>
+    /// <param name="i">The <see langword="int" /></param>
     public static explicit operator IntRange(int i) => new(i, i);
 
-    /// <summary>Checks to see if a given value is within the bounds of the Range</summary>
-    /// <param name="value">Value to test.</param>
-    /// <returns>True the value is within the range, otherwise false.</returns>
+    /// <summary>Checks to see if a given value is within the bounds of the <see cref="IntRange" /></summary>
+    /// <param name="value"><see langword="int" /> to test.</param>
+    /// <returns><see langword="true" /> the value is within the <see cref="IntRange" />, otherwise <see langword="false" />.</returns>
     public bool ContainsValue(int value)
     {
         return value.CompareTo(min) >= 0 && value.CompareTo(max) <= 0;
@@ -97,19 +104,19 @@ public class IntRange
         return $"[{min} - {max}]";
     }
 
-    /// <summary>Parses a given string into a float range</summary>
-    /// <param name="s">The string to parse.</param>
-    /// <returns>A new FloatRange.</returns>
+    /// <summary>Parses a given <see langword="string" /> into a <see cref="IntRange" /></summary>
+    /// <param name="s">The <see langword="string" /> to parse.</param>
+    /// <returns>A new <see cref="IntRange" />.</returns>
     public static IntRange Parse(string s)
     {
         string[] ints = s.Split(['[', ' ', '-', ']'], StringSplitOptions.RemoveEmptyEntries);
         return new IntRange(int.Parse(ints[0]), int.Parse(ints[1]));
     }
 
-    /// <summary>Parses a given pair of strings into a float range</summary>
-    /// <param name="s1">The string to parse as the minimum.</param>
-    /// <param name="s2">The string to parse as the maximum.</param>
-    /// <returns>A new FloatRange.</returns>
+    /// <summary>Parses a given pair of <see langword="string" /> s into a <see cref="IntRange" /></summary>
+    /// <param name="s1">The <see langword="string" /> to parse as the minimum.</param>
+    /// <param name="s2">The st <see langword="string" /> ring to parse as the maximum.</param>
+    /// <returns>A new <see cref="IntRange" />.</returns>
     public static IntRange Parse(string s1, string s2)
     {
         int min = int.Parse(s1);
@@ -117,9 +124,9 @@ public class IntRange
         return new IntRange(min, max);
     }
 
-    /// <summary>Compares this to a given object.</summary>
-    /// <param name="obj">The object to be compared to, will only work with another FloatRange</param>
-    /// <returns>true if the two values are the same, otherwise false</returns>
+    /// <summary>Compares this to a given <see langword="object" />.</summary>
+    /// <param name="obj">The <see langword="object" /> to be compared to, will only work with another <see cref="IntRange" /></param>
+    /// <returns><see langword="true" /> if the two values are the same, otherwise <see langword="false" /></returns>
     public override bool Equals(object obj)
     {
         if (obj is IntRange range)
@@ -134,7 +141,7 @@ public class IntRange
     }
 
     /// <summary>
-    /// Returns a hash of this object.
+    /// Returns a hash of this <see cref="IntRange" />.
     /// <para>Auto Generated</para>
     /// </summary>
     /// <returns>the hash</returns>
@@ -144,11 +151,23 @@ public class IntRange
     }
 }
 
+/// <summary>
+/// Class for holding the acceptable ranges for a <see cref="IntRange" /> when used by a BepinEx config setting
+/// </summary>
+/// <param name="minValue">The minimum value for the setting</param>
+/// <param name="maxValue">The maximum value for the setting</param>
 public class AcceptableRangeforIntRange(int minValue, int maxValue) : AcceptableValueBase(typeof(IntRange))
 {
+    /// <summary>The minimum acceptable value</summary>
     public int MinValue { get; } = minValue;
+
+    /// <summary>The maximum acceptable value</summary>
     public int MaxValue { get; } = maxValue;
 
+    /// <summary>Clamps the given <see langword="object" /> to be within the minimum and maximum values</summary>
+    /// <param name="value"><see cref="IntRange" /> or <see langword="int" /> to be clamped</param>
+    /// <returns>The clamped value</returns>
+    /// <exception cref="ArgumentException">Thrown if the passed value is not a <see cref="IntRange" /> or <see langword="int" /></exception>
     public override object Clamp(object value)
     {
         if (value.GetType() == typeof(IntRange))
@@ -186,6 +205,9 @@ public class AcceptableRangeforIntRange(int minValue, int maxValue) : Acceptable
             throw new ArgumentException("Unable to clamp an object that is not an IntRange or int");
     }
 
+    /// <summary>Checks to see if the given <see langword="object" /> is valid</summary>
+    /// <param name="value"><see cref="IntRange" /> or <see langword="float" /> to be checked</param>
+    /// <returns><see langword="true" /> if the value is valid, <see langword="false" /> if it is not</returns>
     public override bool IsValid(object value)
     {
         if (value.GetType() == typeof(IntRange))
@@ -210,6 +232,8 @@ public class AcceptableRangeforIntRange(int minValue, int maxValue) : Acceptable
         return false;
     }
 
+    /// <summary>Converts the <see cref="IntRange"/> to a description <see langword="string".</summary> <returns><see
+    /// langword="string" /> describing the acceptable value range.</returns>
     public override string ToDescriptionString()
     {
         return $"# Acceptable value range: From {MinValue} to {MaxValue}";

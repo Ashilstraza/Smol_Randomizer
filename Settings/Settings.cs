@@ -14,10 +14,7 @@ using UnityEngine;
 
 namespace Smol_Randomizer.Settings;
 
-/// <summary>
-/// Handles the various settings <see
-/// href="https://github.com/BepInEx/BepInEx.ConfigurationManager/blob/master/README.md" />
-/// </summary>
+/// <summary>Handles the various settings <see href="https://github.com/BepInEx/BepInEx.ConfigurationManager/blob/master/README.md" /></summary>
 public static class Settings
 {
     #region Settings
@@ -31,21 +28,21 @@ public static class Settings
         internal set => testNewThings.Value = value;
     }
 
+    /// <inheritdoc cref="TestNewThings" />
     private static ConfigEntry<bool> testNewThings;
 
     /// <summary>Default for if we want to test new things</summary>
     public const bool defaultTestNewThings = false;
-
-    /// <summary>
 #endif
 
-    /// Enables the randomization of the various things </summary>
+    /// <summary>Enables the randomization of the various things</summary>
     public static bool EnableRandomizer
     {
         get => enableRandomizer.Value;
         internal set => enableRandomizer.Value = value;
     }
 
+    /// <inheritdoc cref="EnableRandomizer" />
     internal static ConfigEntry<bool> enableRandomizer;
 
     /// <summary>Default if we want to randomize the various things</summary>
@@ -58,6 +55,7 @@ public static class Settings
         internal set => enabledRandomizerColors.Value = value;
     }
 
+    /// <inheritdoc cref="EnabledRandomizerColors" />
     private static ConfigEntry<RandomizerColors> enabledRandomizerColors;
 
     /// <summary>Default color of the randomizer menu buttons</summary>
@@ -198,14 +196,16 @@ public static class Settings
         }
     }
 
-    /// <summary>Converter for BepInEx to convert the FloatRange into something savable then back again</summary>
+    /// <summary>
+    /// Converter for BepInEx to convert the <see cref="FloatRange" /> into something savable then back again
+    /// </summary>
     private static readonly TypeConverter FloatRangeConverter = new()
     {
         ConvertToString = (obj, type) => obj.ToString(),
         ConvertToObject = (str, type) => FloatRange.Parse(str)
     };
 
-    /// <summary>Converter for BepInEx to convert the IntRange into something savable then back again</summary>
+    /// <summary>Converter for BepInEx to convert the <see cref="IntRange" /> into something savable then back again</summary>
     private static readonly TypeConverter IntRangeConverter = new()
     {
         ConvertToString = (obj, type) => obj.ToString(),
@@ -243,8 +243,10 @@ public static class Settings
         }
     }
 
+    /// <summary>The save data</summary>
     private static RandoPerSaveData saveData;
 
+    /// <summary><see langword="true" /> if the save data has been loaded, <see langword="false" /> if it has not</summary>
     public static bool Loaded
     {
         get
@@ -252,17 +254,21 @@ public static class Settings
             if (loading)
             {
                 if (GameManager.instance.sm.sceneType == GlobalEnums.SceneType.GAMEPLAY)
+                {
                     loaded = true;
+                    loading = false;
+                }
                 else loaded = false;
-                loading = false;
             }
             return loaded;
         }
     }
 
-    private static bool loaded = false;
+    /// <inheritdoc cref="Loaded" />
+    private static bool loaded;
 
-    internal static bool loading = false;
+    /// <summary><see langword="true" /> if the save file is loading</summary>
+    internal static bool loading;
     #endregion Silksong.DataManager_Stuff
 }
 
@@ -293,6 +299,7 @@ public class RandoPerSaveData
         }
     }
 
+    /// <inheritdoc cref="SaveSeed" />
     [JsonProperty]
     private int saveSeed = int.MinValue;
 

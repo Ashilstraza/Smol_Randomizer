@@ -11,7 +11,10 @@ namespace Smol_Randomizer.Settings;
 /// </summary>
 public class FloatRange
 {
+    /// <summary>The minimum value.</summary>
     private float min;
+
+    /// <summary>The maximum value.</summary>
     private float max;
 
     /// <summary>The minimum value. Will check if it is less than the max value when set.</summary>
@@ -38,7 +41,7 @@ public class FloatRange
         }
     }
 
-    /// <summary>Workaround to allow casting a float to a FloatRange</summary>
+    /// <summary>Workaround to allow casting a <see langword="float" /> to a <see cref="FloatRange" /></summary>
     private float Both
     {
         get => min == max ? min : max / min; // Doesn't get used
@@ -49,14 +52,14 @@ public class FloatRange
         }
     }
 
-    /// <summary>Returns the range as a Tuple.</summary>
+    /// <summary>Returns the range as a <see cref="Tuple" />.</summary>
     /// <returns>(min, max)</returns>
     public (float min, float max) AsTuple()
     {
         return (min, max);
     }
 
-    /// <summary>Creates a new Range with the given values</summary>
+    /// <summary>Creates a new <see cref="FloatRange" /> with the given values</summary>
     /// <param name="min">The minimum value of the range.</param>
     /// <param name="max">The maximum value of the range.</param>
     /// <exception cref="ArgumentException">Is thrown if the given values are invalid.</exception>
@@ -74,17 +77,23 @@ public class FloatRange
         }
     }
 
-    /// <summary>Cast a float to a FloatRange where both the minimum and maximum values equal the float</summary>
-    /// <param name="fr">The float</param>
+    /// <summary>
+    /// Cast a <see langword="float" /> to a <see cref="FloatRange" /> where both the minimum and maximum values equal
+    /// the <see langword="float" />.
+    /// </summary>
+    /// <param name="fr">The <see cref="FloatRange" /></param>
     public static implicit operator float(FloatRange fr) => fr.Both;
 
-    /// <summary>Cast a float to a FloatRange where both the minimum and maximum values equal the float</summary>
-    /// <param name="f">The float</param>
+    /// <summary>
+    /// Cast a <see langword="float" /> to a <see cref="FloatRange" /> where both the minimum and maximum values equal
+    /// the <see langword="float" />
+    /// </summary>
+    /// <param name="f">The <see langword="float" /></param>
     public static explicit operator FloatRange(float f) => new(f, f);
 
-    /// <summary>Checks to see if a given value is within the bounds of the Range</summary>
-    /// <param name="value">Value to test.</param>
-    /// <returns>True the value is within the range, otherwise false.</returns>
+    /// <summary>Checks to see if a given value is within the bounds of the <see cref="FloatRange" /></summary>
+    /// <param name="value"><see langword="float" /> to test.</param>
+    /// <returns><see langword="true" /> the value is within the <see cref="FloatRange" />, otherwise <see langword="false" />.</returns>
     public bool ContainsValue(float value)
     {
         return value.CompareTo(min) >= 0 && value.CompareTo(max) <= 0;
@@ -97,19 +106,19 @@ public class FloatRange
         return $"[{min} - {max}]";
     }
 
-    /// <summary>Parses a given string into a float range</summary>
-    /// <param name="s">The string to parse.</param>
-    /// <returns>A new FloatRange.</returns>
+    /// <summary>Parses a given <see langword="string" /> into a <see cref="FloatRange" /></summary>
+    /// <param name="s">The <see langword="string" /> to parse.</param>
+    /// <returns>A new <see cref="FloatRange" />.</returns>
     public static FloatRange Parse(string s)
     {
         string[] floats = s.Split(['[', ' ', '-', ']'], StringSplitOptions.RemoveEmptyEntries);
         return new FloatRange(float.Parse(floats[0]), float.Parse(floats[1]));
     }
 
-    /// <summary>Parses a given pair of strings into a float range</summary>
-    /// <param name="s1">The string to parse as the minimum.</param>
-    /// <param name="s2">The string to parse as the maximum.</param>
-    /// <returns>A new FloatRange.</returns>
+    /// <summary>Parses a given pair of <see langword="string" /> s into a <see cref="FloatRange" /></summary>
+    /// <param name="s1">The <see langword="string" /> to parse as the minimum.</param>
+    /// <param name="s2">The st <see langword="string" /> ring to parse as the maximum.</param>
+    /// <returns>A new <see cref="FloatRange" />.</returns>
     public static FloatRange Parse(string s1, string s2)
     {
         float min = float.Parse(s1);
@@ -117,9 +126,9 @@ public class FloatRange
         return new FloatRange(min, max);
     }
 
-    /// <summary>Compares this to a given object.</summary>
-    /// <param name="obj">The object to be compared to, will only work with another FloatRange</param>
-    /// <returns>true if the two values are the same, otherwise false</returns>
+    /// <summary>Compares this to a given <see langword="object" />.</summary>
+    /// <param name="obj">The <see langword="object" /> to be compared to, will only work with another <see cref="FloatRange" /></param>
+    /// <returns><see langword="true" /> if the two values are the same, otherwise <see langword="false" /></returns>
     public override bool Equals(object obj)
     {
         if (obj is FloatRange range)
@@ -134,7 +143,7 @@ public class FloatRange
     }
 
     /// <summary>
-    /// Returns a hash of this object.
+    /// Returns a hash of this <see cref="FloatRange" />.
     /// <para>Auto Generated</para>
     /// </summary>
     /// <returns>the hash</returns>
@@ -144,11 +153,23 @@ public class FloatRange
     }
 }
 
+/// <summary>
+/// Class for holding the acceptable ranges for a <see cref="FloatRange" /> when used by a BepinEx config setting
+/// </summary>
+/// <param name="minValue">The minimum value for the setting</param>
+/// <param name="maxValue">The maximum value for the setting</param>
 public class AcceptableRangeforFloatRange(float minValue, float maxValue) : AcceptableValueBase(typeof(FloatRange))
 {
+    /// <summary>The minimum acceptable value</summary>
     public float MinValue { get; } = minValue;
+
+    /// <summary>The maximum acceptable value</summary>
     public float MaxValue { get; } = maxValue;
 
+    /// <summary>Clamps the given <see langword="object" /> to be within the minimum and maximum values</summary>
+    /// <param name="value"><see cref="FloatRange" /> or <see langword="float" /> to be clamped</param>
+    /// <returns>The clamped value</returns>
+    /// <exception cref="ArgumentException">Thrown if the passed value is not a <see cref="FloatRange" /> or <see langword="float" /></exception>
     public override object Clamp(object value)
     {
         if (value.GetType() == typeof(FloatRange))
@@ -183,9 +204,12 @@ public class AcceptableRangeforFloatRange(float minValue, float maxValue) : Acce
             return value;
         }
         else
-            throw new ArgumentException("Unable to clamp an object that is not an IntRange or int");
+            throw new ArgumentException("Unable to clamp an object that is not an FloatRange or float");
     }
 
+    /// <summary>Checks to see if the given <see langword="object" /> is valid</summary>
+    /// <param name="value"><see cref="FloatRange" /> or <see langword="float" /> to be checked</param>
+    /// <returns><see langword="true" /> if the value is valid, <see langword="false" /> if it is not</returns>
     public override bool IsValid(object value)
     {
         if (value.GetType() == typeof(FloatRange))
@@ -210,6 +234,8 @@ public class AcceptableRangeforFloatRange(float minValue, float maxValue) : Acce
         return false;
     }
 
+    /// <summary>Converts the <see cref="FloatRange"/> to a description <see langword="string".</summary> <returns><see
+    /// langword="string" /> describing the acceptable value range.</returns>
     public override string ToDescriptionString()
     {
         return $"# Acceptable value range: From {MinValue} to {MaxValue}";

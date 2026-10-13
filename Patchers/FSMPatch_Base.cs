@@ -4,13 +4,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using UnityEngine;
+
 namespace Smol_Randomizer.Patchers;
 
 #region FSM State
 
+/// <inheritdoc cref="StatePatch_Base"/>
 public class StatePatch(string stateName, Action<FsmState, object[]> patch, Action<FsmState, object[]>? unpatch = null, string fsmName = "")
     : StatePatch_Base(stateName, patch, unpatch, fsmName)
 {
+    /// <inheritdoc cref="StatePatch"/>
+    /// <param name="stateNames"><see cref="Array" /> of names for the <see cref="FsmState" />s to be patched</param>
     public StatePatch(string[] stateNames, Action<FsmState, object[]> patch, Action<FsmState, object[]>? unpatch = null, string fsmName = "")
         : this("", patch, unpatch, fsmName)
     {
@@ -25,9 +30,12 @@ public class StatePatch(string stateName, Action<FsmState, object[]> patch, Acti
     }
 }
 
+/// <inheritdoc cref="StatePatchSet_Base{StatePatch}"/>
 public class StatePatchSet(string objectName, List<StatePatch> patches, string fsmName = "")
     : StatePatchSet_Base<StatePatch>(objectName, patches, fsmName)
 {
+    /// <inheritdoc cref="StatePatchSet"/>
+    /// <param name="stateNames"><see cref="Array" /> of names for the <see cref="FsmState" />s to be patched</param>
     public StatePatchSet(string[] objectNames, List<StatePatch> patches, string fsmName = "")
         : this("", patches, fsmName)
     {
@@ -47,19 +55,18 @@ public class StatePatchSet(string objectName, List<StatePatch> patches, string f
     }
 }
 
-/// <summary>Contains a patch for an FSM state</summary>
-/// <param name="stateName">Name of the state the patch is for</param>
-/// <param name="patch">    The patch for the state</param>
-/// <param name="unpatch">  Optional</param>
-/// <param name="fsmName">  
-/// Optional name of the FSM the patch is for, used when FSMStatePatchSet.ApplyPatches is called with an array of FSMs
-/// </param>
+/// <summary>Contains a patch for a <see cref="FsmState" /></summary>
+/// <param name="stateName">Name of the <see cref="FsmState" /> to patch</param>
+/// <param name="patch">    The patch for adding the <see cref="FsmStateAction" /></param>
+/// <param name="unpatch">  Optional: The patch for removing the <see cref="FsmStateAction" /></param>
+/// <param name="fsmName">  Optional: Name of the <see cref="PlayMakerFSM" /> to patch, the first found
+/// <see cref="PlayMakerFSM" /> is used if not provided</param>
 public abstract class StatePatch_Base(string stateName, Action<FsmState, object[]> patch, Action<FsmState, object[]>? unpatch = null, string fsmName = "")
     : FSMPatch_Base<FsmState>(stateName, patch, unpatch, fsmName)
 {
-    /// <summary>Patches an FSM, will ignore Name if NameArray is populated</summary>
-    /// <param name="fsmArray">Array that contains the FSM to patch</param>
-    /// <param name="param">   An array of arguments the patcher may want</param>
+    /// <summary>Patches a <see cref="PlayMakerFSM" /></summary>
+    /// <param name="fsmArray"><see cref="Array" /> that contains the <see cref="PlayMakerFSM" /> to patch</param>
+    /// <param name="param">   An <see cref="Array" /> of arguments the patcher may want</param>
     public override void ApplyPatch(PlayMakerFSM[] fsmArray, object[] param)
     {
         var fsm = fsmArray.FirstOrDefault(obj => obj.FsmName.Equals(FSMName));
@@ -71,9 +78,8 @@ public abstract class StatePatch_Base(string stateName, Action<FsmState, object[
         ApplyPatch(fsm ?? fsmArray[0], param);
     }
 
-    /// <summary>Patches an FSM state, will ignore Name if NameArray is populated</summary>
-    /// <param name="fsm">  The PlayMakerFSM to patch</param>
-    /// <param name="param">An array of extra arguments that the patcher may want</param>
+    /// <inheritdoc cref="ApplyPatch"/>
+    /// <param name="fsm">The <see cref="PlayMakerFSM" /> to patch</param>
     public override void ApplyPatch(PlayMakerFSM fsm, object[] param)
     {
         if (fsm == default)
@@ -95,6 +101,9 @@ public abstract class StatePatch_Base(string stateName, Action<FsmState, object[
             ApplyPatch(fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(Name)), param);
     }
 
+    /// <summary>Patches an <see cref="FsmState" /></summary>
+    /// <param name="state">The <see cref="FsmState" /> to patch</param>
+    /// <param name="param">An <see cref="Array" /> of arguments the patcher may want</param>
     public void ApplyPatch(FsmState state, object[] param)
     {
         if (state == null)
@@ -108,9 +117,9 @@ public abstract class StatePatch_Base(string stateName, Action<FsmState, object[
         Patch(state, param);
     }
 
-    /// <summary></summary>
-    /// <param name="fsmArray"></param>
-    /// <param name="param">   </param>
+    /// <summary>Removes patches from a <see cref="PlayMakerFSM" /></summary>
+    /// <param name="fsmArray">Array that contains the <see cref="PlayMakerFSM" /> to remove patches from</param>
+    /// <param name="param">   An <see cref="Array" /> of arguments the unpatcher may want</param>
     public override void RemovePatch(PlayMakerFSM[] fsmArray, object[] param)
     {
         if (Unpatch == null) return;
@@ -118,9 +127,8 @@ public abstract class StatePatch_Base(string stateName, Action<FsmState, object[
         RemovePatch(fsmArray.FirstOrDefault(obj => obj.FsmName.Equals(FSMName)) ?? fsmArray[0], param);
     }
 
-    /// <summary>Unpatches an FSM state, will ignore Name if NameArray is populated</summary>
-    /// <param name="fsm">  The PlayMakerFSM to unpatch</param>
-    /// <param name="param">An array of extra arguments that the unpatcher may want</param>
+    /// <inheritdoc cref="RemovePatch"/>
+    /// <param name="fsm">The <see cref="PlayMakerFSM" /> to remove patches from</param>
     public override void RemovePatch(PlayMakerFSM fsm, object[] param)
     {
         if (Unpatch == null) return;
@@ -144,6 +152,9 @@ public abstract class StatePatch_Base(string stateName, Action<FsmState, object[
             RemovePatch(fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(Name)), param);
     }
 
+    /// <summary>Unpatches an <see cref="FsmState" /></summary>
+    /// <param name="state">The <see cref="FsmState" /> to unpatch</param>
+    /// <param name="param">An <see cref="Array" /> of arguments the unpatcher may want</param>
     public void RemovePatch(FsmState state, object[] param)
     {
         if (Unpatch == null) return;
@@ -160,12 +171,8 @@ public abstract class StatePatch_Base(string stateName, Action<FsmState, object[
     }
 }
 
-/// <summary>Contains a set of state patches for an object</summary>
-/// <param name="objectName">The name of the object the patches are for</param>
-/// <param name="patches">   The list of patches for the object</param>
-/// <param name="fsmName">   
-/// Optional: The name of the FSM the patch is for, used when FSMStatePatchSet.ApplyPatches is called with an array of FSMs
-/// </param>
+/// <summary>Contains a set of State FSM patches for an object</summary>
+/// /// <inheritdoc cref="FSMPatchSet_Base{PatchType, FsmState}"/>
 public abstract class StatePatchSet_Base<PatchType>(string objectName, List<PatchType> patches, string fsmName = "")
     : FSMPatchSet_Base<PatchType, FsmState>(objectName, patches, fsmName)
     where PatchType : StatePatch_Base;
@@ -174,9 +181,12 @@ public abstract class StatePatchSet_Base<PatchType>(string objectName, List<Patc
 
 #region FSM State Action
 
+/// /// <inheritdoc cref="StateActionPatch_Base"/>
 public class StateActionPatch(string stateName, Type actionType, Action<FsmStateAction, object[]> patch, Action<FsmStateAction, object[]>? unpatch = null, string fsmName = "")
     : StateActionPatch_Base(stateName, actionType, patch, unpatch, fsmName)
 {
+    /// <inheritdoc cref="StateActionPatch" />
+    /// <param name="stateNames"><see cref="Array" /> of names for the <see cref="FsmState" />s to be patched</param>
     public StateActionPatch(string[] stateNames, Type actionType, Action<FsmStateAction, object[]> patch, Action<FsmStateAction, object[]>? unpatch = null, string fsmName = "")
         : this("", actionType, patch, unpatch, fsmName)
     {
@@ -191,9 +201,13 @@ public class StateActionPatch(string stateName, Type actionType, Action<FsmState
     }
 }
 
+/// <summary>Contains a set of <see cref="StateActionPatch"/>es</summary>
+/// <inheritdoc cref="StateActionPatchSet_Base{StateActionPatch}" />
 public class StateActionPatchSet(string objectName, List<StateActionPatch> patches, string fsmName = "")
     : StateActionPatchSet_Base<StateActionPatch>(objectName, patches, fsmName)
 {
+    /// <inheritdoc cref="StateActionPatchSet"/>
+    /// <param name="objectNames"><see cref="Array" /> of names for <see cref="GameObject" />s to patch</param>
     public StateActionPatchSet(string[] objectNames, List<StateActionPatch> patches, string fsmName = "")
         : this("", patches, fsmName)
     {
@@ -213,33 +227,27 @@ public class StateActionPatchSet(string objectName, List<StateActionPatch> patch
     }
 }
 
-/// <summary>Contains a patch for an action in an FSM state</summary>
-/// <param name="stateName"> Name of the state the patch is for</param>
-/// <param name="actionType">The type of the action the patch is for</param>
-/// <param name="patch">     The patch for the action</param>
-/// <param name="fsmName">   
-/// Optional: The name of the FSM the patch is for, used when FSMStatePatchSet.ApplyPatches is called with an array of FSMs
-/// </param>
+/// <summary>Contains a patch for an <see cref="FsmStateAction" /> in an <see cref="FsmState" /></summary>
+/// <inheritdoc cref="FSMPatch_Base{FsmStateAction}"/>
+/// <param name="stateName"> Name of the <see cref="FsmState" /> to patch</param>
+/// <param name="actionType">The <see cref="Type" /> of <see cref="FsmStateAction" /> being patched</param>
 public abstract class StateActionPatch_Base(string stateName, Type actionType, Action<FsmStateAction, object[]> patch, Action<FsmStateAction, object[]>? unpatch = null, string fsmName = "")
     : FSMPatch_Base<FsmStateAction>(stateName, patch, unpatch, fsmName), IFSMActionPatch
 {
-    /// <summary>&gt;The type of the action the patch is for</summary>
     public Type Type => actionType;
 
-    /// <summary>The type of the action the patch is for as a string</summary>
     public string TypeString => Type.ToString();
 
-    /// <summary>Patches an FSM</summary>
-    /// <param name="fsmArray">Array that contains the FSM to patch</param>
-    /// <param name="param">   An array of arguments the patcher may want</param>
+    /// <summary>Patches a <see cref="PlayMakerFSM" /></summary>
+    /// <param name="fsmArray"><see cref="Array" /> that contains the <see cref="PlayMakerFSM" /> to patch</param>
+    /// <param name="param">   An <see cref="Array" /> of arguments the patcher may want</param>
     public override void ApplyPatch(PlayMakerFSM[] fsmArray, object[] param)
     {
         ApplyPatch(fsmArray.FirstOrDefault(obj => obj.FsmName.Equals(FSMName)) ?? fsmArray[0], param);
     }
 
-    /// <summary>Patches an FSM</summary>
-    /// <param name="fsm">  The FSM to patch</param>
-    /// <param name="param">An array of arguments the patcher may want</param>
+    /// <inheritdoc cref="ApplyPatch"/>
+    /// <param name="fsm">The <see cref="PlayMakerFSM" /> to patch</param>
     public override void ApplyPatch(PlayMakerFSM fsm, object[] param)
     {
         if (NameArray.Length > 0)
@@ -267,9 +275,9 @@ public abstract class StateActionPatch_Base(string stateName, Type actionType, A
         }
     }
 
-    /// <summary>Removes patches from an FSM</summary>
-    /// <param name="fsmArray">Array that contains the FSM to remove patches from</param>
-    /// <param name="param">   An array of arguments the unpatcher may want</param>
+    /// <summary>Removes patches from a <see cref="PlayMakerFSM" /></summary>
+    /// <param name="fsmArray">Array that contains the <see cref="PlayMakerFSM" /> to remove patches from</param>
+    /// <param name="param">   An <see cref="Array" /> of arguments the unpatcher may want</param>
     public override void RemovePatch(PlayMakerFSM[] fsmArray, object[] param)
     {
         if (Unpatch == null) return;
@@ -277,9 +285,8 @@ public abstract class StateActionPatch_Base(string stateName, Type actionType, A
         RemovePatch(fsmArray.FirstOrDefault(obj => obj.FsmName.Equals(FSMName)) ?? fsmArray[0], param);
     }
 
-    /// <summary>Removes patches from an FSM</summary>
-    /// <param name="fsm">  The FSM to remove patches from</param>
-    /// <param name="param">An array of arguments the unpatcher may want</param>
+    /// <inheritdoc cref="RemovePatch"/>
+    /// <param name="fsm">The <see cref="PlayMakerFSM" /> to remove patches from</param>
     public override void RemovePatch(PlayMakerFSM fsm, object[] param)
     {
         if (Unpatch == null) return;
@@ -311,11 +318,7 @@ public abstract class StateActionPatch_Base(string stateName, Type actionType, A
 }
 
 /// <summary>Contains a set of state action patches for an object</summary>
-/// <param name="objectName">The name of the object the patches are for</param>
-/// <param name="patches">   The list of patches for the object</param>
-/// <param name="fsmName">   
-/// Optional: The name of the FSM the patch is for, used when FSMStatePatchSet.ApplyPatches is called with an array of FSMs
-/// </param>
+/// <inheritdoc cref="FSMPatchSet_Base{PatchType, FsmStateAction}"/>
 public abstract class StateActionPatchSet_Base<PatchType>(string objectName, List<PatchType> patches, string fsmName = "")
     : FSMPatchSet_Base<PatchType, FsmStateAction>(objectName, patches, fsmName)
     where PatchType : StateActionPatch_Base;
@@ -323,44 +326,44 @@ public abstract class StateActionPatchSet_Base<PatchType>(string objectName, Lis
 #endregion FSM State Action
 
 /// <summary>Abstract class for containing an FSM patch</summary>
+/// <inheritdoc cref="ObjectPatch_Base{PatchTarget, PlayMakerFSM}"/>
 /// <typeparam name="PatchTarget">The type of FSM part this is patching</typeparam>
-/// <param name="fsmPart">The name of the FSM part being patched</param>
-/// <param name="patch">  The patch to apply</param>
-/// <param name="unpatch">Optional unpatcher for when we want to remove it</param>
-/// <param name="fsmName">Optional name for the FSM this patch should apply to, used for arrays of FSMs</param>
+/// <param name="fsmPart">        The name of the FSM part being patched</param>
+/// <param name="fsmName">        Optional: Name of the <see cref="PlayMakerFSM" /> to patch, the first found
+/// <see cref="PlayMakerFSM" /> is used if not provided</param>
 public abstract class FSMPatch_Base<PatchTarget>(string fsmPart, Action<PatchTarget, object[]> patch, Action<PatchTarget, object[]>? unpatch = null, string fsmName = "")
-    : ObjectPatch_Base<PatchTarget, PlayMakerFSM>(fsmPart, patch, unpatch)
+    : ObjectPatch_Base<PatchTarget, PlayMakerFSM>(fsmPart, patch, unpatch), IFSMPatch
 {
     public string FSMName { get => fsmName; set => fsmName = value; }
 }
 
-/// <summary>Abstract class for containing a set of FSM patches</summary>
-/// <typeparam name="PatchType">The type of FSM patch</typeparam>
-/// <typeparam name="PatchTarget">The type of FSM part this is patching</typeparam>
-/// <param name="objectName">The name of the enemy being patched</param>
-/// <param name="patches">   The list of FSM Patches</param>
+/// <summary>Abstract class for containing a set of FSM Patches</summary>
+/// <inheritdoc cref="ObjectPatchSet_Base{PatchType, PlayMakerFSM, PatchTarget}"/>
+/// <typeparam name="PatchType">  The type of FSM Patch</typeparam>
+/// <typeparam name="PatchTarget">The type of FSM Object this is patching</typeparam>
+/// <param name="objectName">     The name of the enemy being patched</param>
+/// <param name="fsmName">   Optional: Name of the <see cref="PlayMakerFSM" /> to patch, the first found
+/// <see cref="PlayMakerFSM" /> is used if not provided</param>
 public abstract class FSMPatchSet_Base<PatchType, PatchTarget>(string objectName, List<PatchType> patches, string fsmName = "")
-    : ObjectPatchSet_Base<PatchType, PlayMakerFSM, PatchTarget>(objectName, patches)
+    : ObjectPatchSet_Base<PatchType, PlayMakerFSM, PatchTarget>(objectName, patches), IFSMPatch
     where PatchType : FSMPatch_Base<PatchTarget>
 {
     public string FSMName { get => fsmName; set => fsmName = value; }
 }
 
-/// <summary></summary>
+/// <summary>Marks a patch as an FSM Patch</summary>
 public interface IFSMPatch
 {
-    /// <summary>
-    /// The name of the FSM the patch is for, used when FSMStatePatchSet.ApplyPatches is called with an array of FSMs
-    /// </summary>
+    /// <summary>The name of the <see cref="PlayMakerFSM" /> the patch is for</summary>
     public string FSMName { get; set; }
 }
 
-/// <summary></summary>
+/// <summary>Marks a patch as an FSM Action Patch</summary>
 public interface IFSMActionPatch
 {
-    /// <summary>&gt;The type of the action the patch is for</summary>
+    /// <summary>The <see cref="System.Type" /> of the action the patch is for</summary>
     public Type Type { get; }
 
-    /// <summary>The type of the action the patch is for as a string</summary>
+    /// <summary>The <see cref="System.Type" /> of the action the patch is for as a <see langword="string" /></summary>
     public string TypeString => Type.ToString();
 }

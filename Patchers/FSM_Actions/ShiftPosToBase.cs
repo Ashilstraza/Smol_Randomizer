@@ -16,18 +16,18 @@ using UnityEngine;
 namespace Smol_Randomizer.Patchers.FSM_Actions;
 
 /// <summary>
-/// Shifts a GameObject to be located at its unscaled base (where it would be if standing on the floor). This does take
-/// into account rotation.
+/// <see cref="FsmStateAction" /> to shift a <see cref="GameObject" /> to be located at its unscaled base (where it
+/// would be if standing on the floor). This does take into account rotation.
 /// </summary>
 public class ShiftPosToBase : FsmStateAction
 {
-    /// <summary>Object we are adjusting</summary>
+    /// <summary><see cref="GameObject" /> we are adjusting</summary>
     public FsmOwnerDefault? gameObject;
 
     /// <summary>Changes the direction the adjustment will take place</summary>
     public float rotateAdjust = 0;
 
-    /// <summary>Alternate size to use if there is no collider</summary>
+    /// <summary>Alternate size to use if there is no <see cref="Collider" /></summary>
     public Vector2 backupSize = Vector2.zero;
 
     /// <summary>Original size of the object</summary>
@@ -45,31 +45,33 @@ public class ShiftPosToBase : FsmStateAction
     /// <summary>If the enemy was invincible to start with</summary>
     public bool wasInvincible = false;
 
-    /// <summary>If we should skip trying to shift using raycasting and just calculate</summary>
+    /// <summary>If we should skip trying to shift using <see cref="RaycastHit2D" /> and just calculate</summary>
     public bool skipRaycast = false;
 
     /// <summary>Cancels the Y velocity</summary>
     public bool cancelYVelocity = true;
 
     /// <summary>
-    /// If the object should be shifted by a specific number instead of being calculated from the size and offset,
-    /// ignored unless skipRaycast is used or if no surface found
+    /// If the <see cref="GameObject" /> should be shifted by a specific number instead of being calculated from the
+    /// size and offset, ignored unless <see cref="skipRaycast" /> is used or if no surface found
     /// </summary>
     public float magicNumber = float.MinValue;
 
     /// <summary>
-    /// Reverses the direction, useful for debugging, ignored unless skipRaycast is used or if no surface found
+    /// Reverses the direction, useful for debugging, ignored unless <see cref="skipRaycast" /> is used or if no surface found
     /// </summary>
     public bool reverse = false;
 
-    /// <summary>Collider of referenced GameObject</summary>
+    /// <summary><see cref="BoxCollider2D" /> of referenced <see cref="GameObject" /></summary>
     private BoxCollider2D? col;
 
-    /// <summary>Transform of referenced GameObject</summary>
+    /// <summary><see cref="Transform" /> of referenced <see cref="GameObject" /></summary>
     private Transform? transform;
 
+    /// <summary>Last frame that this was called</summary>
     private float lastFrameCount;
 
+    /// <summary>Reset this to the default values</summary>
     public override void Reset()
     {
         gameObject = null;
@@ -84,16 +86,20 @@ public class ShiftPosToBase : FsmStateAction
         skipRaycast = false;
         cancelYVelocity = true;
         magicNumber = float.MinValue;
+
         col = null;
         transform = null;
+        lastFrameCount = 0;
     }
 
+    /// <summary>Call this when an area is entered</summary>
     public override void OnEnter()
     {
         Adjust();
         Finish();
     }
 
+    /// <summary>Call this when an update happens</summary>
     public override void OnUpdate()
     {
         Adjust();
@@ -159,18 +165,22 @@ public class ShiftPosToBase : FsmStateAction
             enemy.GetComponent<HealthManager>()?.IsInvincible = wasInvincible;
     }
 
-    /// <summary>Shifts a GameObject toward its base, will first try to use raycasting to find the surface</summary>
-    /// <param name="enemy">          The GameObject to shift</param>
-    /// <param name="originalScale">  The original scale of the GameObject before it was scaled</param>
+    /// <summary>
+    /// Shifts a <see cref="GameObject" /> toward its base, will first try to use raycasting to find the surface
+    /// </summary>
+    /// <param name="enemy">          The <see cref="GameObject" /> to shift</param>
+    /// <param name="originalScale">  The original scale of the <see cref="GameObject" /> before it was scaled</param>
     /// <param name="rotateAdjust">   Optional: Changes the direction the adjustment will take place</param>
-    /// <param name="backupSize">     Optional: Alternate size to use if there is no collider</param>
+    /// <param name="backupSize">     Optional: Alternate size to use if there is no <see cref="Collider" /></param>
     /// <param name="magicNumber">    Optional: Alternate value used to shift the object</param>
     /// <param name="reverseX">       Optional: Reverses the direction to shift the X value</param>
     /// <param name="reverseY">       Optional: Reverses the direction to shift the Y value</param>
-    /// <param name="skipRaycast">    Optional: Skips using a raycast to find the ground and instead just calculate</param>
+    /// <param name="skipRaycast">
+    /// Optional: Skips using a <see cref="RaycastHit2D" /> to find the ground and instead just calculate
+    /// </param>
     /// <param name="cancelYVelocity">Optional: Cancel the Y Velocity of the enemy</param>
-    /// <param name="collider">       Optional: The Collider of the GameObject to shift</param>
-    /// <param name="transform">      Optional: The Transform of the GameObject to shift</param>
+    /// <param name="collider">       Optional: The <see cref="Collider" /> of the <see cref="GameObject" /> to shift</param>
+    /// <param name="transform">      Optional: The <see cref="Transform" /> of the <see cref="GameObject" /> to shift</param>
     public static void Shift(
         GameObject enemy,
         Vector2 originalScale,
@@ -305,10 +315,10 @@ public class ShiftPosToBase : FsmStateAction
 
     /// <summary>Shifts the given coordinate value</summary>
     /// <param name="n">       The coordinate value to shift</param>
-    /// <param name="scale">   The scale of the object</param>
-    /// <param name="halfSize">The size of the object</param>
-    /// <param name="offset">  The offset of the object</param>
-    /// <param name="rotation">The rotation of the object</param>
+    /// <param name="scale">   The scale of the <see cref="GameObject" /></param>
+    /// <param name="halfSize">The size of the <see cref="GameObject" /></param>
+    /// <param name="offset">  The offset of the <see cref="GameObject" /></param>
+    /// <param name="rotation">The rotation of the <see cref="GameObject" /></param>
     /// <param name="reverse"> Optional: If the value should be reversed in direction</param>
     /// <returns>The adjusted coordinate value</returns>
     public static float ShiftN(float n,
@@ -325,9 +335,9 @@ public class ShiftPosToBase : FsmStateAction
 
     /// <summary>Shifts the given coordinate by a specific value that is then scaled, rotated, and possibly reversed</summary>
     /// <param name="n">          The coordinate value to shift</param>
-    /// <param name="scale">      The scale of the object</param>
+    /// <param name="scale">      The scale of the <see cref="GameObject" /></param>
     /// <param name="magicNumber">The special number to shift the coordinate value by</param>
-    /// <param name="rotation">   The rotation of the object</param>
+    /// <param name="rotation">   The rotation of the <see cref="GameObject" /></param>
     /// <param name="reverse">    Optional: If the value should be reversed in direction</param>
     /// <returns>The adjusted coordinate value</returns>
     public static float ShiftN(float n,

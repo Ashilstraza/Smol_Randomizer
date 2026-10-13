@@ -30,19 +30,19 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// <summary>Externally visible instance of this rando</summary>
     public static Enemy_Currency_Rando Instance => instance.Value;
 
-    /// <summary>Set of HealthManagers that we have touched in this scene.</summary>
+    /// <summary>Set of <see cref="HealthManager" /> s that we have touched in this <see cref="Scene" />.</summary>
     private readonly HashSet<HealthManager> currentEnemyHealthManagers = [];
 
     /// <summary>Dictionary of randomized geo sets for a given enemy type</summary>
     private readonly Dictionary<string, RandomizedGeoSet> enemyGeoSets = [];
 
-    /// <summary>Dictionary of randomized geo sets per room for a given enemy type</summary>
+    /// <summary>Dictionary of randomized geo sets per <see cref="Scene" /> for a given enemy type</summary>
     private readonly Dictionary<string, Dictionary<string, RandomizedGeoSet>> sceneGeoSets = [];
 
     /// <summary>Dictionary of randomized shards for a given enemy type</summary>
     private readonly Dictionary<string, int> enemyShards = [];
 
-    /// <summary>Dictionary of randomized shards per room for a given enemy type</summary>
+    /// <summary>Dictionary of randomized shards per <see cref="Scene" /> for a given enemy type</summary>
     private readonly Dictionary<string, Dictionary<string, int>> sceneShards = [];
 
     /// <summary>Small Rosary Value</summary>
@@ -59,16 +59,14 @@ internal class Enemy_Currency_Rando : Rando_Base
     /// <summary>Used for registering this randomizer in the core for when enemies activate</summary>
     private Randomizer_Info eventActiveEnemy;
 
-    /// <summary>Used for registering this randomizer in the core for when a scene loads</summary>
+    /// <summary>Used for registering this randomizer in the core for when a <see cref="Scene" /> loads</summary>
     private Randomizer_Info eventOnFirstSceneFrame;
 
     #endregion Randomizer_Info
 
     /// <summary>Constructor for this singleton</summary>
     private Enemy_Currency_Rando() : base()
-    {
-        InitRandomizer();
-    }
+        => InitRandomizer();
 
     protected override void InitRandomizer()
     {
@@ -142,48 +140,44 @@ internal class Enemy_Currency_Rando : Rando_Base
 #endif
 
     /// <summary>
-    /// On First Frame, clean the active health manager list. This is done on the first frame since some health managers
-    /// get added before the scene is loaded, and some afterwards.
+    /// On First Frame, clean the active <see cref="HealthManager" /> list. This is done on the first frame since some
+    /// <see cref="HealthManager" /> s get added before the <see cref="Scene" /> is loaded, and some afterwards.
     /// </summary>
-    /// <param name="scene">The scene we are in</param>
+    /// <param name="scene">The <see cref="Scene" /> we are in</param>
     private void OnFirstSceneFrame(Scene scene)
-    {
-        currentEnemyHealthManagers.RemoveWhere(x => x == null);
-    }
+        => currentEnemyHealthManagers.RemoveWhere(x => x == null);
 
     /// <summary>Updates an enemy with new currency values</summary>
-    /// <param name="thing">The HealthManager to adjust values in</param>
-    private void SetCurrency(HealthManager thing)
+    /// <param name="enemy">The <see cref="HealthManager" /> to adjust values in</param>
+    private void SetCurrency(HealthManager enemy)
     {
-        if (thing == null || !Instance.currentEnemyHealthManagers.Add(thing)) return;
+        if (enemy == null || !Instance.currentEnemyHealthManagers.Add(enemy)) return;
 
         if (RosaryRandomizerType != RandomizeByRangeTypes.Disabled)
         {
-            RandomizeGeo(thing, out RandomizedGeoSet geoSet);
+            RandomizeGeo(enemy, out RandomizedGeoSet geoSet);
 
-            CuteRandoCore.TraverseCreator(thing, "smallGeoDrops").SetValue(geoSet.SmallGeo);
-            CuteRandoCore.TraverseCreator(thing, "mediumGeoDrops").SetValue(geoSet.MediumGeo);
-            CuteRandoCore.TraverseCreator(thing, "largeGeoDrops").SetValue(geoSet.LargeGeo);
+            CuteRandoCore.TraverseCreator(enemy, "smallGeoDrops").SetValue(geoSet.SmallGeo);
+            CuteRandoCore.TraverseCreator(enemy, "mediumGeoDrops").SetValue(geoSet.MediumGeo);
+            CuteRandoCore.TraverseCreator(enemy, "largeGeoDrops").SetValue(geoSet.LargeGeo);
         }
 
         if (ShardRandomizerType != RandomizeByRangeTypes.Disabled)
-            RandomizeShards(thing);
+            RandomizeShards(enemy);
     }
 
     /// <summary>Randomizes shards based on consistency settings, followed by randomizer type</summary>
-    /// <param name="thing">          HealthManager of the enemy</param>
-    /// <param name="shellShardDrops">Shell shard drop quantitiy</param>
-    /// <returns>Nukber of shards for enemy to drop</returns>
+    /// <param name="enemy"><see cref="HealthManager" /> of the enemy</param>
     /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
-    private void RandomizeShards(HealthManager thing)
+    private void RandomizeShards(HealthManager enemy)
     {
-        string operatingScene = thing.gameObject.scene.name;
+        string operatingScene = enemy.gameObject.scene.name;
 
-        Traverse shellShardDropTraverse = CuteRandoCore.TraverseCreator(thing, "shellShardDrops");
+        Traverse shellShardDropTraverse = CuteRandoCore.TraverseCreator(enemy, "shellShardDrops");
         int initialShellShardDrops = (int)shellShardDropTraverse.GetValue();
 
         int shards;
-        string name = CuteRandoCore.CullName(thing.name);
+        string name = CuteRandoCore.CullName(enemy.name);
 
         switch (RandomizerConsistency)
         {
@@ -243,37 +237,36 @@ internal class Enemy_Currency_Rando : Rando_Base
     }
 
     /// <summary>Randomizes rosaries based on consistancy settings, followed by randomizer type</summary>
-    /// <param name="thing"> HealthManager of the enemy</param>
+    /// <inheritdoc cref="RandomizeShards" />
     /// <param name="geoSet">The geoSet of the enemy we are randomizing</param>
-    /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type.</exception>
-    private void RandomizeGeo(HealthManager thing, out RandomizedGeoSet geoSet)
+    private void RandomizeGeo(HealthManager enemy, out RandomizedGeoSet geoSet)
     {
-        string name = CuteRandoCore.CullName(thing.name);
+        string name = CuteRandoCore.CullName(enemy.name);
 
         switch (RandomizerConsistency)
         {
             case RandomizerConsistencyA.EnemyType:
                 if (!enemyGeoSets.TryGetValue(name, out geoSet))
                 {
-                    geoSet = GetRandoTypeGeo(thing, CuteRandoCore.RNGSeed(name));
+                    geoSet = GetRandoTypeGeo(enemy, CuteRandoCore.RNGSeed(name));
                     enemyGeoSets[name] = geoSet;
                 }
 
                 break;
 
             case RandomizerConsistencyA.Scene:
-                string operatingScene = thing.gameObject.scene.name;
+                string operatingScene = enemy.gameObject.scene.name;
 
                 if (!sceneGeoSets.TryGetValue(operatingScene, out Dictionary<string, RandomizedGeoSet> geoSets))
                 {
-                    geoSet = GetRandoTypeGeo(thing, CuteRandoCore.RNGSeed(name + operatingScene));
+                    geoSet = GetRandoTypeGeo(enemy, CuteRandoCore.RNGSeed(name + operatingScene));
                     sceneGeoSets[operatingScene] = new() { { name, geoSet } };
                 }
                 else
                 {
                     if (!geoSets.TryGetValue(name, out geoSet))
                     {
-                        geoSet = GetRandoTypeGeo(thing, CuteRandoCore.RNGSeed(name + operatingScene));
+                        geoSet = GetRandoTypeGeo(enemy, CuteRandoCore.RNGSeed(name + operatingScene));
                         geoSets[name] = geoSet;
                     }
                 }
@@ -281,7 +274,7 @@ internal class Enemy_Currency_Rando : Rando_Base
                 break;
 
             case RandomizerConsistencyA.None:
-                geoSet = GetRandoTypeGeo(thing);
+                geoSet = GetRandoTypeGeo(enemy);
                 break;
 
             default:
@@ -319,6 +312,7 @@ internal class Enemy_Currency_Rando : Rando_Base
         internal set => randomizerConsistency.Value = value;
     }
 
+    /// <inheritdoc cref="RandomizerConsistency" />
     private ConfigEntry<RandomizerConsistencyA> randomizerConsistency;
 
     /// <summary>Default setting for how consistant the currency drops should be</summary>
@@ -331,6 +325,7 @@ internal class Enemy_Currency_Rando : Rando_Base
         internal set => rosaryRandomizerType.Value = value;
     }
 
+    /// <inheritdoc cref="RosaryRandomizerType" />
     private ConfigEntry<RandomizeByRangeTypes> rosaryRandomizerType;
 
     /// <summary>Default choice for rosary quantity randomizer</summary>
@@ -343,6 +338,7 @@ internal class Enemy_Currency_Rando : Rando_Base
         internal set => rosaryPercentDropRange.Value = value;
     }
 
+    /// <inheritdoc cref="RosaryPercentDropRange" />
     private ConfigEntry<FloatRange> rosaryPercentDropRange;
 
     /// <summary>Default percent range for rosary drops</summary>
@@ -355,6 +351,7 @@ internal class Enemy_Currency_Rando : Rando_Base
         internal set => rosaryValueDropRange.Value = value;
     }
 
+    /// <inheritdoc cref="RosaryValueDropRange" />
     private ConfigEntry<IntRange> rosaryValueDropRange;
 
     /// <summary>Default value range for rosary drops</summary>
@@ -367,6 +364,7 @@ internal class Enemy_Currency_Rando : Rando_Base
         internal set => shardRandomizerType.Value = value;
     }
 
+    /// <inheritdoc cref="ShardRandomizerType" />
     private ConfigEntry<RandomizeByRangeTypes> shardRandomizerType;
 
     /// <summary>Default choice for shard quantity randomizer</summary>
@@ -379,6 +377,7 @@ internal class Enemy_Currency_Rando : Rando_Base
         internal set => shardPercentDropRange.Value = value;
     }
 
+    /// <inheritdoc cref="ShardPercentDropRange" />
     private ConfigEntry<FloatRange> shardPercentDropRange;
 
     /// <summary>Default percent range for shard drops</summary>
@@ -391,14 +390,16 @@ internal class Enemy_Currency_Rando : Rando_Base
         internal set => shardValueDropRange.Value = value;
     }
 
+    /// <inheritdoc cref="ShardValueDropRange" />
     private ConfigEntry<IntRange> shardValueDropRange;
 
     /// <summary>Default value range for shard drops</summary>
     public static readonly IntRange defaultShardValueDropRange = new(0, 15);
 
-    // Used for determining if we need to update
+    /// <summary>Current rosary setting, used for determining if we need to update</summary>
     private RandomizeByRangeTypes currentRosarySetting;
 
+    /// <summary>Current shard setting, used for determining of we need to update</summary>
     private RandomizeByRangeTypes currentShardSetting;
 
     protected override void InitSettings()
@@ -513,9 +514,8 @@ internal class Enemy_Currency_Rando : Rando_Base
     protected override void OnSettingsUpdated(object sender, EventArgs args) { }
 
     /// <summary>Clears the rosary lists if needed</summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">  The setting that was changed</param>
-    private void OnRosarySettingsUpdated(object sender, EventArgs args)
+    /// <param name="args">The setting that was changed</param>
+    private void OnRosarySettingsUpdated(object _, EventArgs args)
     {
         if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is RandomizeByRangeTypes rvt && !rvt.Equals(currentRosarySetting))
         {
@@ -542,9 +542,8 @@ internal class Enemy_Currency_Rando : Rando_Base
     }
 
     /// <summary>Clears the shard lists if needed</summary>
-    /// <param name="sender">?</param>
-    /// <param name="args">  The setting that was changed</param>
-    private void OnShardSettingsUpdated(object sender, EventArgs args)
+    /// <param name="args">The setting that was changed</param>
+    private void OnShardSettingsUpdated(object _, EventArgs args)
     {
         if (((SettingChangedEventArgs)args).ChangedSetting.BoxedValue is RandomizeByRangeTypes rvt && !rvt.Equals(currentShardSetting))
         {
@@ -573,7 +572,7 @@ internal class Enemy_Currency_Rando : Rando_Base
     #endregion Settings
 }
 
-/// <summary>Helper class to encapulate an enemies' geo drops</summary>
+/// <summary>Record to encapulate an enemies' geo drops</summary>
 /// <param name="SmallGeo"> Small geo to drop</param>
 /// <param name="MediumGeo">Medium geo to drop</param>
 /// <param name="LargeGeo"> Large geo to drop</param>
@@ -596,17 +595,17 @@ internal record RandomizedGeoSet
         this.LargeGeo = LargeGeo;
     }
 
-    /// <summary>Create a new geo set from the given HealthManager</summary>
-    /// <param name="thing">HealthManager to extract the geo amounts from</param>
-    public RandomizedGeoSet(HealthManager thing)
-        : this((int)CuteRandoCore.TraverseCreator(thing, "smallGeoDrops").GetValue(),
-              (int)CuteRandoCore.TraverseCreator(thing, "mediumGeoDrops").GetValue(),
-              (int)CuteRandoCore.TraverseCreator(thing, "largeGeoDrops").GetValue())
+    /// <summary>Create a new geo set from the given <see cref="HealthManager" /></summary>
+    /// <param name="enemy"><see cref="HealthManager" /> to extract the geo amounts from</param>
+    public RandomizedGeoSet(HealthManager enemy)
+        : this((int)CuteRandoCore.TraverseCreator(enemy, "smallGeoDrops").GetValue(),
+              (int)CuteRandoCore.TraverseCreator(enemy, "mediumGeoDrops").GetValue(),
+              (int)CuteRandoCore.TraverseCreator(enemy, "largeGeoDrops").GetValue())
     {
     }
 
-    /// <summary>Multiplies the held geo amounts by a given float</summary>
-    /// <param name="multiplier">amount to multiply by</param>
+    /// <summary>Multiplies the held geo amounts by a given <see langword="float" /></summary>
+    /// <param name="multiplier">Amount to multiply by</param>
     public void MultiplyGeo(float multiplier)
     {
         SmallGeo = (int)Math.Round(SmallGeo * multiplier);
@@ -617,7 +616,7 @@ internal record RandomizedGeoSet
     /// <summary>
     /// Sets the geo amount to drop to the given quantity, automatically separates value into their respective sizes
     /// </summary>
-    /// <param name="quantity">amount of geo</param>
+    /// <param name="quantity">Amount of geo</param>
     public void SetGeoQuantity(int quantity)
     {
         LargeGeo = quantity / Enemy_Currency_Rando.largeGeoValue;

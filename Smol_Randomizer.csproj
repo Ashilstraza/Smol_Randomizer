@@ -20,6 +20,7 @@
     <UseWinFormsOutOfProcDesigner>True</UseWinFormsOutOfProcDesigner>
     <Configurations>Debug;Release;Testing</Configurations>
 	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	<WarningLevel>6</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Testing|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
@@ -33,6 +34,7 @@
     <UseWinFormsOutOfProcDesigner>True</UseWinFormsOutOfProcDesigner>
     <Configurations>Debug;Release;Testing</Configurations>
 	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	<WarningLevel>6</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <OutputPath>bin\Release\</OutputPath>
@@ -44,6 +46,7 @@
     <ErrorReport>prompt</ErrorReport>
     <Prefer32Bit>false</Prefer32Bit>
     <DebugType>none</DebugType>
+    <WarningLevel>6</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
 	<RootNamespace>Smol_Randomizer</RootNamespace>
@@ -133,7 +136,7 @@
     <Delete Files="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)/$(AssemblyTitle)copy.pdb" />
     <Delete Files="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)/$(AssemblyTitle)copy.dll" />
 	<Delete Files="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)/$(AssemblyTitle).pdb" TreatErrorsAsWarnings="true" Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' " />
-    <Copy SourceFiles="@(Binaries)" DestinationFolder="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)/%(Binaries.LocalDir)" ContinueOnError="ErrorAndStop"  Retries="0" Condition="'$(SilksongPluginsFolder)' != '' And Exists('$(SilksongPluginsFolder)')" />
+    <Copy SourceFiles="@(Binaries)" DestinationFolder="$(SilksongPluginsFolder)/Ashilstraza-$(AssemblyTitle)/%(Binaries.LocalDir)" ContinueOnError="ErrorAndStop" Retries="0" Condition="'$(SilksongPluginsFolder)' != '' And Exists('$(SilksongPluginsFolder)')" />
     	
     <!-- Thunderstore packaging -->
     <RemoveDir Directories="$(ThunderstoreDir)/temp;$(ThunderstoreDir)/dist" />

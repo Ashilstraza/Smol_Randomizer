@@ -5,26 +5,27 @@ using System.Collections.Generic;
 using System.Linq;
 
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
-namespace Smol_Randomizer.Patchers.Scene;
+namespace Smol_Randomizer.Patchers.gameScene;
 
-/// <summary>Handles patching Scene FSMs</summary>
+/// <summary>Handles patching <see cref="Scene" /> <see cref="PlayMakerFSM" />s</summary>
 internal class SceneFSMPatches
 {
     private static readonly Lazy<SceneFSMPatches> instance = new(() => new SceneFSMPatches());
 
-    /// <summary>A set of Scene FSM Patches</summary>
+    /// <summary>A set of <see cref="SceneFSMPatches" /></summary>
     public static SceneFSMPatches Instance => instance.Value;
 
-    /// <summary>A set of Scene State Action patches</summary>
+    /// <summary>A set of <see cref="SceneStateActionPatch" /> patches</summary>
     public static readonly SceneStateActionCollection sceneStateActionCollection = new();
 
-    /// <summary>As set if Scene State Patches</summary>
+    /// <summary>As set of <see cref="SceneStatePatch" /> patches</summary>
     public static readonly SceneStateCollection sceneStateCollection = new();
 
-    /// <summary>Apply the various scene patches</summary>
-    /// <param name="scene">The scene to patch</param>
-    internal static void ApplyPatches(UnityEngine.SceneManagement.Scene scene)
+    /// <summary>Apply the various <see cref="Scene" /> patches</summary>
+    /// <param name="scene">The <see cref="Scene" /> to patch</param>
+    internal static void ApplyPatches(Scene scene)
     {
         HashSet<GameObject> objects = scene.GetRootGameObjects().ToHashSet();
 
@@ -32,9 +33,9 @@ internal class SceneFSMPatches
         sceneStateCollection.ApplyPatches(scene, objects);
     }
 
-    /// <summary>Remove the various scene patches</summary>
-    /// <param name="scene">The scene to unpatch</param>
-    internal static void RemovePatches(UnityEngine.SceneManagement.Scene scene)
+    /// <summary>Remove the various <see cref="Scene" /> patches</summary>
+    /// <param name="scene">The <see cref="Scene" /> to unpatch</param>
+    internal static void RemovePatches(Scene scene)
     {
         if (!scene.IsValid()) // Something is fishy, abort.
             return;
@@ -44,6 +45,39 @@ internal class SceneFSMPatches
         sceneStateCollection.RemovePatches(scene, objects);
     }
 
+    /// <summary>Registers a collection of patches</summary>
+    /// <param name="scenePatchCollection">The collection of patches to add</param>
+    public static void RegisterPatchCollection(HashSet<ISceneFSMPatch> scenePatchCollection)
+    {
+        foreach (var patchGroup in scenePatchCollection)
+        {
+            if (patchGroup is SceneStateActionPatch or SceneStateActionPatchSet)
+                sceneStateActionCollection.RegisterPatchInCollection(patchGroup.SceneName, patchGroup.ObjectName, patchGroup);
+            else if (patchGroup is SceneStatePatch or SceneStatePatchSet)
+                sceneStateCollection.RegisterPatchInCollection(patchGroup.SceneName, patchGroup.ObjectName, patchGroup);
+            else
+                CuteRandoCore.Log.LogWarning($"Register patch called with invalid patch type; Name: {patchGroup.Name}, Scene Name: {patchGroup.SceneName}, Object Name: {patchGroup.ObjectName}, Type: {patchGroup.GetType()}");
+        }
+    }
+
+    /// <summary>Unregisters a collection of patches</summary>
+    /// <param name="scenePatchCollection">The collection of patches to remove</param>
+    public static void UnregisterPatchCollection(HashSet<ISceneFSMPatch> scenePatchCollection)
+    {
+        foreach (var patchGroup in scenePatchCollection)
+        {
+            if (patchGroup is SceneStateActionPatch or SceneStateActionPatchSet)
+                sceneStateActionCollection.UnregisterPatchInCollection(patchGroup.SceneName, patchGroup.ObjectName, patchGroup);
+            else if (patchGroup is SceneStatePatch or SceneStatePatchSet)
+                sceneStateCollection.UnregisterPatchInCollection(patchGroup.SceneName, patchGroup.ObjectName, patchGroup);
+            else
+                CuteRandoCore.Log.LogWarning($"Unregister patch called with invalid patch type; Name: {patchGroup.Name}, Scene Name: {patchGroup.SceneName}, Object Name: {patchGroup.ObjectName}, Type: {patchGroup.GetType()}");
+        }
+    }
+
+    /// <summary>Registers a patch and overwrites any existing ones with the new one</summary>
+    /// <param name="patch">The patch to add</param>
+    /// <returns>If the patch was added</returns>
     public static bool OverwritePatch(ISceneFSMPatch patch)
     {
         if (patch is SceneStateActionPatch actionPatch)
@@ -87,56 +121,24 @@ internal class SceneFSMPatches
             CuteRandoCore.Log.LogWarning($"Overwrite patch called with invalid patch type; Name: {patch.Name}, Scene Name: {patch.SceneName}, Object Name: {patch.ObjectName}, Type: {patch.GetType()}");
         return false;
     }
-
-    /// <summary>Registers a collection of patches that are a mix of State and StateActions</summary>
-    /// <param name="scenePatchCollection"></param>
-    public static void RegisterPatchCollection(HashSet<ISceneFSMPatch> scenePatchCollection)
-    {
-        foreach (var patchGroup in scenePatchCollection)
-        {
-            if (patchGroup is SceneStateActionPatch or SceneStateActionPatchSet)
-                sceneStateActionCollection.RegisterPatchInCollection(patchGroup.SceneName, patchGroup.ObjectName, patchGroup);
-            else if (patchGroup is SceneStatePatch or SceneStatePatchSet)
-                sceneStateCollection.RegisterPatchInCollection(patchGroup.SceneName, patchGroup.ObjectName, patchGroup);
-            else
-                CuteRandoCore.Log.LogWarning($"Register patch called with invalid patch type; Name: {patchGroup.Name}, Scene Name: {patchGroup.SceneName}, Object Name: {patchGroup.ObjectName}, Type: {patchGroup.GetType()}");
-        }
-    }
-
-    /// <summary>Unregisters a collection of patches that are a mix of State and StateActions</summary>
-    /// <param name="scenePatchCollection"></param>
-    public static void UnregisterPatchCollection(HashSet<ISceneFSMPatch> scenePatchCollection)
-    {
-        foreach (var patchGroup in scenePatchCollection)
-        {
-            if (patchGroup is SceneStateActionPatch or SceneStateActionPatchSet)
-                sceneStateActionCollection.UnregisterPatchInCollection(patchGroup.SceneName, patchGroup.ObjectName, patchGroup);
-            else if (patchGroup is SceneStatePatch or SceneStatePatchSet)
-                sceneStateCollection.UnregisterPatchInCollection(patchGroup.SceneName, patchGroup.ObjectName, patchGroup);
-            else
-                CuteRandoCore.Log.LogWarning($"Unregister patch called with invalid patch type; Name: {patchGroup.Name}, Scene Name: {patchGroup.SceneName}, Object Name: {patchGroup.ObjectName}, Type: {patchGroup.GetType()}");
-        }
-    }
 }
 
 #region FSM State Action
 
-/// <summary>Class for containing a set of Scene State Action patches</summary>
+/// <summary>Class for containing a set of <see cref="SceneStateActionPatch" />es</summary>
 public class SceneStateActionCollection : SceneFSMPatchCollections_Base<SceneStateActionPatch, SceneStateActionPatchSet, FsmStateAction>;
 
-/// <summary>Patch set of Scene State Actions</summary>
-/// ///
-/// <param name="sceneName"> Name of scene that the object is within</param>
-/// <param name="objectName">Name of the object to be patched</param>
-/// <param name="patches">   The set of patches for the object</param>
+/// <inheritdoc />
+/// <param name="sceneName"> Name of the <see cref="Scene" /> that the <see cref="GameObject" /> is within</param>
+/// <param name="objectName">Name of the <see cref="GameObject" /> to be patched</param>
+/// <param name="patches">   The set of patches for the <see cref="GameObject" /></param>
+/// <param name="fsmName">   Optional: Name of the <see cref="PlayMakerFSM" /> to patch, the first found
+/// <see cref="PlayMakerFSM" /> is used if not provided</param>
 public class SceneStateActionPatchSet(string sceneName, string objectName, List<SceneStateActionPatch> patches, string fsmName = "")
     : StateActionPatchSet_Base<SceneStateActionPatch>(objectName, patches, fsmName), ISceneFSMPatchSet
 {
-    /// <summary>Patch set of Scene State Actions</summary>
-    /// ///
-    /// <param name="sceneName">  Name of scene that the objects are within</param>
-    /// <param name="objectNames">Array of names for objects to be patched</param>
-    /// <param name="patches">    The set of patches for the object</param>
+    /// <inheritdoc cref="SceneStateActionPatchSet" />
+    /// <param name="objectNames">Array of names for <see cref="GameObject" /> s to be patched</param>
     private SceneStateActionPatchSet(string sceneName, string[] objectNames, List<SceneStateActionPatch> patches, string fsmName = "")
         : this(sceneName, "", patches, fsmName)
     {
@@ -160,29 +162,19 @@ public class SceneStateActionPatchSet(string sceneName, string objectName, List<
     }
 }
 
-/// <summary>Patch for a Scene State Action</summary>
-/// ///
-/// <param name="sceneName"> Name of scene that the object is within</param>
-/// <param name="stateName"> The state that is to be patched within</param>
-/// <param name="actionType">The action to be patched</param>
-/// <param name="patch">     The patch to be applied</param>
-/// <param name="unpatch">   Optional patch to remove</param>
-/// <param name="fsmName">   
-/// Optional fsm name, used when calling either ApplyPatch or RemovePatch with an array of PlayMakerFSMs
-/// </param>
+/// <inheritdoc/>
+/// <param name="sceneName"> Name of <see cref="Scene" /> that the <see cref="GameObject" /> to be patched is within</param>
+/// <param name="stateName"> Name of the <see cref="FsmState" /> to patch</param>
+/// <param name="actionType">The <see cref="Type" /> of <see cref="FsmStateAction" /> being patched</param>
+/// <param name="patch">     The patch for modifying the <see cref="FsmStateAction" /></param>
+/// <param name="unpatch">   Optional: The patch for removing the <see cref="FsmStateAction" /> modifictation</param>
+/// <param name="fsmName">   Optional: Name of the <see cref="PlayMakerFSM" /> to patch, the first found
+/// <see cref="PlayMakerFSM" /> is used if not provided</param>
 public class SceneStateActionPatch(string sceneName, string objectName, string stateName, Type actionType, Action<FsmStateAction, object[]> patch, Action<FsmStateAction, object[]>? unpatch = null, string fsmName = "")
     : StateActionPatch_Base(stateName, actionType, patch, unpatch, fsmName), ISceneFSMPatch
 {
-    /// <summary>Patch for a Scene State Action</summary>
-    /// ///
-    /// <param name="sceneName"> Name of scene that the object is within</param>
-    /// <param name="stateNames">An array of state names to be patched within</param>
-    /// <param name="actionType">The action to be patched</param>
-    /// <param name="patch">     The patch to be applied</param>
-    /// <param name="unpatch">   Optional patch to remove</param>
-    /// <param name="fsmName">   
-    /// Optional fsm name, used when calling either ApplyPatch or RemovePatch with an array of PlayMakerFSMs
-    /// </param>
+    /// <inheritdoc cref="SceneStateActionPatch" />
+    /// <param name="stateNames">Array of names for the <see cref="FsmState" />s to be patched</param>
     public SceneStateActionPatch(string sceneName, string objectName, string[] stateNames, Type actionType, Action<FsmStateAction, object[]> patch, Action<FsmStateAction, object[]>? unpatch = null, string fsmName = "")
         : this(sceneName, objectName, "", actionType, patch, unpatch, fsmName)
     {
@@ -206,18 +198,20 @@ public class SceneStateActionPatch(string sceneName, string objectName, string s
 
 #region FSM State
 
-/// <summary>Class for containing a set of Scene State patches</summary>
+/// <summary>Class for containing a set of <see cref="SceneStatePatch" /> es</summary>
 public class SceneStateCollection : SceneFSMPatchCollections_Base<SceneStatePatch, SceneStatePatchSet, FsmState>;
 
-/// <summary>Patch set of Scene States</summary>
-/// <param name="objectName">Name of the object to be patched</param>
-/// <param name="patches">   The set of patches for the object</param>
+/// <inheritdoc />
+/// <param name="sceneName"> Name of the <see cref="Scene" /> that the <see cref="GameObject" /> is within</param>
+/// <param name="objectName">Name of the <see cref="GameObject" /> to be patched</param>
+/// <param name="patches">   The set of patches for the <see cref="GameObject" /></param>
+/// <param name="fsmName">   Optional: Name of the <see cref="PlayMakerFSM" /> to patch, the first found
+/// <see cref="PlayMakerFSM" /> is used if not provided</param>
 public class SceneStatePatchSet(string sceneName, string objectName, List<SceneStatePatch> patches, string fsmName = "")
     : StatePatchSet_Base<SceneStatePatch>(objectName, patches, fsmName), ISceneFSMPatchSet
 {
-    /// <summary>Patch set of Scene States</summary>
-    /// <param name="objectNames">Array of names for objects to be patched</param>
-    /// <param name="patches">    The set of patches for the object</param>
+    /// <inheritdoc cref="SceneStatePatchSet" />
+    /// <param name="objectNames">Array of names for <see cref="GameObject" /> s to be patched</param>
     private SceneStatePatchSet(string sceneName, string[] objectNames, List<SceneStatePatch> patches, string fsmName = "")
         : this(sceneName, "", patches, fsmName)
     {
@@ -241,26 +235,18 @@ public class SceneStatePatchSet(string sceneName, string objectName, List<SceneS
     }
 }
 
-/// <summary>Patch for a Scene State</summary>
-/// ///
-/// <param name="sceneName">Name of scene that the object is within</param>
-/// <param name="stateName">The state that is to be patched</param>
-/// <param name="patch">    The patch to be applied</param>
-/// <param name="unpatch">  Optional patch to remove</param>
-/// <param name="fsmName">  
-/// Optional fsm name, used when calling either ApplyPatch or RemovePatch with an array of PlayMakerFSMs
-/// </param>
+/// <inheritdoc/>
+/// <param name="sceneName"> Name of the <see cref="Scene" /> that the <see cref="GameObject" /> is within</param>
+/// <param name="stateName">Name of the <see cref="FsmState" /> to patch</param>
+/// <param name="patch">    The patch for adding the <see cref="FsmStateAction" /></param>
+/// <param name="unpatch">  Optional: The patch for removing the <see cref="FsmStateAction" /></param>
+/// <param name="fsmName">   Optional: Name of the <see cref="PlayMakerFSM" /> to patch, the first found
+/// <see cref="PlayMakerFSM" /> is used if not provided</param>
 public class SceneStatePatch(string sceneName, string objectName, string stateName, Action<FsmState, object[]> patch, Action<FsmState, object[]>? unpatch = null, string fsmName = "")
 : StatePatch_Base(stateName, patch, unpatch, fsmName), ISceneFSMPatch
 {
-    /// <summary>Patch for a Scene State</summary>
-    /// <param name="sceneName"> Name of scene that the object is within</param>
-    /// <param name="stateNames">An array of state names to be patched within</param>
-    /// <param name="patch">     The patch to be applied</param>
-    /// <param name="unpatch">   Optional patch to remove</param>
-    /// <param name="fsmName">   
-    /// Optional fsm name, used when calling either ApplyPatch or RemovePatch with an array of PlayMakerFSMs
-    /// </param>
+    /// <inheritdoc cref="SceneStatePatch"/>
+    /// <param name="stateNames">Array of names for the <see cref="FsmState" />s to be patched</param>
     public SceneStatePatch(string sceneName, string objectName, string[] stateNames, Action<FsmState, object[]> patch, Action<FsmState, object[]>? unpatch = null, string fsmName = "")
         : this(sceneName, objectName, "", patch, unpatch, fsmName)
     {
@@ -284,10 +270,11 @@ public class SceneStatePatch(string sceneName, string objectName, string stateNa
 
 #region Abstraction
 
-/// <summary>Abstract class for a collection of Scene FSM patches</summary>
-/// <typeparam name="PatchType">The class for the base patch sets</typeparam>
-/// <typeparam name="PatchSetType">The class for the base patch</typeparam>
-/// <typeparam name="PatchTarget">The type of FSM thing the patches are patching</typeparam>
+/// <summary>Abstract class for <see cref="Scene" /> FSM Patche Collections</summary>
+/// <typeparam name="PatchType">The type of FSM Patch</typeparam>
+/// <typeparam name="PatchSetType">The type of FSM Patch Set</typeparam>
+/// <typeparam name="PatchTarget">The type of FSM Object we are targeting (<see cref="FsmStateAction"/>
+/// or <see cref="FsmState">)</typeparam>
 public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, PatchTarget>
     : ObjectPatchCollection_Base<PatchType, PatchSetType, PlayMakerFSM, PatchTarget>
     where PatchType : FSMPatch_Base<PatchTarget>
@@ -296,16 +283,16 @@ public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, Pat
     private readonly Dictionary<string, Dictionary<string, int>> patchedObjects = [];
 
     /// <summary>
-    /// Dictionary containing the names of objects within scenes to patch and how many patches are to be applied to them
+    /// Dictionary containing the names of <see cref="GameObject" />s within scenes to patch and how many patches are to be applied to them
     /// </summary>
     public new Dictionary<string, Dictionary<string, int>> PatchedObjects => patchedObjects;
 
     /// <summary>The collection of patches that this contains</summary>
     public new Dictionary<string, Dictionary<string, HashSet<PatchType>>> Patches { get; } = [];
 
-    /// <summary>Applies the patches to the given Scene</summary>
-    /// <param name="scene">  The scene to be patched</param>
-    /// <param name="objects">The objects within the scene</param>
+    /// <summary>Applies the patches to the given <see cref="Scene" /></summary>
+    /// <param name="scene">  The <see cref="Scene" /> to be patched</param>
+    /// <param name="objects">The <see cref="GameObject" />s within the <see cref="Scene" /></param>
     public void ApplyPatches(UnityEngine.SceneManagement.Scene scene, HashSet<GameObject> objects)
     {
         if (Patches.TryGetValue(scene.name, out Dictionary<string, HashSet<PatchType>> patches))
@@ -318,9 +305,9 @@ public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, Pat
         }
     }
 
-    /// <summary>Removes the patches applied to the given Scene</summary>
-    /// <param name="scene">  The scene that the patches were applied to</param>
-    /// <param name="objects">The objects within the scene</param>
+    /// <summary>Removes the patches applied to the given <see cref="Scene" /></summary>
+    /// <param name="scene">  The <see cref="Scene" /> that the patches were applied to</param>
+    /// <param name="objects">The <see cref="GameObject" />s within the <see cref="Scene" /></param>
     public void RemovePatches(UnityEngine.SceneManagement.Scene scene, HashSet<GameObject> objects)
     {
         if (Patches.TryGetValue(scene.name, out Dictionary<string, HashSet<PatchType>> patches))
@@ -334,7 +321,7 @@ public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, Pat
     }
 
     /// <summary>Register a collection of patches</summary>
-    /// <param name="patchCollection">The dictionary containing the patches to be applied to objects</param>
+    /// <param name="patchCollection">The dictionary containing the patches to be applied to <see cref="GameObject" />s</param>
     public virtual void RegisterPatchCollection(Dictionary<string, Dictionary<string, PatchType>> patchCollection)
     {
         foreach (var patchGroup in patchCollection)
@@ -347,8 +334,8 @@ public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, Pat
     }
 
     /// <summary>Register a collection of patches</summary>
-    /// <param name="sceneName">      Name of scene that the object is within</param>
-    /// <param name="objectName">     Name of the object</param>
+    /// <param name="sceneName">      Name of the <see cref="Scene" /> that the <see cref="GameObject" /> is within</param>
+    /// <param name="objectName">     Name of the <see cref="GameObject" /></param>
     /// <param name="patchCollection">List containing patches to apply</param>
     public virtual void RegisterPatchCollection(string sceneName, string objectName, List<PatchType> patchCollection)
     {
@@ -358,9 +345,9 @@ public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, Pat
         }
     }
 
-    /// <summary>Register a patch for an object in a scene</summary>
-    /// <param name="sceneName"> Name of scene that the object is within</param>
-    /// <param name="objectName">Name of the object</param>
+    /// <summary>Register a patch for an <see cref="GameObject" /> in a <see cref="Scene" /></summary>
+    /// <param name="sceneName"> Name of the <see cref="Scene" /> that the <see cref="GameObject" /> is within</param>
+    /// <param name="objectName">Name of the <see cref="GameObject" /></param>
     /// <param name="smolPatch"> Patch to apply</param>
     public virtual void RegisterPatchInCollection(string sceneName, string objectName, ISmolPatch smolPatch)
     {
@@ -400,7 +387,7 @@ public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, Pat
     }
 
     /// <summary>Unregister a collection of patches</summary>
-    /// <param name="patchCollection">The dictionary containing the patches to be removed from objects</param>
+    /// <param name="patchCollection">The dictionary containing the patches to be removed from <see cref="GameObject" />s</param>
     public virtual void UnregisterPatchCollection(Dictionary<string, Dictionary<string, PatchType>> patchCollection)
     {
         foreach (var patchGroup in patchCollection)
@@ -413,8 +400,8 @@ public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, Pat
     }
 
     /// <summary>Unregister a collection of patches</summary>
-    /// <param name="sceneName">      Name of scene that the object is within</param>
-    /// <param name="objectName">     Name of the object</param>
+    /// <param name="sceneName">      Name of the <see cref="Scene" /> that the <see cref="GameObject" /> is within</param>
+    /// <param name="objectName">     Name of the <see cref="GameObject" /></param>
     /// <param name="patchCollection">List containing patches to remove</param>
     public virtual void UnregisterPatchCollection(string sceneName, string objectName, List<PatchType> patchCollection)
     {
@@ -424,9 +411,9 @@ public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, Pat
         }
     }
 
-    /// <summary>Unregister a patch for an object in a scene</summary>
-    /// <param name="sceneName"> Name of scene that the object is within</param>
-    /// <param name="objectName">Name of the object</param>
+    /// <summary>Unregister a patch for an object in a <see cref="Scene" /></summary>
+    /// <param name="sceneName"> Name of the <see cref="Scene" /> that the <see cref="GameObject" /> is within</param>
+    /// <param name="objectName">Name of the <see cref="GameObject" /></param>
     /// <param name="smolPatch"> Patch to remove</param>
     public virtual void UnregisterPatchInCollection(string sceneName, string objectName, ISmolPatch smolPatch)
     {
@@ -456,7 +443,7 @@ public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, Pat
             CuteRandoCore.Log.LogWarning($"Register patch called with invalid patch {smolPatch.Name}");
     }
 
-    #region Overrided Register/Unregister Methods
+    #region Overridden Register/Unregister Methods
 
 #pragma warning disable CS0809 // Obsolete member overrides non-obsolete member
 
@@ -473,7 +460,7 @@ public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, Pat
     public override void UnregisterPatchInCollection(string objectName, ISmolPatch smolPatch) { }
 
 #pragma warning restore CS0809 // Obsolete member overrides non-obsolete member
-    #endregion Overrided Register/Unregister Methods
+    #endregion Overridden Register/Unregister Methods
 }
 
 #endregion Abstraction
@@ -481,7 +468,7 @@ public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, Pat
 /// <summary>Marks a patch as a Scene patch</summary>
 public interface IScenePatch
 {
-    /// <summary>Name of the scene the patch is for</summary>
+    /// <summary>Name of the <see cref="Scene" /> the patch is for</summary>
     public string SceneName { get; }
 
     /// <summary>Name of the patch target</summary>
