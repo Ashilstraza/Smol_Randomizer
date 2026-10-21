@@ -7,7 +7,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-namespace Smol_Randomizer.Patchers.gameScene;
+namespace Smol_Randomizer.Patchers.ScenePatches;
 
 /// <summary>Handles patching <see cref="Scene" /> <see cref="PlayMakerFSM" />s</summary>
 internal class SceneFSMPatches
@@ -27,6 +27,9 @@ internal class SceneFSMPatches
     /// <param name="scene">The <see cref="Scene" /> to patch</param>
     internal static void ApplyPatches(Scene scene)
     {
+        if (!scene.IsValid()) // Something is fishy, abort.
+            return;
+
         HashSet<GameObject> objects = scene.GetRootGameObjects().ToHashSet();
 
         sceneStateActionCollection.ApplyPatches(scene, objects);
@@ -47,7 +50,7 @@ internal class SceneFSMPatches
 
     /// <summary>Registers a collection of patches</summary>
     /// <param name="scenePatchCollection">The collection of patches to add</param>
-    public static void RegisterPatchCollection(HashSet<ISceneFSMPatch> scenePatchCollection)
+    public static void RegisterPatchCollection(List<ISceneFSMPatch> scenePatchCollection)
     {
         foreach (var patchGroup in scenePatchCollection)
         {
@@ -62,7 +65,7 @@ internal class SceneFSMPatches
 
     /// <summary>Unregisters a collection of patches</summary>
     /// <param name="scenePatchCollection">The collection of patches to remove</param>
-    public static void UnregisterPatchCollection(HashSet<ISceneFSMPatch> scenePatchCollection)
+    public static void UnregisterPatchCollection(List<ISceneFSMPatch> scenePatchCollection)
     {
         foreach (var patchGroup in scenePatchCollection)
         {
@@ -145,7 +148,7 @@ public class SceneStateActionPatchSet(string sceneName, string objectName, List<
         NameArray = objectNames;
     }
 
-    public string SceneName { get; } = sceneName;
+    public string SceneName => sceneName;
 
     public string ObjectName { get; } = objectName;
 
@@ -181,10 +184,9 @@ public class SceneStateActionPatch(string sceneName, string objectName, string s
         NameArray = stateNames;
     }
 
-    public string SceneName { get; } = sceneName;
+    public string SceneName => sceneName;
 
-    /// <summary>Name of the patch target</summary>
-    public string ObjectName { get; } = objectName;
+    public string ObjectName => objectName;
 
     public override object Clone()
     {
@@ -218,7 +220,7 @@ public class SceneStatePatchSet(string sceneName, string objectName, List<SceneS
         NameArray = objectNames;
     }
 
-    public string SceneName { get; } = sceneName;
+    public string SceneName => sceneName;
 
     public string ObjectName { get; } = objectName;
 
@@ -293,7 +295,7 @@ public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, Pat
     /// <summary>Applies the patches to the given <see cref="Scene" /></summary>
     /// <param name="scene">  The <see cref="Scene" /> to be patched</param>
     /// <param name="objects">The <see cref="GameObject" />s within the <see cref="Scene" /></param>
-    public void ApplyPatches(UnityEngine.SceneManagement.Scene scene, HashSet<GameObject> objects)
+    public void ApplyPatches(Scene scene, HashSet<GameObject> objects)
     {
         if (Patches.TryGetValue(scene.name, out Dictionary<string, HashSet<PatchType>> patches))
         {
@@ -308,7 +310,7 @@ public abstract class SceneFSMPatchCollections_Base<PatchType, PatchSetType, Pat
     /// <summary>Removes the patches applied to the given <see cref="Scene" /></summary>
     /// <param name="scene">  The <see cref="Scene" /> that the patches were applied to</param>
     /// <param name="objects">The <see cref="GameObject" />s within the <see cref="Scene" /></param>
-    public void RemovePatches(UnityEngine.SceneManagement.Scene scene, HashSet<GameObject> objects)
+    public void RemovePatches(Scene scene, HashSet<GameObject> objects)
     {
         if (Patches.TryGetValue(scene.name, out Dictionary<string, HashSet<PatchType>> patches))
         {

@@ -11,7 +11,7 @@ using HutongGames.PlayMaker;
 using HutongGames.PlayMaker.Actions;
 
 using Smol_Randomizer.Patchers;
-using Smol_Randomizer.Patchers.gameScene;
+using Smol_Randomizer.Patchers.ScenePatches;
 
 #if TESTING
 
@@ -497,12 +497,11 @@ internal class Hero_Size_Rando : Rando_Base
 
         // Hitboxes for initial checks
         Quaternion rotation = Instance.heroTransform.rotation;
-
-        DebugDrawer.Circle(farOrigin, 0.1f, rotation, duration: 1f);
-        DebugDrawer.Circle(nearOrigin, 0.1f, rotation, duration: 1f);
+        DebugDrawing.Primitives.Circle(farOrigin, 0.1f, rotation, duration: 1f);
+        DebugDrawing.Primitives.Circle(nearOrigin, 0.1f, rotation, duration: 1f);
 
         bool directAbove = Helper.IsRayHittingNoTriggers(vector + heightOffset, facingDirection, 0.75f, LAYERMASK);
-        DebugDrawer.Arrow(vector + heightOffset, vector + heightOffset + facingDirection * 0.75f, 0.25f, directAbove ? Color.red : Color.cyan, duration: 1f);
+        DebugDrawing.Primitives.Arrow(vector + heightOffset, vector + heightOffset + facingDirection * 0.75f, 0.25f, directAbove ? Color.red : Color.cyan, duration: 1f);
 
         if (directAbove) // Directly Above, different than CheckNearRoof, probably allows for clambering through a gap?
             return;
@@ -512,24 +511,20 @@ internal class Hero_Size_Rando : Rando_Base
 
         Vector2 heightGoodVector = new(vector.x, closestNearHit.point.y);
         bool heightGood = !Helper.IsRayHittingNoTriggers(heightGoodVector, Vector2.up, ceiling, LAYERMASK, out var heightHit);
-
-        // Hitboxes for landing points
-        DebugDrawer.Arrow(heightGoodVector, heightGoodVector + Vector2.up * ceiling, 0.25f, heightGood ? Color.cyan : Color.red, duration: 1f);
+        DebugDrawing.Primitives.Arrow(heightGoodVector, heightGoodVector + Vector2.up * ceiling, 0.25f, heightGood ? Color.cyan : Color.red, duration: 1f);
 
         if (!heightGood)
             return;
-
-        DebugDrawer.Arrow(farOrigin, farOrigin + Vector2.down * ceiling, 0.25f, farGood ? Color.green : Color.red, duration: 1f);
-        DebugDrawer.Arrow(nearOrigin, nearOrigin + Vector2.down * ceiling, 0.25f, nearGood ? Color.green : Color.red, duration: 1f);
+        DebugDrawing.Primitives.Arrow(farOrigin, farOrigin + Vector2.down * ceiling, 0.25f, farGood ? Color.green : Color.red, duration: 1f);
+        DebugDrawing.Primitives.Arrow(nearOrigin, nearOrigin + Vector2.down * ceiling, 0.25f, nearGood ? Color.green : Color.red, duration: 1f);
 
         if (!farGood || !nearGood) // One or both are not good
             return;
 
         Vector2 farHitPoint = closestFarHit.point;
         Vector2 nearHitPoint = closestNearHit.point;
-
-        DebugDrawer.Circle(farHitPoint, 0.1f, rotation, duration: 1f);
-        DebugDrawer.Circle(nearHitPoint, 0.1f, rotation, duration: 1f);
+        DebugDrawing.Primitives.Circle(farHitPoint, 0.1f, rotation, duration: 1f);
+        DebugDrawing.Primitives.Circle(nearHitPoint, 0.1f, rotation, duration: 1f);
 
         clamberedCollider = closestNearHit.collider;
 
@@ -955,8 +950,8 @@ internal class Hero_Size_Rando : Rando_Base
 
     #region Scene and Object Patches
 
-    /// <summary>Dictionary containing the various <see cref="Scene" /> patches</summary>
-    private static readonly HashSet<ISceneFSMPatch> sceneFSMPatches = new()
+    /// <summary>List containing the various <see cref="Scene" /> Fsm patches</summary>
+    private static readonly List<ISceneFSMPatch> sceneFSMPatches = new()
     {
         new SceneStateActionPatch("Bonetown",
             "Churchkeeper Intro Scene",

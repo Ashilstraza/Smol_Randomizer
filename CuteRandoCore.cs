@@ -22,7 +22,7 @@ using Silksong.ModMenu.Plugin;
 using Silksong.ModMenu.Screens;
 
 using Smol_Randomizer.Patchers.Enemy;
-using Smol_Randomizer.Patchers.gameScene;
+using Smol_Randomizer.Patchers.ScenePatches;
 using Smol_Randomizer.Randomizers;
 using Smol_Randomizer.Settings;
 
@@ -57,7 +57,10 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     private bool updateOnFirstSceneFrame;
 
     /// <summary>The current scene loaded</summary>
-    private Scene currentScene;
+    private static Scene currentScene;
+
+    /// <inheritdoc cref="currentScene"/>
+    public static Scene CurrentScene => currentScene;
 
     /// <summary>List of all registered randomizer names</summary>
     private static readonly HashSet<string> allRandomizers = [];
@@ -96,39 +99,6 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <summary>Reference to our log source</summary>
     internal static ManualLogSource Log;
 
-    /// <summary>If we have patched <see cref="HealthManager.OnEnable" /></summary>
-    private static bool patchedHealthManager = false;
-
-    /// <summary>If we have patched <see cref="DamageHero" />'s OnEnable</summary>
-    private static bool patchedDamageHero = false;
-
-    /// <summary>Dictionary containing the randomizers that want to update the active <see cref="ICurrencyLimitRegion" /></summary>
-    private static readonly Dictionary<string, Action<ICurrencyLimitRegion>> activeLimitRegions = [];
-
-    /// <summary>Dictionary containing the randomizers that want to update on <see cref="Scene" /> load</summary>
-    private static readonly Dictionary<string, Action<Scene, LoadSceneMode>> activeOnSceneLoad = [];
-
-    /// <summary>Dictionary containing the randomizers that want to update on game startup</summary>
-    private static readonly Dictionary<string, Action> activeGameStartup = [];
-
-    /// <summary>Dictionary containing the randomizers that want to update on game shutdown</summary>
-    private static readonly Dictionary<string, Action> activeGameShutdown = [];
-
-    /// <summary>Dictionary containing the randomizers that want to update on first frame of a new <see cref="Scene" /></summary>
-    private static readonly Dictionary<string, Action<Scene>> activeOnFirstSceneFrame = [];
-
-    /// <summary>Dictionary containing the randomizers that want to update on unload</summary>
-    private static readonly Dictionary<string, Action> activeOnUnload = [];
-
-    /// <summary>Dictionary containing the randomizers that want to update when an enemy is enabled</summary>
-    private static readonly Dictionary<string, Action<HealthManager>> activeEnemy = [];
-
-    /// <summary>Dictionary containing the randomizers that want to update when the hero is damaged</summary>
-    private static readonly Dictionary<string, Action<DamageHero, HealthManager>> activeHeroDamager = [];
-
-    /// <summary>Dictionary containing the descriptions of all the randomizers</summary>
-    private static readonly Dictionary<string, string> randomizerDescriptions = [];
-
     /// <summary>On Startup (no window visible)</summary>
     private void Awake()
     {
@@ -156,10 +126,6 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         SceneManager.sceneLoaded += OnSceneLoaded;
 
         currentScene = SceneManager.GetActiveScene();
-
-        harmony.Patch(AccessTools.Method(
-            typeof(Fsm), "Start"),
-            prefix: new HarmonyMethod(typeof(CuteRandoCore), nameof(Fsm_Start_Prefix)));
 
         foreach (KeyValuePair<string, Action> rando in activeGameStartup)
             rando.Value();
@@ -315,8 +281,9 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
     private static bool Fsm_Start_Prefix(ref Fsm __instance)
     {
-        if (__instance.GameObject != null)
-            EnemyFSMPatches.ApplyPatches(__instance.GameObject);
+        foreach (var randomizer in activeOnFsmStart)
+            randomizer.Value(__instance);
+
         return true;
     }
 
@@ -416,6 +383,45 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     #endregion File_Import/Export
 
     #region Randomizer_Functions
+
+    /// <summary>Dictionary containing the randomizers that want to update the active <see cref="ICurrencyLimitRegion" /></summary>
+    private static readonly Dictionary<string, Action<ICurrencyLimitRegion>> activeLimitRegions = [];
+
+    /// <summary>Dictionary containing the randomizers that want to update on <see cref="Scene" /> load</summary>
+    private static readonly Dictionary<string, Action<Scene, LoadSceneMode>> activeOnSceneLoad = [];
+
+    /// <summary>Dictionary containing the randomizers that want to update on game startup</summary>
+    private static readonly Dictionary<string, Action> activeGameStartup = [];
+
+    /// <summary>Dictionary containing the randomizers that want to update on game shutdown</summary>
+    private static readonly Dictionary<string, Action> activeGameShutdown = [];
+
+    /// <summary>Dictionary containing the randomizers that want to update on first frame of a new <see cref="Scene" /></summary>
+    private static readonly Dictionary<string, Action<Scene>> activeOnFirstSceneFrame = [];
+
+    /// <summary>Dictionary containing the randomizers that want to update on unload</summary>
+    private static readonly Dictionary<string, Action> activeOnUnload = [];
+
+    /// <summary>Dictionary containing the randomizers that want to update when an enemy is enabled</summary>
+    private static readonly Dictionary<string, Action<HealthManager>> activeEnemy = [];
+
+    /// <summary>Dictionary containing the randomizers that want to update when the hero is damaged</summary>
+    private static readonly Dictionary<string, Action<DamageHero, HealthManager>> activeHeroDamager = [];
+
+    /// <summary>Dictionary containing the randomizers that want to update when an FSM starts</summary>
+    private static readonly Dictionary<string, Action<Fsm>> activeOnFsmStart = [];
+
+    /// <summary>Dictionary containing the descriptions of all the randomizers</summary>
+    private static readonly Dictionary<string, string> randomizerDescriptions = [];
+
+    /// <summary>If we have patched <see cref="HealthManager.OnEnable" /></summary>
+    private static bool patchedHealthManager = false;
+
+    /// <summary>If we have patched <see cref="DamageHero" />'s OnEnable</summary>
+    private static bool patchedDamageHero = false;
+
+    /// <summary>If we have patched <see cref="Fsm.Start"/></summary>
+    private static bool patchedOnFsmStart = false;
 
     /// <summary>Create the custom mod menu</summary>
     /// <returns>the built mod menu</returns>
@@ -552,6 +558,24 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
                         randomizer.Object));
                 break;
 
+            case RandomizerEventType.FSM_Start:
+                activeOnFsmStart.Add(
+                    randomizer.Name,
+                    (Action<Fsm>)DelegateHelper(
+                        typeof(Action<Fsm>),
+                        randomizer.Method,
+                        randomizer.Object));
+
+                if (!patchedOnFsmStart)
+                {
+                    harmony.Patch(AccessTools.Method(
+                    typeof(Fsm), "Start"),
+                        prefix: new HarmonyMethod(typeof(CuteRandoCore), nameof(Fsm_Start_Prefix)));
+                    patchedOnFsmStart = true;
+                }
+
+                break;
+
             default:
                 Log.LogError("Unimplemented entryType");
                 allRandomizerActions.Remove(randomizer);
@@ -560,13 +584,9 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
         return true;
 
-        static Delegate DelegateHelper(Type type, MethodInfo methodInfo, object? firstArgument = null)
+        static Delegate DelegateHelper(Type type, MethodInfo methodInfo, object firstArgument)
         {
-            if (firstArgument != null)
-            {
-                return Delegate.CreateDelegate(type: type, method: methodInfo, firstArgument: firstArgument);
-            }
-            return Delegate.CreateDelegate(type: type, method: methodInfo);
+            return Delegate.CreateDelegate(type: type, method: methodInfo, firstArgument: firstArgument);
         }
     }
 
@@ -618,6 +638,10 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
             case RandomizerEventType.GameShutdown:
                 activeGameShutdown.Remove(randomizer.Name);
+                break;
+
+            case RandomizerEventType.FSM_Start:
+                activeOnFsmStart.Remove(randomizer.Name);
                 break;
 
             default:
@@ -784,14 +808,15 @@ public enum RandomizerEventType : byte
     GameStartup,
     GameShutdown,
     ActiveHeroDamager,
-    OnUnload
+    OnUnload,
+    FSM_Start
 }
 
 /// <summary>Contains the information for a randomizer that wants to be added.</summary>
 /// <param name="name">          Unique name of the randomizer.</param>
 /// <param name="randomizerType">The type of the randomizer.</param>
 /// <param name="method">        The method to call to use the randomizer.</param>
-public class Randomizer_Info(string name, RandomizerEventType randomizerType, MethodInfo method, object? o)
+public class Randomizer_Info(string name, RandomizerEventType randomizerType, MethodInfo method, object o)
 {
     /// <summary>Unique name of the randomizer.</summary>
     public string Name => name;
@@ -803,5 +828,5 @@ public class Randomizer_Info(string name, RandomizerEventType randomizerType, Me
     public MethodInfo Method => method;
 
     /// <summary>The first argument of the method being called.</summary>
-    public object? Object => o;
+    public object Object => o;
 }

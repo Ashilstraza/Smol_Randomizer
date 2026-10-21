@@ -24,6 +24,11 @@ using Smol_Randomizer.Settings;
 
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;
+
+using System.Collections;
+using HutongGames.PlayMaker;
+using Smol_Randomizer.Patchers.FSM_Actions;
 
 namespace Smol_Randomizer.Randomizers;
 
@@ -45,7 +50,9 @@ internal partial class Enemy_Size_Rando : Rando_Base
     /// <summary>Set of enemies that we have touched in this <see cref="Scene" /></summary>
     private readonly Dictionary<HealthManager, Vector3> currentEnemyHealthManagers = [];
 
-    public readonly HashSet<string> excludedEnemies = ["Splinter Queen Spike"];
+    public readonly HashSet<string> excludedEnemies = [ "Splinter Queen Spike", // Looks bad in boss arena
+                                                        "Swamp Barnacle", // TODO Figure it out
+                                                        "Centipede Trap"]; // No Point to scale
 
     #region Randomizer_Info
 
@@ -54,6 +61,8 @@ internal partial class Enemy_Size_Rando : Rando_Base
 
     /// <summary>Used for registering this randomizer in the core for when a <see cref="Scene" /> loads</summary>
     private Randomizer_Info eventOnFirstSceneFrame;
+
+    private Randomizer_Info eventOnFsmStart;
 
     #endregion Randomizer_Info
 
@@ -88,6 +97,13 @@ internal partial class Enemy_Size_Rando : Rando_Base
                 typeof(Enemy_Size_Rando),
                 nameof(OnFirstSceneFrame)),
                 this);
+        eventOnFsmStart = new(
+            RandomizerName,
+            RandomizerEventType.FSM_Start,
+            AccessTools.Method(
+                typeof(Enemy_Size_Rando),
+                nameof(OnFSMStart)),
+            this);
 
         base.InitRandomizer();
     }
@@ -96,6 +112,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
     {
         CuteRandoCore.RegisterRandomizer(eventActiveEnemy);
         CuteRandoCore.RegisterRandomizer(eventOnFirstSceneFrame);
+        CuteRandoCore.RegisterRandomizer(eventOnFsmStart);
 
         // Located in Enemy_Size_Rando_Patches
         EnemyFSMPatches.RegisterPatchCollection(enemyFSMPatches);
@@ -106,6 +123,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
     {
         CuteRandoCore.UnregisterRandomizer(eventActiveEnemy);
         CuteRandoCore.UnregisterRandomizer(eventOnFirstSceneFrame);
+        CuteRandoCore.UnregisterRandomizer(eventOnFsmStart);
 
         // Located in Enemy_Size_Rando_Patches
         EnemyFSMPatches.UnregisterPatchCollection(enemyFSMPatches);
@@ -173,12 +191,12 @@ internal partial class Enemy_Size_Rando : Rando_Base
     /// <param name="___isTurnScheduled">    Private Variable: <see langword="true" /> if the enemy wants to turn anyway</param>
     /// <param name="___collider">           Private Variable: <see cref="BoxCollider2D" /> fo the enemy</param>
     /// <param name="___rayFrontDistance">   Private Variable: The distance the front facing ray should check</param>
-    /// <param name="___spriteFacesRight">
+    /// <param name="___spriteFacesRight">   
     /// Private Variable: <see langword="true" /> if the enemy is facing right, <see langword="false" /> if facing left
     /// </param>
     /// <param name="___velocity">           Private Variable: <see cref="Vector2" /> velocity of the enemy</param>
     /// <param name="___rayDownFrontPadding">Private Variable: Offsets the x value of the front down ray</param>
-    /// <param name="__result">
+    /// <param name="__result">              
     /// Return Variable: <see langword="true" /> if the enemy should turn, <see langword="false" /> otherwise
     /// </param>
     private static void Crawler_ShouldTurn_Postfix(ref Crawler __instance,
@@ -211,17 +229,17 @@ internal partial class Enemy_Size_Rando : Rando_Base
         Vector2 down = Vector2.down;
         float length = ShouldTurnLengthCheck(Math.Abs(__instance.transform.localScale.y));
 
-        DebugDrawer.Square(__instance.transform, offset, ___collider.size, oneFrame: true);
+        /*DebugDrawer.Square(__instance.transform, offset, ___collider.size, oneFrame: true);
         DebugDrawer.Circle(__instance.transform, back_bottom, 0.1f, __instance.transform.rotation, Color.red, oneFrame: true);
         DebugDrawer.Circle(__instance.transform, front_top, 0.1f, __instance.transform.rotation, Color.yellow, oneFrame: true);
         DebugDrawer.Circle(__instance.transform, front_bottom, 0.1f, __instance.transform.rotation, Color.green, oneFrame: true);
         DebugDrawer.Circle(__instance.transform, front, 0.1f, __instance.transform.rotation, oneFrame: true);
         DebugDrawer.Circle(__instance.transform, paddedFront_Down, 0.1f, __instance.transform.rotation, Color.cyan, oneFrame: true);
         DebugDrawer.Circle(__instance.transform, back_middle, 0.1f, __instance.transform.rotation, Color.blue, oneFrame: true);
-        DebugDrawer.Circle(__instance.transform, down, 0.1f, __instance.transform.rotation, oneFrame: true);
+        DebugDrawer.Circle(__instance.transform, down, 0.1f, __instance.transform.rotation, oneFrame: true);*/
 
         bool airborne = !__instance.IsRayHittingLocal(back_middle, down, length);
-        DebugDrawer.Line(__instance.transform,
+        DebugDrawing.Primitives.Line(__instance.transform,
                     back_middle,
                     back_middle + down * length,
                     airborne ? Color.cyan : Color.clear,
@@ -232,7 +250,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
             return;
         }
         bool wallCheck = __instance.IsRayHittingLocal(front_bottom, front, frontDistanceTimeScaled);
-        DebugDrawer.Line(__instance.transform,
+        DebugDrawing.Primitives.Line(__instance.transform,
                     front_bottom,
                     front_bottom + front * frontDistanceTimeScaled,
                     wallCheck ? Color.green : Color.red,
@@ -243,7 +261,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
             return;
         }
         bool ledgeCheck = !__instance.IsRayHittingLocal(paddedFront_Down, down, length);
-        DebugDrawer.Line(__instance.transform,
+        DebugDrawing.Primitives.Line(__instance.transform,
                     paddedFront_Down,
                     paddedFront_Down + down * length,
                     ledgeCheck ? Color.green : Color.red,
@@ -361,6 +379,19 @@ internal partial class Enemy_Size_Rando : Rando_Base
         resizing = false;
     }
 
+    /// <summary>Called to apply patches to a specific enemy <see cref="Fsm" /></summary>
+    /// <param name="fsm">The <see cref="Fsm" /> to patch</param>
+    public void OnFSMStart(Fsm fsm)
+    {
+        if (fsm.GameObject == null)
+            return;
+
+        EnemyFSMPatches.ApplyPatches(fsm.GameObject);
+#if TESTING
+        EnableRayCastDebugs(fsm.GameObject);
+#endif
+    }
+
     /// <summary>Dictionary containing the various ignored child <see cref="GameObject" /> s</summary>
     private static Dictionary<string, string[]> ignoredChildAdjusts = new()
     {
@@ -371,14 +402,43 @@ internal partial class Enemy_Size_Rando : Rando_Base
         { "Farmer Catcher", ["Attack Range", "Alert Range"] },
         { "Crowman", ["Slash Range"] },
         { "Roachfeeder Tall", ["Attack Range", "Evade Range"] },
-        { "Roachkeeper", ["Attack Range"] }
+        { "Roachkeeper", ["Attack Range"] },
+        { "Song Pilgrim 03", ["Attack Range", "Slash Range"] },
+        { "Song Pilgrim 01", ["Attack Range"] },
+        { "Song Automaton Goomba", ["Alert Range"] },
     };
 
-    /// <summary>Dictionary containing options for child <see cref="GameObject" /> s</summary>
-    private static Dictionary<string, bool[]> childAdjustsOptions = new()
+    /// <summary>Record to hold the various options for adjusting specific children</summary>
+    private record ChildAdjustOption()
     {
-        { "Roof Crab", [false, true] }, // unused currently
-        //{ "Bone Hunter Child", [false, false, false]}
+        /// <summary>Name of the child</summary>
+        public string Name = "";
+        /// <summary>Name of the parent</summary>
+        public string ParentName = "";
+        /// <summary>If the X direction should be shifted in reverse, used in conjunction with <see cref="ShiftX" /></summary>
+        public bool ReverseX = false;
+        /// <summary>If the Y direction should be shifted in reverse, used in conjunction with <see cref="ShiftY" /></summary>
+        public bool ReverseY = false;
+        /// <summary>Use an alternate scaler for when the collider is null</summary>
+        public bool AlternateNullColliderScale = false;
+        /// <summary>Ignore adjusting the X direction</summary>
+        public bool IgnoreX = false;
+        /// <summary>Ignore adjusting the Y direction</summary>
+        public bool IgnoreY = false;
+        /// <summary>If the X direction should adjusted by shifting</summary>
+        public bool ShiftX = false;
+        /// <summary>If the Y direction should adjusted by shifting</summary>
+        public bool ShiftY = false;
+    }
+
+    /// <summary>List of specific adjustment options</summary>
+    private static List<ChildAdjustOption> childAdjustOptions = new()
+    {
+        new(){ParentName = "Swamp Ductsucker", IgnoreY = true},
+        new(){Name = "Ray Point G", IgnoreY = true},
+        new(){Name = "Ground Ray", IgnoreY = true},
+        new(){ParentName = "Song Automaton Shield", Name = "Alert Range", ShiftY = true},
+        new(){ParentName = "Song Automaton Shield", Name = "Unalert Range", ShiftY = true},
     };
 
     /// <summary>
@@ -387,24 +447,34 @@ internal partial class Enemy_Size_Rando : Rando_Base
     /// </summary>
     private static string[] extraChildAdjusts =
         ["Route", // Aspid wanderings
-        "Start Point",
-        "Patrol Point",
+        "Start Point", // Flyers
+        "Patrol Point", // Flyers
         "Move Target", // Bell Fly
-        "Throw Point",
-        "Initial Position Markers", // Stick Insect(s)
+        "Throw Point", // Throwers
+        "Initial Position Markers", // Stick Insects
+        "Range Top", // Swamp Drifters
+        "Range Bot", // Swamp Drifters
+        "Ray Ground F", // Swamp Ductsucker
+        "Ray Jump", // Swamp Ductsucker
+        "Ray Ground B", // Swamp Ductsucker
+        "Ray Ground Edge", // Swamp Ductsucker
+        "Ray Point G", // Clockwork enemies
+        "Ground Ray", // Clockwork enemies
+        "Steam Hit", // Clockwork enemies
+        //"Tendril",
         "a",
         "b",
         "c"
         ];
 
     /// <summary>Fixes any and all Alert style Ranges to be their default pre-scaled size.</summary>
-    /// <param name="obj"> The enemy <see cref="GameObject" /> whos children need to be adjusted</param>
-    /// <param name="name">The name of the enemy</param>
-    public static void AdjustChildren(GameObject obj, string name)
+    /// <param name="parent">    The enemy <see cref="GameObject" /> whos children need to be adjusted</param>
+    /// <param name="parentName">The name of the enemy</param>
+    public static void AdjustChildren(GameObject parent, string parentName)
     {
-        if (ignoredChildAdjusts.ContainsKey(name) && ignoredChildAdjusts[name].Contains("All")) return;
+        if (ignoredChildAdjusts.ContainsKey(parentName) && ignoredChildAdjusts[parentName].Contains("All")) return;
 
-        foreach (Transform child in obj.transform)
+        foreach (Transform child in parent.transform)
         {
             if (child.name.Contains(" Range"))
                 Adjust(child);
@@ -412,80 +482,143 @@ internal partial class Enemy_Size_Rando : Rando_Base
                 Adjust(child);
         }
 
-        // TODO: Reverse stuff
-        void Adjust(Transform target)
+        void Adjust(Transform child)
         {
-            if (target == null || (ignoredChildAdjusts.ContainsKey(name) && ignoredChildAdjusts[name].Contains(target.name))) return;
+            if (child == null || (ignoredChildAdjusts.ContainsKey(parentName) && ignoredChildAdjusts[parentName].Contains(child.name))) return;
 
 #if TESTING
-            CuteRandoCore.Log.LogInfo($"Patching {target.name} for {obj.name} in scene {obj.scene.name}");
+            CuteRandoCore.Log.LogInfo($"Patching {child.name} for {parent.name} in scene {parent.scene.name}");
 #endif
             bool reverseX = false;
             bool reverseY = false;
             bool alternateNullColliderScale = false;
+            bool ignoreX = false;
+            bool ignoreY = false;
+            bool shiftX = false;
+            bool shiftY = false;
 
-            if (target.name.Equals("Throw Point"))
-                alternateNullColliderScale = true;
-
-            if (childAdjustsOptions.ContainsKey(name))
+            if (child.name.Equals("Tendril"))
             {
-                reverseX = childAdjustsOptions[name].ElementAtOrDefault(0);
-                reverseY = childAdjustsOptions[name].ElementAtOrDefault(1);
-                alternateNullColliderScale = childAdjustsOptions[name].ElementAtOrDefault(2);
+                TendrilAdjust(parent, child.gameObject);
+                return;
             }
 
-            Vector2 parentScale = obj.transform.localScale;
-            double parentRotation = Math.PI * obj.transform.rotation.eulerAngles.z / 180;
+            if (child.name.Equals("Throw Point"))
+                alternateNullColliderScale = true;
+            var adjustOptions = childAdjustOptions.Find(adjust =>
+                                                        {
+                                                            if (adjust.ParentName != "" && !adjust.ParentName.Equals(parentName))
+                                                                return false;
+                                                            if (adjust.Name != "" && !adjust.Name.Equals(child.name))
+                                                                return false;
+                                                            if (adjust.ParentName.Equals(parentName) || adjust.Name.Equals(child.name))
+                                                                return true;
+                                                            return false;
+                                                        });
+            if (adjustOptions != null)
+            {
+                reverseX = adjustOptions.ReverseX;
+                reverseY = adjustOptions.ReverseY;
+                alternateNullColliderScale = adjustOptions.AlternateNullColliderScale;
+                ignoreX = adjustOptions.IgnoreX;
+                ignoreY = adjustOptions.IgnoreY;
+                shiftX = adjustOptions.ShiftX;
+                shiftY = adjustOptions.ShiftY;
 
-            bool negX = target.localScale.x < 0;
-            bool negY = target.localScale.y < 0;
+                float rotation = parent.transform.rotation.eulerAngles.z;
+                if ((rotation > 45 && rotation < 135) || (rotation > 225 && rotation < 315))
+                {
+                    if (ignoreY)
+                    {
+                        ignoreX = !ignoreX;
+                        ignoreY = !ignoreY;
+                    }
+                }
+            }
 
-            Vector2 localPosition = target.localPosition;
-            Collider2D collider = target.GetComponent<Collider2D>();
+            Vector2 parentScale = parent.transform.localScale;
+            double parentRotation = Math.PI * parent.transform.rotation.eulerAngles.z / 180;
+
+            bool negX = child.localScale.x < 0;
+            bool negY = child.localScale.y < 0;
+
+            Vector2 childLocalPosition = child.localPosition;
+            Collider2D childCollider = child.GetComponent<Collider2D>();
 
             if (resizing)
-                target.localScale = target.localScale.DivideElements(target.localScale.Abs());
+                child.localScale = child.localScale.DivideElements(child.localScale.Abs());
 
-            target.localScale = new((Math.Abs(target.lossyScale.x) * (negX ? -1 : 1)) / (parentScale.x * parentScale.x), (Math.Abs(target.lossyScale.y) * (negY ? -1 : 1)) / (parentScale.y * parentScale.y));
+            child.localScale = new((Math.Abs(child.lossyScale.x) * (negX ? -1 : 1)) / (parentScale.x * parentScale.x), (Math.Abs(child.lossyScale.y) * (negY ? -1 : 1)) / (parentScale.y * parentScale.y));
 
-            if (collider == null)
+            if (childCollider == null)
             {
                 if (!alternateNullColliderScale)
-                    target.position = (target.position - obj.transform.position).MultiplyElements(target.localScale.Abs()) + obj.transform.position;
+                {
+                    var newPos = (child.position - parent.transform.position).MultiplyElements(child.localScale.Abs()) + parent.transform.position;
+                    child.position = new Vector2(ignoreX ? child.position.x : newPos.x, ignoreY ? child.position.y : newPos.y);
+                }
                 else
-                    target.localPosition = new(target.localPosition.x * ((3 * parentScale.x) / 4), target.localPosition.y * ((3 * parentScale.y) / 4));
+                    child.localPosition = new(child.localPosition.x * ((3 * parentScale.x) / 4), child.localPosition.y * ((3 * parentScale.y) / 4));
 #if TESTING
-                DebugDrawer.Circle(target.position, 0.1f, color: Color.red, duration: 10f);
-                DebugDrawer.Square(obj.transform.position, 0.2f, color: Color.red, duration: 10f);
-                var debugCollider = target.gameObject.AddComponent<CircleCollider2D>();
-                debugCollider.name = "Smol_DebugCollider";
-                debugCollider.radius = 0.1f;
-                debugCollider.isTrigger = true;
-                debugCollider.enabled = true;
+                DebugDrawing.Primitives.Text(child.position + new Vector3(0, 0.1f, 0), child.name, Quaternion.identity, 0.05f, Color.red, duration: 10f);
+                DebugDrawing.Primitives.Circle(child.position, 0.1f, color: Color.red, duration: 10f);
+                DebugDrawing.Primitives.Text(parent.transform.position + new Vector3(0, 0.1f, 0), child.name, Quaternion.identity, 0.05f, Color.red, duration: 10f);
+                DebugDrawing.Primitives.Square(parent.transform.position, 0.2f, color: Color.red, duration: 10f);
 #endif
                 return;
             }
 
-            if ((localPosition.x.IsWithinTolerance(0.1f, 0f) && localPosition.y.IsWithinTolerance(0.1f, 0f))) return; // transform is located at approximately 0,0 on the object, don't bother doing more math
+            if (shiftX || shiftY)
+            {
+                float newX = shiftX ? ShiftChildPosition(childLocalPosition.x, Math.Abs(child.localScale.x), childCollider.bounds.extents.x / 2, childCollider.offset.x, (float)Math.Sin(parentRotation), reverseX) : childLocalPosition.x;
+                float newY = shiftY ? ShiftChildPosition(childLocalPosition.y, Math.Abs(child.localScale.y), childCollider.bounds.extents.y / 2, childCollider.offset.y, (float)Math.Cos(parentRotation), reverseY) : childLocalPosition.y;
+                child.localPosition = new(ignoreX ? childLocalPosition.x : newX, ignoreY ? childLocalPosition.y : newY);
+                return;
+            }
+            else
+            {
+                if (childLocalPosition.x.IsWithinTolerance(0.1f, 0f) && childLocalPosition.y.IsWithinTolerance(0.1f, 0f)) return; // transform is located at approximately 0,0 on the object, don't bother doing more math
 
-            float newX = AdjustChildPosition(
-                localPosition.x,
-                collider.offset.x,
-                Math.Abs(parentScale.x));
-            float newY = AdjustChildPosition(
-                localPosition.y,
-                collider.offset.y,
-                Math.Abs(parentScale.y));
+                float newX = AdjustChildPosition(
+                    childLocalPosition.x,
+                    childCollider.offset.x,
+                    Math.Abs(parentScale.x));
+                float newY = AdjustChildPosition(
+                    childLocalPosition.y,
+                    childCollider.offset.y,
+                    Math.Abs(parentScale.y));
 
-            target.localPosition = new(newX, newY);
+                child.localPosition = new(ignoreX ? childLocalPosition.x : newX, ignoreY ? childLocalPosition.y : newY);
+            }
         }
     }
 
-    /// <summary>Calculates a new position</summary>
+    private static void TendrilAdjust(GameObject parent, GameObject tendril)
+    {
+        var botCollider = tendril.transform.Find("Tendril Collider Bottom");
+        if (botCollider == null) return;
+        DebugDrawing.Primitives.Circle(botCollider.position, 0.1f, color: Color.blue, duration: 10f);
+
+        var absParentScale = Math.Abs(parent.transform.GetScaleY());
+        var newScale = absParentScale / (absParentScale * absParentScale);
+        var collider = tendril.GetComponent<BoxCollider2D>();
+        var size = new Vector2(collider.size.x, collider.size.y);
+        var offset = new Vector2(collider.offset.x, collider.offset.y);
+        var attackDetectorFSM = tendril.transform.Find("Attack Detector").GetComponent<PlayMakerFSM>();
+
+        tendril.transform.localScale *= newScale;
+        collider.offset = offset * absParentScale;
+        collider.size = size * absParentScale;
+        attackDetectorFSM.FsmVariables.GetFsmVector2("Box Size").Value = collider.size;
+        attackDetectorFSM.FsmVariables.GetFsmVector2("Box Offset").Value = collider.offset;
+        DebugDrawing.Primitives.Circle(botCollider.position, 0.1f, color: Color.red, duration: 10f);
+    }
+
+    /// <summary>Calculates a new position for a child element, scaling around its origin</summary>
     /// <param name="position">The old child position</param>
     /// <param name="offset">  The offset of the child</param>
     /// <param name="scale">   The scale of the parent</param>
-    /// <returns>New position value</returns>
+    /// <returns>The new position value</returns>
     public static float AdjustChildPosition(
         float position,
         float offset,
@@ -499,33 +632,50 @@ internal partial class Enemy_Size_Rando : Rando_Base
         return (float)c;
     }
 
-    /// <summary>Updates an enemy with a new size</summary>
-    /// <param name="thing">The health manager of the enemy we want to change</param>
-    /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type</exception>
-    private void SetSize(HealthManager thing)
+    /// <summary>Calculates a new position for a child element, shifting it a direction</summary>
+    /// <inheritdoc cref="AdjustChildPosition" />
+    /// <param name="scale">   The scale of the child</param>
+    /// <param name="halfSize">The half-size of the child</param>
+    /// <param name="rotation">The rotation of the parent</param>
+    /// <param name="reverse"> Optional: If the direction should be reversed</param>
+    public static float ShiftChildPosition(
+        float position,
+        float scale,
+        float halfSize,
+        float offset,
+        float rotation,
+        bool reverse = false)
     {
-        if (thing?.transform == null || (!resizing && !Instance.currentEnemyHealthManagers.TryAdd(thing, thing.transform.localScale))) return;
+        return position - (offset * scale - halfSize) * rotation * (reverse ? 1 : -1);
+    }
 
-        bool boss = CuteRandoCore.IsBoss(thing);
+    /// <summary>Updates an enemy with a new size</summary>
+    /// <param name="enemy">The health manager of the enemy we want to change</param>
+    /// <exception cref="NotImplementedException">Thrown if there is an unimplemented randomizer type</exception>
+    private void SetSize(HealthManager enemy)
+    {
+        if (enemy?.transform == null || (!resizing && !Instance.currentEnemyHealthManagers.TryAdd(enemy, enemy.transform.localScale))) return;
+
+        bool boss = CuteRandoCore.IsBoss(enemy);
 
         if (boss && !EnemySizeRandomizerSetting.HasFlag(RandomizerEnemyTypeFlags.Boss))
             return;
         if (!boss && EnemySizeRandomizerSetting.Equals(RandomizerEnemyTypeFlags.Boss))
             return;
 
-        string operatingScene = thing.gameObject.scene.name;
+        string operatingScene = enemy.gameObject.scene.name;
 
-        Walker walker = thing.gameObject.GetComponent<Walker>();
-        Transform thingTransform = thing.transform;
+        Walker walker = enemy.gameObject.GetComponent<Walker>();
+        Transform thingTransform = enemy.transform;
         float tempMultiplier;
-        string name = CuteRandoCore.CullName(thing.name);
+        string name = CuteRandoCore.CullName(enemy.name);
 
         if (Instance.excludedEnemies.Contains(name))
             return;
 
         if (resizing && enemySizeRandomizerSetting.Value == RandomizerEnemyTypeFlags.None)
         {
-            ApplySize(thingTransform, currentEnemyHealthManagers[thing].z, walker);
+            ApplySize(thingTransform, currentEnemyHealthManagers[enemy].z, walker);
             goto afterSwitch;
         }
 
@@ -559,7 +709,30 @@ internal partial class Enemy_Size_Rando : Rando_Base
         }
     afterSwitch:
 
-        AdjustChildren(thing.gameObject, name);
+        AdjustChildren(enemy.gameObject, name);
+    }
+
+    /// <summary>Enables all the raycasts' debug lines on an enemy</summary>
+    /// <param name="enemy">The enemy to enable the debug lines on</param>
+    private static void EnableRayCastDebugs(GameObject enemy)
+    {
+        var fsms = enemy.GetComponents<PlayMakerFSM>();
+
+        foreach (var fsm in fsms)
+        {
+            foreach (var state in fsm.FsmStates)
+            {
+                foreach (var action in state.Actions)
+                {
+                    if (action is RayCast2d rc2d)
+                        rc2d.debug.Value = true;
+                    else if (action is RayCast2dV2 rc2dv2)
+                        rc2dv2.debug.Value = true;
+                    else if (action is RayCast2dV3 rc2dv3)
+                        rc2dv3.Debug.Value = true;
+                }
+            }
+        }
     }
 
     /// <summary>Randomizes the size of a given <see cref="Transform" /></summary>

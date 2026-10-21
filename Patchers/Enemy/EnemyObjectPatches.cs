@@ -16,18 +16,20 @@ public class EnemyObjectPatchCollection : ObjectPatchCollection_Base<EnemyObject
     public static EnemyObjectPatchCollection Instance => instance.Value;
 
     /// <summary>Set of patched enemy <see cref="GameObject" />s</summary>
-    private static HashSet<GameObject> patchedEnemies = [];
+    private HashSet<GameObject> patchedEnemies = [];
 
-    /// <summary>Called when the <see cref="Scene" /> loads to clear out unloaded enemies</summary>
+    /// <summary>Called when the scene loads to clear out unloaded enemies</summary>
     internal static void OnSceneLoaded()
     {
-        patchedEnemies.RemoveWhere(enemy => enemy == null);
+        Instance.patchedEnemies.RemoveWhere(enemy => enemy == null);
     }
 
     /// <summary>Apply the various enemy patches</summary>
     /// <param name="enemyHealthManager">The <see cref="HealthManager" /> of the enemy to patch</param>
     internal static void ApplyPatches(HealthManager enemyHealthManager)
     {
+        if (enemyHealthManager == null) return;
+
         string enemyName = CuteRandoCore.CullName(enemyHealthManager.name);
 
         if (!Instance.PatchedObjects.ContainsKey(enemyName))
@@ -37,16 +39,14 @@ public class EnemyObjectPatchCollection : ObjectPatchCollection_Base<EnemyObject
 
         Instance.ApplyPatches(enemyName, obj);
 
-        patchedEnemies.Add(obj);
+        Instance.patchedEnemies.Add(obj);
     }
 
     /// <summary>Called to remove all enemy patches</summary>
     internal static void RemovePatches()
     {
-        for (int i = patchedEnemies.Count - 1; i >= 0; i--)
-        {
-            RemovePatches(patchedEnemies.ElementAt(i));
-        }
+        for (int i = Instance.patchedEnemies.Count - 1; i >= 0; i--)
+            RemovePatches(Instance.patchedEnemies.ElementAt(i));
     }
 
     /// <summary>Remove the various enemy patches</summary>
@@ -55,14 +55,12 @@ public class EnemyObjectPatchCollection : ObjectPatchCollection_Base<EnemyObject
     {
         if (enemy == null) return;
 
-        string enemyName = enemy.name;
-
-        if (!Instance.PatchedObjects.ContainsKey(enemyName))
+        if (!Instance.PatchedObjects.ContainsKey(enemy.name))
             return;
 
-        Instance.RemovePatches(enemyName, enemy);
+        Instance.RemovePatches(enemy.name, enemy);
 
-        patchedEnemies.Remove(enemy);
+        Instance.patchedEnemies.Remove(enemy);
     }
 
     /// <summary>Register a collection of patches</summary>

@@ -1,4 +1,8 @@
-﻿using HutongGames.PlayMaker;
+﻿using DebugDrawing;
+
+using HutongGames.PlayMaker;
+
+using System;
 
 using UnityEngine;
 
@@ -13,8 +17,17 @@ public class ShiftVarDownByHalfHeight : FsmStateAction
     /// <summary>Name of the variable we want to shift</summary>
     public FsmString? variableName;
 
-    /// <summary>The float being changed</summary>
-    private FsmFloat? floatTarget;
+    /// <summary>Name of the variable that references the target angle</summary>
+    public FsmString? angleName;
+
+    /// <summary>The variable being changed</summary>
+    private NamedVariable? targetVar;
+
+    /// <summary>The variable for the angle</summary>
+    private FsmFloat? targetAngle;
+
+    /// <summary>The angle for the target adjustment</summary>
+    private float angle;
 
     /// <summary>Collider of referenced GameObject</summary>
     private BoxCollider2D? col;
@@ -24,8 +37,11 @@ public class ShiftVarDownByHalfHeight : FsmStateAction
     {
         gameObject = null;
         variableName = null;
+        angleName = null;
 
-        floatTarget = null;
+        targetVar = null;
+        targetAngle = null;
+        angle = 0f;
         col = null;
     }
 
@@ -52,9 +68,39 @@ public class ShiftVarDownByHalfHeight : FsmStateAction
 
         if (thing == null || col == null || variableName == null) return;
 
-        if (floatTarget == null)
-            floatTarget = ActionHelpers.GetGameObjectFsm(thing, "").FsmVariables.GetFsmFloat(variableName.Value);
+        if (targetVar == null)
+            targetVar = ActionHelpers.GetGameObjectFsm(thing, "").FsmVariables.GetVariable(variableName.Value);
 
-        floatTarget.Value = floatTarget.Value - col.size.y / 2;
+        if (angleName != null && targetAngle == null)
+        {
+            targetAngle = ActionHelpers.GetGameObjectFsm(thing, "").FsmVariables.GetFsmFloat(angleName.Value);
+            angle = targetAngle.Value;
+        }
+        else if (angleName == null)
+            angle = 0f;
+        else if (targetAngle != null)
+            angle = targetAngle.Value * Mathf.Deg2Rad;
+
+        switch (targetVar.VariableType)
+        {
+            case (VariableType.Float):
+                targetVar.RawValue = (float)targetVar.RawValue - col.size.y / 2;
+                break;
+
+            case (VariableType.Vector2):
+                DebugDrawing.Primitives.Circle((Vector2)targetVar.RawValue, 0.06f, color: Color.gray, duration: 10f);
+                targetVar.RawValue = (Vector2)targetVar.RawValue + (((Vector2)col.size / 2) * new Vector2((float)Math.Sin(angle), -(float)Math.Cos(angle)));
+                DebugDrawing.Primitives.Circle((Vector2)targetVar.RawValue, 0.04f, color: Color.cyan, duration: 10f);
+                break;
+
+            case (VariableType.Vector3):
+                DebugDrawing.Primitives.Circle((Vector3)targetVar.RawValue, 0.06f, color: Color.gray, duration: 10f);
+                targetVar.RawValue = (Vector3)targetVar.RawValue + (((Vector3)col.size / 2).MultiplyElements(new Vector3((float)Math.Sin(angle), -(float)Math.Cos(angle), 1f)));
+                DebugDrawing.Primitives.Circle((Vector3)targetVar.RawValue, 0.04f, color: Color.cyan, duration: 10f);
+                break;
+
+            default:
+                throw new NotImplementedException();
+        }
     }
 }

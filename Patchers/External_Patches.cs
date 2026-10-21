@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using Smol_Randomizer.Patchers.Enemy;
-using Smol_Randomizer.Patchers.gameScene;
+using Smol_Randomizer.Patchers.ScenePatches;
 using Smol_Randomizer.Randomizers;
 
 using System;
@@ -359,7 +359,6 @@ internal class External_Patches
                         BoolOptions.ElementAtOrDefault(0), // reverseX
                         BoolOptions.ElementAtOrDefault(1), // reverseY
                         FloatOptions.ElementAtOrDefault(3), // magicNumber
-                        BoolOptions.ElementAtOrDefault(2),  // tempInvincible
                         BoolOptions.ElementAtOrDefault(3), // skipRaycast
                         BoolOptions.ElementAtOrDefault(4)); // cancelYVelocity
                 default:

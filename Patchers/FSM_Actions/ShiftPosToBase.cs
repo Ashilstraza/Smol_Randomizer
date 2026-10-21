@@ -39,12 +39,6 @@ public class ShiftPosToBase : FsmStateAction
     /// <summary>If the Y value should be reversed</summary>
     public bool reverseY = false;
 
-    /// <summary>If the enemy should be temporarily set to invincible to band aid some issues</summary>
-    public bool tempInvincible = false;
-
-    /// <summary>If the enemy was invincible to start with</summary>
-    public bool wasInvincible = false;
-
     /// <summary>If we should skip trying to shift using <see cref="RaycastHit2D" /> and just calculate</summary>
     public bool skipRaycast = false;
 
@@ -62,14 +56,17 @@ public class ShiftPosToBase : FsmStateAction
     /// </summary>
     public bool reverse = false;
 
+    /// <summary>Overrides <see cref="adjusted"/> to allow for debugging</summary>
+    public bool overrideAdjusted = false;
+
     /// <summary><see cref="BoxCollider2D" /> of referenced <see cref="GameObject" /></summary>
     private BoxCollider2D? col;
 
     /// <summary><see cref="Transform" /> of referenced <see cref="GameObject" /></summary>
     private Transform? transform;
 
-    /// <summary>Last frame that this was called</summary>
-    private float lastFrameCount;
+    /// <summary>If the enemy was already adjusted</summary>
+    private bool adjusted = false;
 
     /// <summary>Reset this to the default values</summary>
     public override void Reset()
@@ -81,15 +78,14 @@ public class ShiftPosToBase : FsmStateAction
         originalScale = Vector2.zero;
         reverseX = false;
         reverseY = false;
-        tempInvincible = false;
-        wasInvincible = false;
         skipRaycast = false;
         cancelYVelocity = true;
         magicNumber = float.MinValue;
+        overrideAdjusted = false;
 
         col = null;
         transform = null;
-        lastFrameCount = 0;
+        adjusted = false;
     }
 
     /// <summary>Call this when an area is entered</summary>
@@ -108,19 +104,17 @@ public class ShiftPosToBase : FsmStateAction
     /// <summary>Adjusts the object down to its base</summary>
     private void Adjust()
     {
-        if (Time.frameCount - 5 <= lastFrameCount) // prevent multiple calls in quick sucession
+        if (adjusted && !overrideAdjusted) // prevent multiple calls
         {
 #if TESTING
-            CuteRandoCore.Log.LogWarning($"ShiftPosToBase called in quick sucession for {base.Fsm.GetOwnerDefaultTarget(gameObject).name}, " +
+            CuteRandoCore.Log.LogWarning($"ShiftPosToBase called multiple times for {base.Fsm.GetOwnerDefaultTarget(gameObject).name}, " +
                 $"State: {this.Fsm.ActiveStateName}, " +
                 $"Current Frame Count: {Time.frameCount}, " +
-                $"Last Frame Count: {lastFrameCount}, " +
-                $"Hash Code:{this.GetHashCode()}, " +
+                $"Hash Code:{this.GetHashCode()},  " +
                 $"Scene: {base.Fsm.GetOwnerDefaultTarget(gameObject).scene.name}");
 #endif
             return;
         }
-        lastFrameCount = Time.frameCount;
 
         GameObject enemy = base.Fsm.GetOwnerDefaultTarget(gameObject);
 
@@ -141,7 +135,7 @@ public class ShiftPosToBase : FsmStateAction
 #if TESTING
         CuteRandoCore.Log.LogMessage($"ShiftPosToBase on {enemy.name}, " +
             $"State: {this.Fsm.ActiveStateName}, " +
-            $"Frame Count: {lastFrameCount}, " +
+            $"Frame Count: {Time.frameCount}, " +
             $"Hash Code:{this.GetHashCode()}" +
             $"Scene: {base.Fsm.GetOwnerDefaultTarget(gameObject).scene.name}");
 #endif
@@ -161,8 +155,7 @@ public class ShiftPosToBase : FsmStateAction
             col,
             transform);
 
-        if (tempInvincible && !wasInvincible)
-            enemy.GetComponent<HealthManager>()?.IsInvincible = wasInvincible;
+        adjusted = true;
     }
 
     /// <summary>
@@ -236,12 +229,10 @@ public class ShiftPosToBase : FsmStateAction
             xReverse = !xReverse;
         else if (scale.x < 0)
             xReverse = !xReverse;
-
-        float debugDuration = 60f;
-
 #if TESTING
-        DebugDrawer.Square(pos + (Vector3)calculatedOriginalOffset, calculatedOriginalHalfSize * 2, Color.grey, duration: debugDuration); // Original position
-        DebugDrawer.Circle(pos + (Vector3)calculatedOriginalOffset, 0.05f, color: Color.grey, duration: debugDuration); // Original center
+        float debugDuration = 60f;
+        DebugDrawing.Primitives.Square(pos + (Vector3)calculatedOriginalOffset, calculatedOriginalHalfSize * 2, Color.grey, duration: debugDuration); // Original position
+        DebugDrawing.Primitives.Circle(pos + (Vector3)calculatedOriginalOffset, 0.05f, color: Color.grey, duration: debugDuration); // Original center
 #endif
 
         if (cancelYVelocity)
@@ -268,14 +259,13 @@ public class ShiftPosToBase : FsmStateAction
 
 #if TESTING
             Vector3 endTestPos = pos + (Vector3)rayDirection * ((calculatedOriginalHalfSize.y * 3) * invertedScale.y);
-
-            DebugDrawer.Circle(pos, 0.06f, color: Color.cyan, duration: debugDuration); // Center of transformation
-            DebugDrawer.Arrow(pos, endTestPos, 0.5f, Color.cyan, duration: debugDuration); // Test Raycast
+            DebugDrawing.Primitives.Circle(pos, 0.06f, color: Color.cyan, duration: debugDuration); // Center of transformation
+            DebugDrawing.Primitives.Arrow(pos, endTestPos, 0.5f, Color.cyan, duration: debugDuration); // Test Raycast
 
             if (hitTerrain)
             {
-                DebugDrawer.Circle(closestHit.centroid, 0.1f, color: Color.green, duration: debugDuration); // Closest hit
-                DebugDrawer.Square(closestHit.centroid + rayMove, calculatedOriginalHalfSize * 2 * scale, Color.yellow, duration: debugDuration); // Calcualted new position
+                DebugDrawing.Primitives.Circle(closestHit.centroid, 0.1f, color: Color.green, duration: debugDuration); // Closest hit
+                DebugDrawing.Primitives.Square(closestHit.centroid + rayMove, calculatedOriginalHalfSize * 2 * scale, Color.yellow, duration: debugDuration); // Calcualted new position
             }
 
             if (!Enemy_Size_Rando.Instance.UseRaycastBasing)
@@ -302,7 +292,7 @@ public class ShiftPosToBase : FsmStateAction
         Vector2 rotatedOffset = ScaleAndRotate(offset, scale, cosRotation, sinRotation);
         if ((rotationDeg < 315 && rotationDeg > 225 && scale.y < 0) || (rotationDeg < 135 && rotationDeg > 45 && scale.y < 0))
             xReverse = !xReverse;
-        DebugDrawer.Square(pos + (Vector3)(rotatedOffset * new Vector2(xReverse ? -1 : 1, yReverse ? -1 : 1)), rotatedSize, SmolRandomizerMenuBuilder.EPurple, duration: debugDuration);
+        DebugDrawing.Primitives.Square(pos + (Vector3)(rotatedOffset * new Vector2(xReverse ? -1 : 1, yReverse ? -1 : 1)), rotatedSize, SmolRandomizerMenuBuilder.EPurple, duration: debugDuration);
 #endif
         if (pos.z != transform.position.z) CuteRandoCore.Log.LogWarning("Z does not match");
         transform.position = pos;

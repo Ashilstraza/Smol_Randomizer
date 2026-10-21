@@ -250,28 +250,35 @@ public abstract class StateActionPatch_Base(string stateName, Type actionType, A
     /// <param name="fsm">The <see cref="PlayMakerFSM" /> to patch</param>
     public override void ApplyPatch(PlayMakerFSM fsm, object[] param)
     {
+        bool typeFound = false;
+
         if (NameArray.Length > 0)
         {
             foreach (string name in NameArray)
+                DoPatch(name);
+        }
+        else
+        {
+            DoPatch(Name);
+        }
+
+        void DoPatch(string name)
+        {
+            var state = fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(name));
+            if (state != null)
             {
-                foreach (FsmStateAction action in fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(name)).Actions)
+                foreach (FsmStateAction action in state.Actions)
                 {
                     if (action.GetType().ToString().Equals(TypeString))
                     {
                         Patch(action, param);
+                        typeFound = true;
                     }
                 }
             }
-        }
-        else
-        {
-            foreach (FsmStateAction action in fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(Name)).Actions)
-            {
-                if (action.GetType().ToString().Equals(TypeString))
-                {
-                    Patch(action, param);
-                }
-            }
+
+            if (!typeFound)
+                CuteRandoCore.Log.LogWarning($"Patch failed for State {Name}, Type: {TypeString} FsmName: {FSMName}");
         }
     }
 
@@ -294,8 +301,17 @@ public abstract class StateActionPatch_Base(string stateName, Type actionType, A
         if (NameArray.Length > 0)
         {
             foreach (string name in NameArray)
+                DoRemove(name);
+        }
+        else
+            DoRemove(Name);
+
+        void DoRemove(string name)
+        {
+            var state = fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(name));
+            if (state != null)
             {
-                foreach (FsmStateAction action in fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(name)).Actions)
+                foreach (FsmStateAction action in state.Actions)
                 {
                     if (action.GetType().ToString().Equals(TypeString))
                     {
@@ -304,26 +320,18 @@ public abstract class StateActionPatch_Base(string stateName, Type actionType, A
                 }
             }
         }
-        else
-        {
-            foreach (FsmStateAction action in fsm.FsmStates.FirstOrDefault(state => state.Name.Equals(Name)).Actions)
-            {
-                if (action.GetType().ToString().Equals(TypeString))
-                {
-                    Unpatch(action, param);
-                }
-            }
-        }
     }
 }
 
 /// <summary>Contains a set of state action patches for an object</summary>
 /// <inheritdoc cref="FSMPatchSet_Base{PatchType, FsmStateAction}"/>
-public abstract class StateActionPatchSet_Base<PatchType>(string objectName, List<PatchType> patches, string fsmName = "")
-    : FSMPatchSet_Base<PatchType, FsmStateAction>(objectName, patches, fsmName)
+public abstract class StateActionPatchSet_Base<PatchType>(string enemyName, List<PatchType> patches, string fsmName = "")
+    : FSMPatchSet_Base<PatchType, FsmStateAction>(enemyName, patches, fsmName)
     where PatchType : StateActionPatch_Base;
 
 #endregion FSM State Action
+
+#region FSM Patch
 
 /// <summary>Abstract class for containing an FSM patch</summary>
 /// <inheritdoc cref="ObjectPatch_Base{PatchTarget, PlayMakerFSM}"/>
@@ -341,15 +349,17 @@ public abstract class FSMPatch_Base<PatchTarget>(string fsmPart, Action<PatchTar
 /// <inheritdoc cref="ObjectPatchSet_Base{PatchType, PlayMakerFSM, PatchTarget}"/>
 /// <typeparam name="PatchType">  The type of FSM Patch</typeparam>
 /// <typeparam name="PatchTarget">The type of FSM Object this is patching</typeparam>
-/// <param name="objectName">     The name of the enemy being patched</param>
+/// <param name="enemyName">     The name of the enemy being patched</param>
 /// <param name="fsmName">   Optional: Name of the <see cref="PlayMakerFSM" /> to patch, the first found
 /// <see cref="PlayMakerFSM" /> is used if not provided</param>
-public abstract class FSMPatchSet_Base<PatchType, PatchTarget>(string objectName, List<PatchType> patches, string fsmName = "")
-    : ObjectPatchSet_Base<PatchType, PlayMakerFSM, PatchTarget>(objectName, patches), IFSMPatch
+public abstract class FSMPatchSet_Base<PatchType, PatchTarget>(string enemyName, List<PatchType> patches, string fsmName = "")
+    : ObjectPatchSet_Base<PatchType, PlayMakerFSM, PatchTarget>(enemyName, patches), IFSMPatch
     where PatchType : FSMPatch_Base<PatchTarget>
 {
     public string FSMName { get => fsmName; set => fsmName = value; }
 }
+
+#endregion FSM Patch
 
 /// <summary>Marks a patch as an FSM Patch</summary>
 public interface IFSMPatch

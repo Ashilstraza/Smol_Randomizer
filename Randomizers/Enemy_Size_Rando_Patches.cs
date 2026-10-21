@@ -1,4 +1,6 @@
-﻿using HarmonyLib;
+﻿using DebugDrawing;
+
+using HarmonyLib;
 
 using HutongGames.PlayMaker;
 using HutongGames.PlayMaker.Actions;
@@ -55,7 +57,6 @@ internal partial class Enemy_Size_Rando
         bool reverseX = false,
         bool reverseY = false,
         float magicNumber = float.MinValue,
-        bool tempInvincible = false,
         bool skipRaycast = false,
         bool cancelYVelocity = true)
     {
@@ -66,18 +67,6 @@ internal partial class Enemy_Size_Rando
             Vector3 originalScale = Vector3.one;
             if (healthManager != null && !Instance.currentEnemyHealthManagers.TryGetValue(healthManager, out originalScale))
                 originalScale = Vector3.one;
-            bool wasInvincible = false;
-
-            if (tempInvincible)
-            {
-                if (healthManager != null)
-                {
-                    wasInvincible = healthManager.IsInvincible;
-                    healthManager.IsInvincible = tempInvincible;
-                }
-                else
-                    tempInvincible = false;
-            }
 
             FsmStateAction shift = new ShiftPosToBase
             {
@@ -91,8 +80,6 @@ internal partial class Enemy_Size_Rando
                 reverseY = reverseY,
                 magicNumber = magicNumber,
                 originalScale = originalScale,
-                tempInvincible = tempInvincible,
-                wasInvincible = wasInvincible,
                 skipRaycast = skipRaycast,
                 cancelYVelocity = cancelYVelocity
             };
@@ -106,6 +93,18 @@ internal partial class Enemy_Size_Rando
         };
     }
 
+    public static Action<FsmStateAction, object[]> CreateAdjustRaycast2dV2Scaler(bool onlyShort = false)
+    {
+        return delegate (FsmStateAction action, object[] param)
+        {
+            GameObject enemy = (GameObject)param[0];
+
+            if (onlyShort && Math.Abs(enemy.transform.GetScaleY()) < 1)
+                return;
+            ((RayCast2dV2)action).distance.Value *= Math.Abs(enemy.transform.localScale.y);
+        };
+    }
+
     /// <summary>Dictionary containing various <see cref="PlayMakerFSM" /> patches.</summary>
     private static readonly HashSet<IEnemyFSMPatch> enemyFSMPatches = new()
     {
@@ -115,7 +114,9 @@ internal partial class Enemy_Size_Rando
 
         new EnemyStatePatch([   // pilgrim_behaviour - Init
                                 "Pilgrim 01 Judge Buddy",
-                                "Pilgrim StaffWielder"],
+                                "Pilgrim StaffWielder",
+                                "Pilgrim 01 Song",
+                                "Pilgrim 02 Song"],
             "Init",
             CreateShiftToBaseDelegate(),
             fsmName: "pilgrim_behaviour"),
@@ -125,10 +126,20 @@ internal partial class Enemy_Size_Rando
                                 "Pilgrim BellThrower",
                                 "Pilgrim Moss Spitter",
                                 "Pilgrim Fisher Enemy",
-            ],
+                                "Pilgrim 03 Song",
+                                "Pilgrim 04 Song",
+                                "Song Pilgrim Maestro"],
             "Init",
             CreateShiftToBaseDelegate(),
             fsmName: "Control"),
+
+        new EnemyStatePatch([   // Attack - Init
+                                "Pilgrim 05",
+                                "Pilgrim Stomper Song",
+                                "Song Pilgrim 03"],
+            "Init",
+            CreateShiftToBaseDelegate(),
+            fsmName: "Attack"),
 
         new EnemyStatePatchSet("Pilgrim 01",
             [new EnemyStatePatch("",    // Pilgrim 01 drops from celing in Wanderer Chapel
@@ -136,7 +147,7 @@ internal partial class Enemy_Size_Rando
                 CreateShiftToBaseDelegate(reverseY: true)),
             new EnemyStatePatch("",
                 "Init",
-                CreateShiftToBaseDelegate(tempInvincible: true)) // Vanishes in Greymoor_13 at 200%
+                CreateShiftToBaseDelegate())
             ],
             fsmName: "pilgrim_behaviour"),
 
@@ -223,22 +234,39 @@ internal partial class Enemy_Size_Rando
             CreateShiftToBaseDelegate(backupSize: new(1.1094f, 1.8125f)),
             fsmName: "pilgrim_behaviour"),
 
-        new EnemyStatePatch("Pilgrim 05",
-            "Init",
-            CreateShiftToBaseDelegate(),
-            fsmName: "Attack"),
-
         new EnemyStatePatch("Pilgrim Fly",
             "Start Check",
-            CreateShiftToBaseDelegate(tempInvincible: true),
+            CreateShiftToBaseDelegate(),
             fsmName: "Control"),
 
-        new EnemyStatePatchSet("Pilgrim Bellthrower Fly",
-            [new("Pilgrim Bellthrower Fly",
-                "Wall Cling",
-                CreateShiftToBaseDelegate(rotateAdjust: 90f, magicNumber: 0.009856f),
-                fsmName: "Control")
-            ]),
+        new EnemyStatePatch("Pilgrim Bellthrower Fly",
+            "Wall Cling",
+            CreateShiftToBaseDelegate(rotateAdjust: 90f, magicNumber: 0.009856f),
+            fsmName: "Control"),
+
+        new EnemyStateActionPatch("Song Pilgrim 03",
+            "Move Start",
+            typeof(RandomFloat),
+            delegate(FsmStateAction action, object[] param)
+            {
+                RandomFloat rf = (RandomFloat)action;
+                GameObject gameObject = (GameObject)param[0];
+                rf.min.Value *= Math.Abs(gameObject.transform.localScale.x);
+                rf.max.Value *= Math.Abs(gameObject.transform.localScale.x);
+            },
+            fsmName: "Attack"),
+
+        new EnemyStatePatch("Song Pilgrim 01",
+            "Init",
+            delegate(FsmState state, object[] param)
+            {
+                if(((GameObject)param[0]).scene.name.Equals("Hang_04_boss")) // One in the HHG falls through the floor at minimum size
+                    CreateShiftToBaseDelegate(magicNumber: -0.02f)(state, param);
+                else
+                    CreateShiftToBaseDelegate()(state, param);
+            },
+            fsmName: "Attack"),
+
     #endregion Pilgrims
 
         new EnemyStatePatch([   // Control - Init
@@ -254,6 +282,7 @@ internal partial class Enemy_Size_Rando
                                 // Greymoor
                                 "Farmer Scissors",
                                 "Farmer Centipede",
+                                "Farmer Catcher",
                                 "Mite",
                                 "Crowman",
                                 "Crowman Juror",
@@ -264,11 +293,39 @@ internal partial class Enemy_Size_Rando
                                 "Dustroach Caged",
                                 // Blasted Steps & Sands of Karak
                                 "Coral Spike Goomba",
+                                // Bilewater
+                                "Swamp Goomba",
+                                // Slab
+                                "Slab Prisoner Leaper New",
+                                "Slab Fly Mid",
+                                "Slab Prisoner Fly New",
+                                "Slab Fly Large",
+                                // Underworks
+                                "Understore Poker",
+                                // Citadel
+                                "Song Reed",
+                                "Song Automaton Shield",
+                                "Song Automaton 01",
+                                "Song Automaton 02",
+                                // Abyss
+                                "Gloom Beast",
+                                "Abyss Crawler Large",
                                 // Many Places
-                                "Mite Heavy"
+                                "Mite Heavy",
+                                "Rosary Thief",
+                                "Understore Mite Giant",
                             ],
             "Init",
             CreateShiftToBaseDelegate(),
+            fsmName: "Control"),
+
+        new EnemyStatePatch([   // Control - Init - Rotate 180
+                                // Shellwood
+                                "Shellwood Goomba Flyer",
+                                // Many Places
+                                "Citadel Bat",],
+            "Init",
+            CreateShiftToBaseDelegate(rotateAdjust: 180f),
             fsmName: "Control"),
 
         new EnemyStatePatch([   // Behaviour - Init
@@ -279,21 +336,21 @@ internal partial class Enemy_Size_Rando
                                 "Crow",
                                 "Crowman Juror Tiny",
                                 "Gnat Giant",
+                                // Underworks
+                                "Understore Small",
+                                // Coral Tower
+                                "Coral Goomba L",
+                                "Coral Goomba M",
                                 // Many Places
                                 ],
             "Init",
             CreateShiftToBaseDelegate(),
             fsmName:  "Behaviour"),
 
-        new EnemyStateActionPatch("Rhino",// check
+        new EnemyStateActionPatch("Rhino",// TODO: check
             ["Charge Down", "Charge Up"],
             typeof(RayCast2dV2),
-            delegate (FsmStateAction action, object[] param)
-            {
-                var rayCast = (RayCast2dV2)action;
-
-                rayCast.distance.Value = ((GameObject)param[0]).transform.localScale.x * rayCast.distance.Value;
-            },
+            CreateAdjustRaycast2dV2Scaler(),
             fsmName: "Control"),
 
         new EnemyStatePatch("Blade Spider",
@@ -314,11 +371,6 @@ internal partial class Enemy_Size_Rando
                 ((FloatAdd)action).add.Value *= ((GameObject)param[0]).transform.localScale.y;
             },
             fsmName: "Control"),
-
-        new EnemyStatePatch("Citadel Bat",
-            "Init",
-            CreateShiftToBaseDelegate(rotateAdjust: 180f),
-            fsmName: "Control"),
 #endregion Many Places
 
 #region Weavenests
@@ -326,6 +378,11 @@ internal partial class Enemy_Size_Rando
          new EnemyStatePatch("Weaver Servitor",
             "Init",
             CreateShiftToBaseDelegate(magicNumber: -0.0055f),
+            fsmName: "Control"),
+
+         new EnemyStatePatch("Weaver Servitor Large",
+            "Init",
+            CreateShiftToBaseDelegate(magicNumber: -0.022f),
             fsmName: "Control"),
 #endregion Weavenests
 
@@ -462,10 +519,7 @@ internal partial class Enemy_Size_Rando
         new EnemyStateActionPatch("Farmer Scissors", // Fixes distance check
             "Do Step",
             typeof(RayCast2dV2),
-            delegate (FsmStateAction action, object[] param)
-            {
-                ((RayCast2dV2)action).distance.Value *= Math.Abs(((GameObject)param[0]).transform.GetScaleX());
-            },
+            CreateAdjustRaycast2dV2Scaler(),
             fsmName: "Control"),
 
         new EnemyStateActionPatch("Farmer Scissors", // Cut up end check
@@ -489,11 +543,6 @@ internal partial class Enemy_Size_Rando
             {
                 ((DistanceWalk)action).distance.Value *= Math.Abs(((GameObject)param[0]).transform.GetScaleX());
             },
-            fsmName: "Control"),
-
-        new EnemyStatePatch("Farmer Catcher", // Some reason they get initialized not at init?
-            "Init",
-            CreateShiftToBaseDelegate(),
             fsmName: "Control"),
 
         new EnemyStatePatch("FlyAway Crow",
@@ -541,7 +590,7 @@ internal partial class Enemy_Size_Rando
             fsmName: "Behaviour"),
 #endregion Greymoor
 
-#region Whisp Thicket
+#region Wisp Thicket
         new EnemyStatePatch("Farmer Wisp",
             "State",
             CreateShiftToBaseDelegate(),
@@ -555,7 +604,7 @@ internal partial class Enemy_Size_Rando
                 ((Vector2AddXY)action).addY.Value *= Math.Abs(((GameObject)param[0]).transform.GetScaleY());
             }),
 
-#endregion Whisp Thicket
+#endregion Wisp Thicket
 
 #region Bellways
 
@@ -581,7 +630,7 @@ internal partial class Enemy_Size_Rando
             },
             fsmName: "Control"),
 
-        new EnemyStateActionPatch("Bell Goomba", // Fixes them getting stuck and vibrating
+        new EnemyStateActionPatch("Bell Goomba", // Fixes them getting stuck and vibrating?
             "Surface Dig",
             typeof(CheckXPosition),
             delegate(FsmStateAction action, object[] param)
@@ -595,7 +644,8 @@ internal partial class Enemy_Size_Rando
 
         new EnemyStatePatch("Shellwood Goomba Flyer",
             "Init",
-            CreateShiftToBaseDelegate(rotateAdjust: 180f)),
+            CreateShiftToBaseDelegate(rotateAdjust: 180f),
+            fsmName: "Control"),
 
         new EnemyStatePatch("Shellwood Goomba",
             "Init",
@@ -697,13 +747,7 @@ internal partial class Enemy_Size_Rando
             new("",
                 ["Under Aim D", "Under Aim L", "Under Aim R", "Shoot L", "Shoot R", "Shoot D"],
                 typeof(RayCast2dV2),
-                delegate(FsmStateAction action, object[] param){
-                    GameObject enemy = (GameObject)param[0];
-
-                    if(enemy.transform.GetScaleY() < 1)
-                        return;
-                    ((RayCast2dV2)action).distance.Value *= Math.Abs(enemy.transform.GetScaleY());
-                })
+                CreateAdjustRaycast2dV2Scaler(onlyShort: true))
             ],
             fsmName: "Control"),
 
@@ -712,7 +756,7 @@ internal partial class Enemy_Size_Rando
 #region Sinner's Road
         new EnemyStatePatch("Dustroach FG",
             "Init",
-            delegate(FsmState action, object[] param)
+            delegate(FsmState state, object[] param)
             {
                 GameObject dustroach = (GameObject)param[0];
 
@@ -721,17 +765,14 @@ internal partial class Enemy_Size_Rando
                 Instance.RandomizeSize(false, dustroach.transform);
                 AdjustChildren(dustroach, name);
 
-                CreateShiftToBaseDelegate(backupSize: new(2.6999f, 1.2145f), magicNumber: -0.01f)(action, param);
+                CreateShiftToBaseDelegate(backupSize: new(2.6999f, 1.2145f), magicNumber: -0.01f)(state, param);
             },
             fsmName: "Control"),
 
         new EnemyStateActionPatch("Dustroach", // Fixes scale issues
             "ScrabbleJump Air",
             typeof(RayCast2dV2),
-            delegate (FsmStateAction action, object[] param)
-            {
-                ((RayCast2dV2)action).distance.Value *= Math.Abs(((GameObject)param[0]).transform.GetScaleX());
-            },
+            CreateAdjustRaycast2dV2Scaler(),
             fsmName: "Control"),
 
         new EnemyStateActionPatch("Roachfeeder Tall",
@@ -740,13 +781,390 @@ internal partial class Enemy_Size_Rando
             delegate(FsmStateAction action, object[] param)
             {
                 ((DistanceFly)action).distance.Value *= Math.Abs(((GameObject) param[0]).transform.GetScaleX());
-            })
+            }),
 #endregion Sinner's Road
 
-#region Bilewater
+#region Bilewater & Putrified Ducts
+        new EnemyStatePatch(["Swamp Mosquito", "Swamp Mosquito Skinny"],
+            "Wall Cling",
+            CreateShiftToBaseDelegate(rotateAdjust: 270f),
+            fsmName: "Control"),
 
-        // TODO Check These Zones
-#endregion Bilewater
+        new EnemyStateActionPatch("Swamp Muckman",
+            ["Stick To Floor", "Stick to Wall R", "Stick to Wall L"],
+            typeof(Translate),
+            delegate(FsmStateAction action, object[] param)
+            {
+                GameObject gameObject = (GameObject)param[0];
+                float halfSize = gameObject.GetComponent<BoxCollider2D>().size.y * Math.Abs(gameObject.transform.localScale.y);
+                Translate translate = (Translate)action;
+
+                if(translate.x.Value > 0)
+                    translate.x.Value = halfSize;
+                else if(translate.x.Value < 0)
+                    translate.x.Value = halfSize * -1;
+                else if(translate.y.Value > 0)
+                    translate.y.Value = halfSize;
+                else if(translate.y.Value < 0)
+                    translate.y.Value= halfSize * -1;
+                else
+                    CuteRandoCore.Log.LogWarning("Swamp Mosquito Translate Patch failed. Translate x and y are both zero?");
+            },
+            fsmName: "Control"),
+
+        new EnemyFSMPatch("Swamp Ductsucker",
+            delegate(PlayMakerFSM fsm, object[] param)
+            {
+                GameObject gameObject = (GameObject)param[0];
+
+                var teleMin = gameObject.transform.Find("Tele Min");
+                var teleMax = gameObject.transform.Find("Tele Max");
+                var boundsMin = gameObject.transform.Find("Bounds Min");
+                var boundsMax = gameObject.transform.Find("Bounds Max");
+
+                teleMin.SetLocalPositionX(teleMin.localPosition.x / gameObject.transform.localScale.x);
+                teleMax.SetLocalPositionX(teleMax.localPosition.x / gameObject.transform.localScale.x);
+                boundsMin.SetLocalPositionX(boundsMin.localPosition.x / gameObject.transform.localScale.x);
+                boundsMax.SetLocalPositionX(boundsMax.localPosition.x / gameObject.transform.localScale.x);
+
+                fsm.FsmVariables.GetFsmFloat("Tele Min X").Value = teleMin.position.x;
+                fsm.FsmVariables.GetFsmFloat("Tele Max X").Value = teleMax.position.x;
+                fsm.FsmVariables.GetFsmFloat("X Pos Min").Value = boundsMin.position.x;
+                fsm.FsmVariables.GetFsmFloat("X Pos Max").Value = boundsMax.position.x;
+            }),
+
+        /*new EnemyStateActionPatch("Tendril",
+            "State 2",
+            typeof(FloatOperator),
+            delegate(FsmStateAction action, object[] param)
+            {
+                FloatOperator fo = (FloatOperator)action;
+                var tendril = ((GameObject)param[0]);
+
+                if(fo.storeResult.Name is ("Collider Height" or "Mid Point Y"))
+                    fo.float2.Value *= tendril.transform.parent.GetScaleY();
+            },
+            fsmName: "Set Colliders"),
+
+        new EnemyStatePatch("Tendril",
+            "State 2",
+            delegate(FsmState state, object[] param)
+            {
+                FsmStateAction[] actionArray = state.Actions;
+                FsmStateAction[] newArray = new FsmStateAction[actionArray.Length + 1];
+                var tendril = ((GameObject)param[0]);
+                int j = 0;
+                float parentHalfScale = tendril.transform.parent.GetScaleY() * 2;
+                float newScale = parentHalfScale / (parentHalfScale * parentHalfScale);
+
+                for (int i = 0; i < actionArray.Length; i++)
+                {
+                    newArray[j++] = actionArray[i];
+                    if(actionArray[i] is GetPosition2d gp2d)
+                    {
+                        if(gp2d.y.Name.Equals("Self Y")){
+                            newArray[j++] = new FloatOperator()
+                            {
+                                float1 = gp2d.y,
+                                float2 = -1,
+                                operation = FloatOperator.Operation.Multiply,
+                                storeResult = gp2d.y,
+                                everyFrame = false
+                            };
+                        }
+                    }
+                }
+
+                state.Actions = newArray;
+            },
+            fsmName: "Set Colliders"),
+
+        new EnemyStatePatch("Attack Detector",
+            "Set Collider",
+            delegate(FsmState state, object[] param)
+            {
+                var attackDetector = ((GameObject)param[0]);
+
+                if (!attackDetector.transform.parent.name.Equals("Tendril"))
+                    return;
+
+                var attackDetectiorCollider = attackDetector.GetComponent<BoxCollider2D>();
+                attackDetectiorCollider.size = state.Fsm.GetFsmVector2("Box Size").Value;
+                attackDetectiorCollider.offset = state.Fsm.GetFsmVector2("Box Offset").Value;
+
+                var x = state.Actions.FirstOrDefault(action => action.GetType() == typeof(GetBoxCollider2DSizeVector)) as GetBoxCollider2DSizeVector;
+
+                if(x != null)
+                    x.Enabled = false;
+            },
+            fsmName: "Detect Attack"),*/
+
+#endregion Bilewater & Putrified Ducts
+
+#region Slab
+        new EnemyStatePatch("Slab Fly Small",
+            "Rest",
+            CreateShiftToBaseDelegate(rotateAdjust: 33f, magicNumber: -0.022f),
+            fsmName: "Bouncer Control"),
+
+        #endregion Slab
+
+#region Citadel
+        new EnemyStatePatch("Song Reed Grand",
+            "Init",
+            CreateShiftToBaseDelegate(backupSize: new(1.3594f, 5.8281f)),
+            fsmName: "Control"),
+
+        new EnemyStateActionPatchSet("Song Reed Grand",
+            [new("",
+                ["Set Cast", "Set Slash", "Set Jump Attack"],
+                typeof(SetFloatValue),
+                delegate(FsmStateAction action, object[] param)
+                {
+                    var sfv = (SetFloatValue)action;
+
+                    if(sfv.floatVariable.Name.Equals("Max Distance"))
+                        sfv.floatValue.Value *= Math.Abs(((GameObject)param[0]).transform.localScale.x);
+                }),
+            new("",
+                "Crawl F",
+                typeof(FloatOperator),
+                delegate(FsmStateAction action, object[] param)
+                {
+                    ((FloatOperator)action).float2.Value *= Math.Abs(((GameObject)param[0]).transform.localScale.x);
+                }),
+            new("",
+                "Hop",
+                typeof(FloatTestToBool),
+                delegate(FsmStateAction action, object[] param)
+                {
+                    ((FloatTestToBool)action).float2.Value *= Math.Abs(((GameObject)param[0]).transform.localScale.x);
+                }),
+            new("",
+                "Stomp Land",
+                typeof(Translate),
+                delegate(FsmStateAction action, object[] param)
+                {
+                    ((Translate)action).y.Value *= Math.Abs(((GameObject)param[0]).transform.localScale.x);
+                })
+            ],
+            fsmName: "Control"),
+
+#region Cogwork
+        new EnemyStatePatch("Song Automaton Fly",
+            "Land",
+            delegate(FsmState state, object[] param)
+            {
+                FsmStateAction[] actions = state.Actions;
+                FsmStateAction[] newActionArray = new FsmStateAction[actions.Length + 1];
+                int j = 0;
+
+                for(int i = 0; i < actions.Length; i++)
+                {
+                    newActionArray[j++] = actions[i];
+                    if(actions[i].GetType() == typeof(SetRotation))
+                    {
+                        newActionArray[j++] = new ShiftVarDownByHalfHeight()
+                        {
+                            gameObject = new()
+                            {
+                                GameObject = (GameObject)param[0]
+                            },
+                            variableName = "Target Pos",
+                            angleName = "Angle"
+                        };
+                    }
+                }
+
+                state.Actions = newActionArray;
+            },
+            fsmName: "Control"),
+
+        new EnemyStatePatch("Song Automaton Goomba",
+            "Init",
+            CreateShiftToBaseDelegate(magicNumber: -0.02f),
+            fsmName: "Control"),
+
+        new EnemyStateActionPatch("Song Automaton Goomba",
+            "Attack Check",
+            typeof(RayCast2dV2),
+            CreateAdjustRaycast2dV2Scaler(),
+            fsmName: "Control"),
+
+        new EnemyStateActionPatch(["Song Automaton 01", "Song Automaton 02", "Song Automaton Goomba"],
+            ["Do Step S", "Do Step F", "Stepped"],
+            typeof(RayCast2dV2),
+            CreateAdjustRaycast2dV2Scaler(),
+            fsmName: "Walk"),
+
+        new EnemyStateActionPatch("Song Automaton Shield",
+            ["Do Step S", "Do Step F", "Stepped"],
+            typeof(RayCast2dV2),
+            CreateAdjustRaycast2dV2Scaler(),
+            fsmName: "Automaton Walk"){
+        },
+
+#endregion Cogwork
+
+#region High Halls
+
+        new EnemyStatePatch("Song Administrator",
+            "Init",
+            delegate(FsmState state, object[] param)
+            {
+                var enemy = (GameObject)param[0];
+                var enemyName = enemy.name;
+                var scene = enemy.scene.name;
+                if ((scene.Equals("Hang_08") && enemyName.Equals("Song Administrator (1)"))
+                || (scene.Equals("Hang_03") && enemyName.Equals("Song Administrator")))
+                    CreateShiftToBaseDelegate(magicNumber: -0.02f, skipRaycast: true)(state, param);
+                else
+                    CreateShiftToBaseDelegate(rotateAdjust: 270f)(state, param);
+            },
+            fsmName: "Control"),
+
+#endregion High Halls
+
+#region Library
+
+        new EnemyStatePatch("Scholar",
+            "Init",
+            delegate(FsmState state, object[] param)
+            {
+                var enemy = (GameObject)param[0];
+                var scene = enemy.scene.name;
+
+                if(scene.Equals("Library_02"))
+                    CreateShiftToBaseDelegate(magicNumber: -0.015f)(state, param);
+                else if(scene.Equals("Library_14"))
+                    CreateShiftToBaseDelegate(rotateAdjust: 180f, magicNumber: -0.02f)(state, param);
+                else
+                    CreateShiftToBaseDelegate(rotateAdjust: 180f)(state, param);
+            },
+            fsmName: "Control"),
+
+        new EnemyStatePatch("Hiding Song Acolyte",
+            "Init",
+            delegate(FsmState action, object[] param)
+            {
+                GameObject acolyte = (GameObject)param[0];
+
+                string name = CuteRandoCore.CullName((string)param[1]);
+
+                Instance.RandomizeSize(false, acolyte.transform);
+                AdjustChildren(acolyte, name);
+
+                CreateShiftToBaseDelegate(backupSize: new(0.7904f, 2.747f), magicNumber: -0.01f)(action, param);
+            },
+            fsmName: "Control"),
+
+        new EnemyStatePatchSet("Song Scholar Acolyte",
+            [new("",
+                [   "Voluntary Sing",
+                    "Sleep",
+                    "Walk Start Frame",
+                    "Church BG",
+                    "Popup Ready"],
+                CreateShiftToBaseDelegate()),
+            new("",
+                "Wall Idle",
+                CreateShiftToBaseDelegate(rotateAdjust:270f)),
+            new("",
+                "Roof Idle",
+                CreateShiftToBaseDelegate(rotateAdjust:180f))
+            ],
+            fsmName: "Control"),
+#endregion Library
+
+#endregion Citadel
+
+#region Underworks
+
+#endregion Underworks
+
+#region Abyss
+        new EnemyStatePatch("Abyss Crawler",
+            "Check",
+            CreateShiftToBaseDelegate(),
+            fsmName: "Fall"),
+
+        new EnemyFSMPatch("Gloomfly Cocoon S",
+            delegate(PlayMakerFSM fsm, object[] param)
+            {
+                var cocoon = ((GameObject)param[0]);
+                var gloomfly = fsm.FsmVariables.GetFsmGameObject("Gloomfly");
+                fsm.FsmVariables.GetFsmGameObject("Gloomfly").OnChange += delegate()
+                {
+                    cocoon.transform.localScale = gloomfly.Value.transform.localScale;
+                    Enemy_Size_Rando.AdjustChildren(cocoon, cocoon.name);
+                };
+                if(gloomfly.Value == null) return;
+
+                cocoon.transform.localScale = gloomfly.Value.transform.localScale;
+                Enemy_Size_Rando.AdjustChildren(cocoon, cocoon.name);
+            },
+            fsmName: "Control"),
+
+        new EnemyFSMPatch("Gloomfly Cocoon L",
+            delegate(PlayMakerFSM fsm, object[] param)
+            {
+                var cocoon = ((GameObject)param[0]);
+                var gloomfly1 = fsm.FsmVariables.GetFsmGameObject("Gloomfly 1");
+                var gloomfly2 = fsm.FsmVariables.GetFsmGameObject("Gloomfly 2");
+                var gloomfly3 = fsm.FsmVariables.GetFsmGameObject("Gloomfly 3");
+
+                var alertRangeCollider = cocoon.transform.Find("Alert Range").GetComponent<Collider2D>();
+                Vector2 alertRangeOffset = alertRangeCollider.offset;
+                Vector3 alertPosition = alertRangeCollider.transform.localPosition;
+                Vector3 alertScale = alertRangeCollider.transform.localScale;
+
+                Action scaler = delegate()
+                {
+                    // Revert changes before re-applying. This allows for proper scaling when we have more than one gloomfly.
+                    alertRangeCollider.offset = alertRangeOffset;
+                    alertRangeCollider.transform.localPosition = alertPosition;
+                    alertRangeCollider.transform.localScale = alertScale;
+
+                    Vector3 maxScale = Vector3.zero;
+
+                    if(gloomfly1.Value != null)
+                        maxScale = gloomfly1.Value.transform.localScale.Abs();
+                    if(gloomfly2.Value != null)
+                        maxScale = Math.Abs(gloomfly2.Value.transform.localScale.x) > maxScale.x ? gloomfly2.Value.transform.localScale.Abs() : maxScale;
+                    if(gloomfly3.Value != null)
+                        maxScale = Math.Abs(gloomfly3.Value.transform.localScale.x) > maxScale.x ? gloomfly3.Value.transform.localScale.Abs() : maxScale;
+
+                    if(maxScale == Vector3.zero) return;
+
+                    cocoon.transform.localScale =  maxScale.MultiplyElements(cocoon.transform.localScale.normalized);
+                    Enemy_Size_Rando.AdjustChildren(cocoon, cocoon.name);
+                };
+
+                fsm.FsmVariables.GetFsmGameObject("Gloomfly 1").OnChange += scaler;
+                fsm.FsmVariables.GetFsmGameObject("Gloomfly 2").OnChange += scaler;
+                fsm.FsmVariables.GetFsmGameObject("Gloomfly 3").OnChange += scaler;
+
+                Vector3 maxScale = Vector3.zero;
+                    if(gloomfly1.Value != null)
+                        maxScale = gloomfly1.Value.transform.localScale.Abs();
+                    if(gloomfly2.Value != null)
+                        maxScale = Math.Abs(gloomfly2.Value.transform.localScale.x) > maxScale.x ? gloomfly2.Value.transform.localScale.Abs() : maxScale;
+                    if(gloomfly3.Value != null)
+                        maxScale = Math.Abs(gloomfly3.Value.transform.localScale.x) > maxScale.x ? gloomfly3.Value.transform.localScale.Abs() : maxScale;
+                    if(maxScale == Vector3.zero) return;
+                    cocoon.transform.localScale =  maxScale.MultiplyElements(cocoon.transform.localScale.normalized);
+                    Enemy_Size_Rando.AdjustChildren(cocoon, cocoon.name);
+            },
+            fsmName: "Control"),
+#endregion Abyss
+
+#region Coral Tower
+        new EnemyStatePatch("Coral Big Jellyfish",
+            "Init",
+            CreateShiftToBaseDelegate(rotateAdjust: 180f, magicNumber: -0.60f),
+            fsmName: "Control"),
+
+#endregion Coral Tower
     };
 
     /// <summary>Dictionary containing various enemy non-FSM patches</summary>
@@ -764,6 +1182,7 @@ internal partial class Enemy_Size_Rando
 
                 digEmerge.transform.localPosition = digEmerge.transform.localPosition with { y = height * Math.Abs(patchTarget.transform.localScale.y) * -1 };
             }),
+
         new EnemyObjectPatch(["Crowman Juror", "Crowman Dagger Juror", "Crowman Juror Tiny"], // Fix height constrain
             delegate(GameObject patchTarget, object[] param)
             {
@@ -776,6 +1195,7 @@ internal partial class Enemy_Size_Rando
 
                 constrain.yMin = 20f + (height * Math.Abs(patchTarget.transform.localScale.y)) / 2;
             }),
+
         new EnemyObjectPatch("Pond Skater", // Fix skate height
             delegate(GameObject patchTarget, object[] param)
             {
@@ -793,6 +1213,7 @@ internal partial class Enemy_Size_Rando
                         Math.Cos(Math.PI * patchTarget.transform.rotation.eulerAngles.z / 180))
                 };
             }),
+
         new EnemyObjectPatch("Bone Crawler", // One has a bad constrain position, fixed by increasing range and setting Crawler's rayDownFrontPadding higher
             delegate(GameObject patchTarget, object[] param)
             {
@@ -803,11 +1224,30 @@ internal partial class Enemy_Size_Rando
                     CuteRandoCore.TraverseCreator(patchTarget.GetComponent<Crawler>(), "rayDownFrontPadding").SetValue(3f);
                 }
             }),
+
+        new EnemyObjectPatch("Swamp Goomba", // TC plz...
+            delegate (GameObject patchTarget, object[] param)
+            {
+                if(patchTarget.scene.name.Equals("Shadow_04"))
+                {
+                    if(patchTarget.name.Equals("Swamp Goomba (1)")){
+                        ConstrainPosition constrain = patchTarget.GetComponent<ConstrainPosition>();
+                        constrain.constrainX = false;
+                    }
+                    else if(patchTarget.name.Equals("Swamp Goomba"))
+                    {
+                        KeepWorldPosition kwp = patchTarget.GetComponent<KeepWorldPosition>();
+                        kwp.keepX = false;
+                    }
+                }
+            }),
+
         new EnemyObjectPatch("Fields Flock Flyer", // Drop Flock Flyers to ground
             delegate(GameObject patchTarget, object[] param)
             {
                 ShiftPosToBase.Shift(patchTarget, Vector2.one, skipRaycast: true);
             }),
+
         /*new EnemyObjectPatch("Bone Roller", //TODO: Needs a lot of fixing!
             delegate(GameObject patchTarget, object[] param)
             {
