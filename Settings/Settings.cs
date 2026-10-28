@@ -33,6 +33,19 @@ public static class Settings
 
     /// <summary>Default for if we want to test new things</summary>
     public const bool defaultTestNewThings = false;
+
+    /// <summary>Use raycasting to set enemies to their base height</summary>
+    public static bool UseRaycastBasing
+    {
+        get => useRaycastBasing.Value;
+        set => useRaycastBasing.Value = value;
+    }
+
+    /// <inheritdoc cref="UseRaycastBasing" />
+    private static ConfigEntry<bool> useRaycastBasing;
+
+    /// <summary>Default choice for raycasting</summary>
+    public static readonly bool defaultUseRaycastBasing = true;
 #endif
 
     /// <summary>Enables the randomization of the various things</summary>
@@ -103,6 +116,12 @@ public static class Settings
             defaultTestNewThings,
             new ConfigDescription(
                 "Test new things"));
+        useRaycastBasing = config.Bind(
+            section: "Testing",
+            key: "Use Raycasting",
+            defaultValue: defaultUseRaycastBasing,
+            configDescription: new ConfigDescription(
+                description: "Use Raycasting when rebasing enemies."));
 #endif
         enableRandomizer.SettingChanged += CuteRandoCore.UpdateSettings;
         enabledRandomizerColors.SettingChanged += SettingMenu.OnEnabledRandomizerColorChanged;

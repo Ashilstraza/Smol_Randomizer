@@ -69,7 +69,19 @@ public class EnemyObjectPatchCollection : ObjectPatchCollection_Base<EnemyObject
     {
         foreach (var patch in patchCollection)
         {
-            RegisterPatchInCollection(patch.Name, patch);
+            if (patch.Name.Equals(""))
+            {
+                if (patch.NameArray.Length == 0)
+                {
+                    CuteRandoCore.Log.LogWarning("Object Patch has empty name and no name array, skipping registering patch.");
+                    continue;
+                }
+
+                foreach (var name in patch.NameArray)
+                    RegisterPatchInCollection(name, patch);
+            }
+            else
+                RegisterPatchInCollection(patch.Name, patch);
         }
     }
 
@@ -79,7 +91,19 @@ public class EnemyObjectPatchCollection : ObjectPatchCollection_Base<EnemyObject
     {
         foreach (var patch in patchCollection)
         {
-            RegisterPatchInCollection(patch.Name, patch);
+            if (patch.Name.Equals(""))
+            {
+                if (patch.NameArray.Length == 0)
+                {
+                    CuteRandoCore.Log.LogWarning("Object Patch has empty name and no name array, skipping unregistering patch.");
+                    continue;
+                }
+
+                foreach (var name in patch.NameArray)
+                    UnregisterPatchInCollection(name, patch);
+            }
+            else
+                UnregisterPatchInCollection(patch.Name, patch);
         }
     }
 }

@@ -72,10 +72,23 @@ public abstract class StatePatch_Base(string stateName, Action<FsmState, object[
         var fsm = fsmArray.FirstOrDefault(obj => obj.FsmName.Equals(FSMName));
 #if DEBUG
         if (fsm == default) CuteRandoCore.Log.LogWarning($"Patch for {(string)param[1]} is default, using first fsm. FSMName: {FSMName}");
-        if (fsm != null && Name.Equals("Init") && !fsm.ActiveStateName.Equals("Init")) CuteRandoCore.Log.LogWarning($"Attempting to patch Init on {(string)param[1]} when the active state is {fsm.ActiveStateName}");
+        if (fsm != null && Name.Equals("Init") && !InitialStateOk(fsm.ActiveStateName)) CuteRandoCore.Log.LogWarning($"Attempting to patch Init on {(string)param[1]} when the active state is {fsm.ActiveStateName}");
 #endif
 
         ApplyPatch(fsm ?? fsmArray[0], param);
+
+        bool InitialStateOk(string activeStateName)
+        {
+            switch (activeStateName)
+            {
+                case "Init":
+                case "Pause":
+                case "RetreatAway Range?":
+                    return true;
+                default:
+                    return false;
+            }
+        }
     }
 
     /// <inheritdoc cref="ApplyPatch"/>
@@ -278,7 +291,7 @@ public abstract class StateActionPatch_Base(string stateName, Type actionType, A
             }
 
             if (!typeFound)
-                CuteRandoCore.Log.LogWarning($"Patch failed for State {Name}, Type: {TypeString} FsmName: {FSMName}");
+                CuteRandoCore.Log.LogWarning($"Patch failed for State {name}, Type: {TypeString}, FsmName: {FSMName}, Enemy: {(string)param[1]}");
         }
     }
 

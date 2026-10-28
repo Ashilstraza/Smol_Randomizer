@@ -26,11 +26,7 @@ using Smol_Randomizer.Patchers.ScenePatches;
 using Smol_Randomizer.Randomizers;
 using Smol_Randomizer.Settings;
 
-#if TESTING
-
 using UnityEngine;
-
-#endif
 
 using UnityEngine.SceneManagement;
 
@@ -59,7 +55,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <summary>The current scene loaded</summary>
     private static Scene currentScene;
 
-    /// <inheritdoc cref="currentScene"/>
+    /// <inheritdoc cref="currentScene" />
     public static Scene CurrentScene => currentScene;
 
     /// <summary>List of all registered randomizer names</summary>
@@ -202,7 +198,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
     /// <summary>On Scene Transition, get ready to process the new <see cref="Scene" /></summary>
     /// <param name="scene">The new <see cref="Scene" /></param>
-    /// <param name="mode">
+    /// <param name="mode"> 
     /// The <see cref="Scene" />'s <see cref="LoadSceneMode" />; We don't really care about it, but still pass it on
     /// </param>
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -256,7 +252,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
     /// <summary>Patch that hooks the end of OnEnable of objects that have a HealthManager</summary>
     /// <param name="__instance">The <see cref="HealthManager" /> that we may want to adjust</param>
-    private static void HealthManager_OnEnable_Postfix(ref HealthManager __instance)
+    private static void HealthManager_OnEnable_Postfix(HealthManager __instance)
     {
         if (!randomize) return;
 
@@ -271,7 +267,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <param name="___healthManager">
     /// Private Variable: The <see cref="HealthManager" /> of the hero damager if it was an enemy
     /// </param>
-    private static void DamageHero_OnEnable_Postfix(ref DamageHero __instance, ref HealthManager ___healthManager)
+    private static void DamageHero_OnEnable_Postfix(DamageHero __instance, HealthManager ___healthManager)
     {
         if (!randomize) return;
 
@@ -279,7 +275,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
             randomizer.Value(__instance, ___healthManager);
     }
 
-    private static bool Fsm_Start_Prefix(ref Fsm __instance)
+    private static bool Fsm_Start_Prefix(Fsm __instance)
     {
         foreach (var randomizer in activeOnFsmStart)
             randomizer.Value(__instance);
@@ -420,7 +416,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <summary>If we have patched <see cref="DamageHero" />'s OnEnable</summary>
     private static bool patchedDamageHero = false;
 
-    /// <summary>If we have patched <see cref="Fsm.Start"/></summary>
+    /// <summary>If we have patched <see cref="Fsm.Start" /></summary>
     private static bool patchedOnFsmStart = false;
 
     /// <summary>Create the custom mod menu</summary>
@@ -460,9 +456,9 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         if (randomizer == null)
             throw new ArgumentNullException(nameof(randomizer), "Unable to register null as a randomizer.");
         else if (randomizer.Name == null)
-            throw new ArgumentException("Randomizer has a null name.");
+            throw new ArgumentException("Randomizer has a null name.", nameof(randomizer.Name));
         else if (randomizer.Method == null)
-            throw new ArgumentException("Randomizer has a null action.");
+            throw new ArgumentException("Randomizer has a null action.", nameof(randomizer.Method));
 
         foreach (Randomizer_Info randoInfo in allRandomizerActions)
         {
@@ -600,10 +596,10 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     public static bool UnregisterRandomizer(Randomizer_Info randomizer)
     {
         if (randomizer == null)
-            throw new ArgumentNullException(nameof(randomizer), "Not able to unregister a null randomizer.");
+            throw new ArgumentNullException(nameof(randomizer), "Unable to unregister a null randomizer.");
 
         if (randomizer.Name == null)
-            throw new ArgumentException("Not able to unregister a randomizer with a null name.");
+            throw new ArgumentException("Unable to unregister a randomizer with a null name.", nameof(randomizer.Name));
 
         if (!allRandomizerActions.Remove(randomizer))
             return false;
@@ -670,7 +666,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
     /// <summary>Helper to simplify using <see cref="Tuple" /> s to get a random <see langword="float" /> value</summary>
     /// <param name="tuple">The <see cref="Tuple" /> to use as min and max <see langword="float" /> values</param>
-    /// <param name="seed">
+    /// <param name="seed"> 
     /// The seed to ensure that we are deterministic, if seed is <see cref="int.MinValue" /> then we don't use that.
     /// </param>
     /// <returns>A random <see langword="float" /> between the min and max of the <see cref="Tuple" /></returns>
@@ -681,7 +677,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
     /// <summary>Helper to simplify using <see cref="Tuple" /> to get a random <see langword="int" /> value</summary>
     /// <param name="tuple">The <see cref="Tuple" /> to use as min and max <see langword="int" /> values</param>
-    /// <param name="seed">
+    /// <param name="seed"> 
     /// The seed to ensure that we are deterministic, if seed is <see cref="int.MinValue" /> then we don't use that.
     /// </param>
     /// <returns>A random <see langword="int" /> between the min and max of the <see cref="Tuple" /></returns>
@@ -829,4 +825,79 @@ public class Randomizer_Info(string name, RandomizerEventType randomizerType, Me
 
     /// <summary>The first argument of the method being called.</summary>
     public object Object => o;
+}
+
+public static class SmolExtensions
+{
+    extension(float f)
+    {
+        /// <summary>Gets the absolute value of the given <see langword="float" /></summary>
+        /// <returns>Returns the absolute value of the <see langword="float" /></returns>
+        public float Abs() => f > 0f ? f : f * -1f;
+    }
+
+    extension(Transform transform)
+    {
+        /// <summary>Gets the absolute x value of the transform scale</summary>
+        /// <returns>Returns the absolute value of localScale.x</returns>
+        public float GetAbsScaleX()
+            => transform.localScale.x > 0f ? transform.localScale.x : transform.localScale.x * -1;
+
+        /// <summary>Gets the absolute y value of the transform scale</summary>
+        /// <returns>Returns the absolute value of localScale.y</returns>
+        public float GetAbsScaleY()
+            => transform.localScale.y > 0f ? transform.localScale.y : transform.localScale.y * -1;
+
+        /// <summary>Gets the absolute z value of the transform scale</summary>
+        /// <returns>Returns the absolute value of localScale.z</returns>
+        public float GetAbsScaleZ()
+            => transform.localScale.z > 0f ? transform.localScale.z : transform.localScale.z * -1;
+
+        /// <summary>Gets the absolute value of the transform scale</summary>
+        /// <returns>Returns the absolute value of localScale</returns>
+        public Vector3 GetAbsScale()
+            => transform.localScale.Abs();
+
+        /// <summary>Gets the absolute x value of the transform scale from a global standpoint</summary>
+        /// <returns>Returns the absolute value of lossyScale.x</returns>
+        public float GetAbsLossyScaleX()
+            => transform.lossyScale.x > 0f ? transform.lossyScale.x : transform.lossyScale.x * -1;
+
+        /// <summary>Gets the absolute y value of the transform scale from a global standpoint</summary>
+        /// <returns>Returns the absolute value of lossyScale.y</returns>
+        public float GetAbsLossyScaleY()
+            => transform.lossyScale.y > 0f ? transform.lossyScale.y : transform.lossyScale.y * -1;
+
+        /// <summary>Gets the absolute z value of the transform scale from a global standpoint</summary>
+        /// <returns>Returns the absolute value of lossyScale.z</returns>
+        public float GetAbsLossyScaleZ()
+            => transform.lossyScale.z > 0f ? transform.lossyScale.z : transform.lossyScale.z * -1;
+
+        /// <summary>Gets the absolute value of the transform scale from a global standpoint</summary>
+        /// <returns>Returns the absolute value of lossyScale</returns>
+        public Vector3 GetAbsLossyScale()
+            => transform.lossyScale.Abs();
+    }
+
+    extension(FsmVariables fsmVariables)
+    {
+        /// <summary>Adds a <see cref="NamedVariable" /> to the fsm's internal lookup array</summary>
+        /// <param name="v">The variable to add</param>
+        public void AddVariableLookup(NamedVariable v)
+        {
+            MethodInfo addVariableLookup = AccessTools.Method(typeof(FsmVariables), "AddVariableLookup");
+
+            addVariableLookup.Invoke(fsmVariables, [v]);
+        }
+
+        /// <summary>Adds an array of <see cref="NamedVariable" /> s to the fsm's internal lookup array</summary>
+        /// <param name="v">The variable to add</param>
+        public void AddVariableLookup(NamedVariable[] vArray)
+        {
+            MethodInfo addVariableLookup = AccessTools.Method(typeof(FsmVariables), "AddVariableLookup");
+
+            foreach (NamedVariable v in vArray)
+                addVariableLookup.Invoke(fsmVariables, [v]);
+        }
+    }
 }

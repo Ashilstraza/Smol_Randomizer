@@ -19,10 +19,15 @@ using static Smol_Randomizer.CuteRandoCore;
 
 namespace Smol_Randomizer.Patchers;
 
-/// <summary>Class to allow for loading external patches. These patches require a specific structure to load that is created beforehand.</summary>
+/// <summary>
+/// Class to allow for loading external patches. These patches require a specific structure to load that is created beforehand.
+/// </summary>
 internal class External_Patches
 {
-    /// <summary>Dictionary containing all the externally loaded patches. These are removed prior to loading a new set of external patches.</summary>
+    /// <summary>
+    /// Dictionary containing all the externally loaded patches. These are removed prior to loading a new set of
+    /// external patches.
+    /// </summary>
     internal static Dictionary<ExternalPatchTypes, HashSet<ISmolPatch>> externalPatches = [];
 
     /// <summary>Json Converter for converting external patches into their specific objects.</summary>
@@ -110,9 +115,11 @@ internal class External_Patches
     }
 
     /// <summary>Method to load the external patches.</summary>
-    /// <remarks>To load the external patches, first any previously loaded external patches are unregistered.
+    /// <remarks>
+    /// To load the external patches, first any previously loaded external patches are unregistered.
     /// <para>Next, the Json file is read and then deserialized.</para>
-    /// <para>Following deserialization, the patches are then generated and then registered into their specific collections.</para></remarks>
+    /// <para>Following deserialization, the patches are then generated and then registered into their specific collections.</para>
+    /// </remarks>
     internal static void LoadPatches()
     {
         CuteRandoCore.Log.LogInfo("Loading External Patches");
@@ -311,8 +318,10 @@ internal class External_Patches
 
     #region State Patches
 
-    /// <summary>Wrapper for patching a scene's <see cref="FsmState"/>
-    /// <para>No  currently implemented <see cref="PatchInfo_Base{Target}.PatchTarget"/>s</para></summary>
+    /// <summary>
+    /// Wrapper for patching a scene's <see cref="FsmState" />
+    /// <para>No currently implemented <see cref="PatchInfo_Base{Target}.PatchTarget" /> s</para>
+    /// </summary>
     public class SceneStateExternalPatch : StateExternalPatch_Base, IScenePatch
     {
         public string SceneName { get; set; } = "";
@@ -324,27 +333,29 @@ internal class External_Patches
         public override PatchInfo_Base<FsmState>? Unpatch { get; set; }
     }
 
-    /// <summary>Wrapper for patching an enemy's <see cref="FsmState"/></summary>
+    /// <summary>Wrapper for patching an enemy's <see cref="FsmState" /></summary>
     public class EnemyStateExternalPatch : StateExternalPatch_Base, IEnemyPatch
     {
         public string EnemyName { get; set; } = "";
+
+        public string[] EnemyNames { get; set; } = [];
 
         public override PatchInfo_Base<FsmState> Patch { get; set; }
 
         public override PatchInfo_Base<FsmState>? Unpatch { get; set; }
     }
 
-    /// <summary>Contains the patch information to patch an <see cref="FsmState"/> with a new <see cref="FsmStateAction"/></summary>
+    /// <summary>Contains the patch information to patch an <see cref="FsmState" /> with a new <see cref="FsmStateAction" /></summary>
     public class StatePatchInfo : PatchInfo_Base<FsmState>
     {
-        /// <summary>If the patch should add the <see cref="FsmStateAction"/> at the start of the <see cref="FsmState"/></summary>
+        /// <summary>If the patch should add the <see cref="FsmStateAction" /> at the start of the <see cref="FsmState" /></summary>
         public bool StartOfState = true;
 
         // per PatchTarget options
-        /// <summary>Bool arguments for the <see cref="PatchInfo_Base{Target}.PatchTarget"/></summary>
+        /// <summary>Bool arguments for the <see cref="PatchInfo_Base{Target}.PatchTarget" /></summary>
         public bool[] BoolOptions = [];
 
-        /// <summary>Float arguments for the <see cref="PatchInfo_Base{Target}.PatchTarget"/></summary>
+        /// <summary>Float arguments for the <see cref="PatchInfo_Base{Target}.PatchTarget" /></summary>
         public float[] FloatOptions = [];
 
         public override Action<FsmState, object[]> GeneratePatch()
@@ -352,7 +363,7 @@ internal class External_Patches
             switch (PatchTarget)
             {
                 case "ShiftPosToBase":
-                    return Enemy_Size_Rando.CreateShiftToBaseDelegate(
+                    return Enemy_Size_Rando.ShiftToBaseDelegate(
                         StartOfState, // atStart
                         FloatOptions.ElementAtOrDefault(0), // rotateAdjust
                         new Vector2(FloatOptions.ElementAtOrDefault(1), FloatOptions.ElementAtOrDefault(2)), // backupSize
@@ -367,7 +378,7 @@ internal class External_Patches
         }
     }
 
-    /// <summary>Abstract class for wrapping an externally loaded <see cref="FsmState"/> patch</summary>
+    /// <summary>Abstract class for wrapping an externally loaded <see cref="FsmState" /> patch</summary>
     public abstract class StateExternalPatch_Base
     : ObjectExternalPatch_Base<FsmState>, IFSMPatch
     {
@@ -378,19 +389,25 @@ internal class External_Patches
 
     #region State Action
 
-    /// <summary>Wrapper for patching an enemy's <see cref="FsmStateAction" />
-    /// <para>Not currently implemented.</para></summary>
+    /// <summary>
+    /// Wrapper for patching an enemy's <see cref="FsmStateAction" />
+    /// <para>Not currently implemented.</para>
+    /// </summary>
     public class EnemyStateActionExternalPatch : StateActionExternalPatch_Base, IEnemyPatch
     {
         public string EnemyName { get; set; } = "";
+
+        public string[] EnemyNames { get; set; } = [];
 
         public override PatchInfo_Base<FsmStateAction> Patch { get; set; }
 
         public override PatchInfo_Base<FsmStateAction>? Unpatch { get; set; }
     }
 
-    /// <summary>Wrapper for patching a <see cref="Scene" /> <see cref="FsmStateAction" />
-    /// <para>Not currently implemented.</para></summary>
+    /// <summary>
+    /// Wrapper for patching a <see cref="Scene" /><see cref="FsmStateAction" />
+    /// <para>Not currently implemented.</para>
+    /// </summary>
     public class SceneStateActionExternalPatch : StateActionExternalPatch_Base, IScenePatch
     {
         public string SceneName { get; set; } = "";
@@ -402,8 +419,10 @@ internal class External_Patches
         public override PatchInfo_Base<FsmStateAction>? Unpatch { get; set; }
     }
 
-    /// <summary>Contains the patch information to patch an <see cref="FsmStateAction"/>
-    /// <para>Not currently implemented.</para></summary>
+    /// <summary>
+    /// Contains the patch information to patch an <see cref="FsmStateAction" />
+    /// <para>Not currently implemented.</para>
+    /// </summary>
     public class StateActionPatchInfo : PatchInfo_Base<FsmStateAction>
     {
         public override Action<FsmStateAction, object[]> GeneratePatch()
@@ -412,7 +431,7 @@ internal class External_Patches
         }
     }
 
-    /// <summary>Abstract class for wrapping an externally loaded <see cref="FsmStateAction"/> patch</summary>
+    /// <summary>Abstract class for wrapping an externally loaded <see cref="FsmStateAction" /> patch</summary>
     public abstract class StateActionExternalPatch_Base()
    : ObjectExternalPatch_Base<FsmStateAction>, IFSMPatch, IFSMActionPatch
     {
@@ -434,8 +453,10 @@ internal class External_Patches
 
     #region Object Patches
 
-    /// <summary>Wrapper for patching a <see cref="GameObject" />
-    /// <para>Not currently implemented.</para></summary>
+    /// <summary>
+    /// Wrapper for patching a <see cref="GameObject" />
+    /// <para>Not currently implemented.</para>
+    /// </summary>
     public class EnemyObjectExternalPatch : ObjectExternalPatch_Base<GameObject>
     {
         public override PatchInfo_Base<GameObject> Patch { get; set; }
@@ -443,8 +464,10 @@ internal class External_Patches
         public override PatchInfo_Base<GameObject>? Unpatch { get; set; }
     }
 
-    /// <summary>Contains the patch information to patch a <see cref="GameObject" />
-    /// <para>Not currently implemented.</para></summary>
+    /// <summary>
+    /// Contains the patch information to patch a <see cref="GameObject" />
+    /// <para>Not currently implemented.</para>
+    /// </summary>
     public class ObjectPatchInfo : PatchInfo_Base<GameObject>
     {
         public override Action<GameObject, object[]> GeneratePatch()

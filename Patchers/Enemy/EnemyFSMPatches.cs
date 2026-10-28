@@ -39,17 +39,22 @@ internal class EnemyFSMPatches
     /// <param name="enemyPatchCollection">The collection of patches to add</param>
     public static void RegisterPatchCollection(HashSet<IEnemyFSMPatch> enemyPatchCollection)
     {
+        int stateActionPatches = 0;
+        int statePatches = 0;
+        int fsmPatches = 0;
+
         foreach (var patch in enemyPatchCollection)
         {
             if (patch is EnemyStateActionPatch or EnemyStateActionPatchSet)
-                enemyStateAction.RegisterPatchInCollection(patch.EnemyName, patch);
+                stateActionPatches += enemyStateAction.RegisterPatchInCollection(patch.EnemyName, patch);
             else if (patch is EnemyStatePatchSet or EnemyStatePatch)
-                enemyState.RegisterPatchInCollection(patch.EnemyName, patch);
+                statePatches += enemyState.RegisterPatchInCollection(patch.EnemyName, patch);
             else if (patch is EnemyFSMPatchSet or EnemyFSMPatch)
-                enemyFSMPatches.RegisterPatchInCollection(patch.EnemyName, patch);
+                fsmPatches += enemyFSMPatches.RegisterPatchInCollection(patch.EnemyName, patch);
             else
                 CuteRandoCore.Log.LogWarning($"Register patch called with invalid patch type; Name: {patch.Name}, Enemy Name: {patch.EnemyName}, Type: {patch.GetType()}");
         }
+        CuteRandoCore.Log.LogMessage($"Registered {stateActionPatches} State Action Patches, {statePatches} State Patches, and {fsmPatches} Fsm Patches");
     }
 
     /// <summary>Unregisters a collection of patches</summary>
@@ -202,16 +207,26 @@ public class EnemyStatePatch(string enemyName, string stateName, Action<FsmState
         EnemyNames = enemyNames;
     }
 
-    /// <summary><see cref="Array" /> of enemy names to patch</summary>
+    /// <inheritdoc cref="EnemyStatePatch" />
+    /// <param name="enemyNames"><see cref="Array" /> of names for the enemies whos <see cref="PlayMakerFSM" /> we want to patch</param>
+    public EnemyStatePatch(string[] enemyNames, string[] stateNames, Action<FsmState, object[]> patch, Action<FsmState, object[]>? unpatch = null, string fsmName = "")
+        : this("", "", patch, unpatch, fsmName)
+    {
+        NameArray = stateNames;
+        EnemyNames = enemyNames;
+    }
+
+    /// <inheritdoc cref="EnemyNames" />
     private string[] enemyNames = [];
 
-    /// <inheritdoc cref="enemyNames" />
     public string[] EnemyNames { get => enemyNames; protected internal set => enemyNames = value; }
 
     public string EnemyName { get => enemyName; protected internal set => enemyName = value; }
 
     public override object Clone()
     {
+        if (NameArray.Length > 0 && EnemyNames.Length > 0)
+            return new EnemyStatePatch(EnemyNames, NameArray, (Action<FsmState, object[]>)Patch.Clone(), (Action<FsmState, object[]>?)Unpatch?.Clone(), FSMName);
         if (NameArray.Length > 0)
             return new EnemyStatePatch(EnemyName, NameArray, (Action<FsmState, object[]>)Patch.Clone(), (Action<FsmState, object[]>?)Unpatch?.Clone(), FSMName);
         else if (EnemyNames.Length > 0)
@@ -229,7 +244,8 @@ public class EnemyStatePatchSet : StatePatchSet_Base<EnemyStatePatch>, IEnemyFSM
     /// <inheritdoc cref="EnemyStatePatchSet"/>
     /// <inheritdoc cref="StatePatchSet_Base{EnemyStatePatch}"/>
     /// <param name="enemyName">Name of the enemy whos <see cref="PlayMakerFSM" /> we want to patch</param>
-    public EnemyStatePatchSet(string enemyName, List<EnemyStatePatch> patches, string fsmName = "") : base(enemyName, patches, fsmName)
+    public EnemyStatePatchSet(string enemyName, List<EnemyStatePatch> patches, string fsmName = "")
+        : base(enemyName, patches, fsmName)
     {
         this.enemyName = enemyName;
 
@@ -240,7 +256,29 @@ public class EnemyStatePatchSet : StatePatchSet_Base<EnemyStatePatch>, IEnemyFSM
         }
     }
 
+    /// <inheritdoc cref="EnemyStatePatchSet"/>
+    /// <inheritdoc cref="StatePatchSet_Base{EnemyStatePatch}"/>
+    /// <param name="enemyNames">Names of the enemies whos <see cref="PlayMakerFSM" /> we want to patch</param>
+    public EnemyStatePatchSet(string[] enemyNames, List<EnemyStatePatch> patches, string fsmName = "")
+        : base("", patches, fsmName)
+    {
+        this.enemyName = "";
+        EnemyNames = enemyNames;
+
+        foreach (EnemyStatePatch patch in patches)
+        {
+            patch.EnemyName = "";
+            patch.EnemyNames = enemyNames;
+            if (patch.FSMName == "") patch.FSMName = fsmName;
+        }
+    }
+
     public string EnemyName { get => enemyName; }
+
+    /// <inheritdoc cref="EnemyNames" />
+    private string[] enemyNames = [];
+
+    public string[] EnemyNames { get => enemyNames; protected internal set => enemyNames = value; }
 
     public override object Clone()
     {
@@ -249,7 +287,10 @@ public class EnemyStatePatchSet : StatePatchSet_Base<EnemyStatePatch>, IEnemyFSM
         foreach (var patch in Patches)
             newList.Add(patch);
 
-        return new EnemyStatePatchSet(Name, newList, FSMName);
+        if (EnemyNames.Length > 0)
+            return new EnemyStatePatchSet(EnemyNames, newList, FSMName);
+        else
+            return new EnemyStatePatchSet(EnemyName, newList, FSMName);
     }
 }
 
@@ -289,10 +330,9 @@ public class EnemyStateActionPatch(string enemyName, string stateName, Type acti
         NameArray = stateNames;
     }
 
-    /// <summary><see cref="Array" /> of enemy names to patch</summary>
+    /// <inheritdoc cref="EnemyNames" />
     private string[] enemyNames = [];
 
-    /// <inheritdoc cref="enemyNames" />
     public string[] EnemyNames { get => enemyNames; protected internal set => enemyNames = value; }
 
     public string EnemyName { get => enemyName; protected internal set => enemyName = value; }
@@ -318,7 +358,8 @@ public class EnemyStateActionPatchSet : StateActionPatchSet_Base<EnemyStateActio
     /// <inheritdoc cref="EnemyStateActionPatchSet"/>
     /// <inheritdoc cref="StateActionPatchSet_Base{EnemyStateActionPatch}"/>
     /// <param name="enemyName">Name of the enemy whos <see cref="FsmStateAction" /> we want to patch</param>
-    public EnemyStateActionPatchSet(string enemyName, List<EnemyStateActionPatch> patches, string fsmName = "") : base(enemyName, patches, fsmName)
+    public EnemyStateActionPatchSet(string enemyName, List<EnemyStateActionPatch> patches, string fsmName = "")
+        : base(enemyName, patches, fsmName)
     {
         this.enemyName = enemyName;
 
@@ -329,7 +370,29 @@ public class EnemyStateActionPatchSet : StateActionPatchSet_Base<EnemyStateActio
         }
     }
 
+    /// <inheritdoc cref="EnemyStateActionPatchSet"/>
+    /// <inheritdoc cref="StateActionPatchSet_Base{EnemyStateActionPatch}"/>
+    /// <param name="enemyNames">Names of the enemies whos <see cref="FsmStateAction" /> we want to patch</param>
+    public EnemyStateActionPatchSet(string[] enemyNames, List<EnemyStateActionPatch> patches, string fsmName = "")
+        : base("", patches, fsmName)
+    {
+        this.enemyName = "";
+        EnemyNames = enemyNames;
+
+        foreach (EnemyStateActionPatch patch in patches)
+        {
+            patch.EnemyName = "";
+            patch.EnemyNames = enemyNames;
+            if (patch.FSMName == "") patch.FSMName = fsmName;
+        }
+    }
+
     public string EnemyName { get => enemyName; }
+
+    /// <inheritdoc cref="EnemyNames" />
+    private string[] enemyNames = [];
+
+    public string[] EnemyNames { get => enemyNames; protected internal set => enemyNames = value; }
 
     public override object Clone()
     {
@@ -338,7 +401,10 @@ public class EnemyStateActionPatchSet : StateActionPatchSet_Base<EnemyStateActio
         foreach (var patch in Patches)
             newList.Add(patch);
 
-        return new EnemyStateActionPatchSet(EnemyName, newList, FSMName);
+        if (EnemyNames.Length > 0)
+            return new EnemyStateActionPatchSet(EnemyNames, newList, FSMName);
+        else
+            return new EnemyStateActionPatchSet(EnemyName, newList, FSMName);
     }
 }
 
@@ -362,10 +428,9 @@ public class EnemyFSMPatch(string enemyName, Action<PlayMakerFSM, object[]> patc
 
     public string EnemyName { get => enemyName; protected internal set => enemyName = value; }
 
-    /// <summary><see cref="Array" /> of enemy names to patch</summary>
+    /// <inheritdoc cref="EnemyNames" />
     private string[] enemyNames = [];
 
-    /// <inheritdoc cref="enemyNames" />
     public string[] EnemyNames { get => enemyNames; protected internal set => enemyNames = value; }
 
     public override void ApplyPatch(PlayMakerFSM[] fsmArray, object[] param)
@@ -405,7 +470,7 @@ public class EnemyFSMPatchSet : FSMPatchSet_Base<EnemyFSMPatch, PlayMakerFSM>, I
 
     /// <inheritdoc cref="EnemyFSMPatchSet"/>
     /// <inheritdoc cref="FSMPatchSet_Base{EnemyFSMPatch,PlayMakerFSM}"/>
-    /// <param name="enemyName">Name of the enemy whos <see cref="FsmStateAction" /> we want to patch</param>
+    /// <param name="enemyName">Name of the enemy who we want to patch</param>
     public EnemyFSMPatchSet(string enemyName, List<EnemyFSMPatch> patches, string fsmName = "") : base(enemyName, patches, fsmName)
     {
         this.enemyName = enemyName;
@@ -417,6 +482,27 @@ public class EnemyFSMPatchSet : FSMPatchSet_Base<EnemyFSMPatch, PlayMakerFSM>, I
         }
     }
 
+    /// <inheritdoc cref="EnemyFSMPatchSet"/>
+    /// <inheritdoc cref="FSMPatchSet_Base{EnemyFSMPatch,PlayMakerFSM}"/>
+    /// <param name="enemyNames">Names of the enemies who we want to patch</param>
+    public EnemyFSMPatchSet(string[] enemyNames, List<EnemyFSMPatch> patches, string fsmName = "") : base("", patches, fsmName)
+    {
+        this.enemyName = "";
+        EnemyNames = enemyNames;
+
+        foreach (EnemyFSMPatch patch in patches)
+        {
+            patch.EnemyName = "";
+            patch.EnemyNames = enemyNames;
+            if (patch.FSMName == "") patch.FSMName = fsmName;
+        }
+    }
+
+    /// <inheritdoc cref="EnemyNames" />
+    private string[] enemyNames = [];
+
+    public string[] EnemyNames { get => enemyNames; protected internal set => enemyNames = value; }
+
     public string EnemyName { get => enemyName; }
 
     public override object Clone()
@@ -426,7 +512,10 @@ public class EnemyFSMPatchSet : FSMPatchSet_Base<EnemyFSMPatch, PlayMakerFSM>, I
         foreach (var patch in Patches)
             newList.Add(patch);
 
-        return new EnemyFSMPatchSet(EnemyName, newList, FSMName);
+        if (EnemyNames.Length > 0)
+            return new EnemyFSMPatchSet(EnemyNames, newList, FSMName);
+        else
+            return new EnemyFSMPatchSet(EnemyName, newList, FSMName);
     }
 }
 #endregion FSM Patch
@@ -476,19 +565,29 @@ public abstract class EnemyFSMPatchCollections_Base<PatchType, PatchSetType, Pat
     /// <summary>Registers a collection of FSM patches</summary>
     /// <param name="patchCollection">The collection of patches to register</param>
     /// <param name="enemyName">      The name of the enemy the patches are for</param>
-    public void RegisterEnemyPatchCollection(List<PatchType> patchCollection, string enemyName)
+    /// <returns>The number of patches registered</returns>
+    public int RegisterEnemyPatchCollection(List<PatchType> patchCollection, string enemyName)
     {
+        int patchTotal = 0;
+
         foreach (var patch in patchCollection)
-        {
-            RegisterPatchInCollection(patch.EnemyName.Equals("") ? enemyName : patch.EnemyName, patch);
-        }
+            patchTotal += RegisterPatchInCollection(patch.EnemyName.Equals("") ?
+                                                    patch.EnemyNames.Length > 0 ?
+                                                        ""
+                                                        : enemyName
+                                                    : patch.EnemyName, patch);
+
+        return patchTotal;
     }
 
     /// <summary>Registers FSM patches</summary>
     /// <param name="enemyName">The name of the enemy the patches are for</param>
     /// <param name="smolPatch">The patch or patch set to register</param>
-    public void RegisterPatchInCollection(string enemyName, IEnemyFSMPatch smolPatch)
+    /// <returns>The number of patches registered</returns>
+    public int RegisterPatchInCollection(string enemyName, IEnemyFSMPatch smolPatch)
     {
+        int patchTotal = 0;
+
         if (smolPatch is PatchType patch)
         {
             if (enemyName == "")
@@ -496,18 +595,23 @@ public abstract class EnemyFSMPatchCollections_Base<PatchType, PatchSetType, Pat
                 if (smolPatch is EnemyStatePatch statePatch && statePatch.EnemyNames.Length > 0)
                 {
                     foreach (string name in statePatch.EnemyNames)
-                    {
-                        RegisterPatchInCollection(name, smolPatch);
-                    }
-                    return;
+                        patchTotal += RegisterPatchInCollection(name, smolPatch);
+
+                    return patchTotal;
                 }
                 else if (smolPatch is EnemyStateActionPatch stateActionPatch && stateActionPatch.EnemyNames.Length > 0)
                 {
                     foreach (string name in stateActionPatch.EnemyNames)
-                    {
-                        RegisterPatchInCollection(name, smolPatch);
-                    }
-                    return;
+                        patchTotal += RegisterPatchInCollection(name, smolPatch);
+
+                    return patchTotal;
+                }
+                else if (smolPatch is EnemyFSMPatch fsmPatch && fsmPatch.EnemyNames.Length > 0)
+                {
+                    foreach (string name in fsmPatch.EnemyNames)
+                        patchTotal += RegisterPatchInCollection(name, smolPatch);
+
+                    return patchTotal;
                 }
                 else
                     CuteRandoCore.Log.LogWarning($"Register patch called with invalid patch, Name is blank, Enemy Name: {smolPatch.EnemyName}, Type: {smolPatch.GetType()}");
@@ -515,7 +619,7 @@ public abstract class EnemyFSMPatchCollections_Base<PatchType, PatchSetType, Pat
             if (Patches.ContainsKey(enemyName))
             {
                 if (!Patches[enemyName].Add(patch))
-                    return; // The patch is already in there
+                    return patchTotal; // The patch is already in there
             }
             else
                 Patches[enemyName] = new() { { patch } };
@@ -524,13 +628,42 @@ public abstract class EnemyFSMPatchCollections_Base<PatchType, PatchSetType, Pat
                 PatchedObjects[enemyName]++;
             else
                 PatchedObjects.Add(enemyName, 1);
+            patchTotal++;
         }
         else if (smolPatch is PatchSetType patchSet)
         {
-            RegisterEnemyPatchCollection(patchSet.Patches, patchSet.EnemyName);
+            if (enemyName == "")
+            {
+                if (patchSet is EnemyStatePatchSet statePatchSet && statePatchSet.EnemyNames.Length > 0)
+                {
+                    foreach (string name in statePatchSet.EnemyNames)
+                        patchTotal += RegisterEnemyPatchCollection(patchSet.Patches, name);
+
+                    return patchTotal;
+                }
+                else if (patchSet is EnemyStateActionPatchSet stateActionPatchSet && stateActionPatchSet.EnemyNames.Length > 0)
+                {
+                    foreach (string name in stateActionPatchSet.EnemyNames)
+                        patchTotal += RegisterEnemyPatchCollection(patchSet.Patches, name);
+
+                    return patchTotal;
+                }
+                else if (patchSet is EnemyFSMPatchSet fsmPatchSet && fsmPatchSet.EnemyNames.Length > 0)
+                {
+                    foreach (string name in fsmPatchSet.EnemyNames)
+                        patchTotal += RegisterEnemyPatchCollection(patchSet.Patches, name);
+
+                    return patchTotal;
+                }
+                else
+                    CuteRandoCore.Log.LogWarning($"Register patch called with invalid patch set, Name is blank, Enemy Name: {smolPatch.EnemyName}, Type: {smolPatch.GetType()}");
+            }
+            else
+                patchTotal += RegisterEnemyPatchCollection(patchSet.Patches, enemyName);
         }
         else
             CuteRandoCore.Log.LogWarning($"Register patch called with invalid patch type, Name: {smolPatch.Name}, Enemy Name: {smolPatch.EnemyName}, Type: {smolPatch.GetType()}");
+        return patchTotal;
     }
 
     /// <summary>Unregisters a collection of FSM patches</summary>
@@ -540,7 +673,11 @@ public abstract class EnemyFSMPatchCollections_Base<PatchType, PatchSetType, Pat
     {
         foreach (var patch in patchCollection)
         {
-            UnregisterPatchInCollection(patch.EnemyName, patch);
+            UnregisterPatchInCollection(patch.EnemyName.Equals("") ?
+                                                    patch.NameArray.Length > 0 ?
+                                                        ""
+                                                        : enemyName
+                                                    : patch.EnemyName, patch);
         }
     }
 
@@ -551,13 +688,28 @@ public abstract class EnemyFSMPatchCollections_Base<PatchType, PatchSetType, Pat
     {
         if (smolPatch is PatchType patch)
         {
-            if (enemyName == "" && smolPatch is EnemyStatePatch statePatch && statePatch.EnemyNames.Length > 0)
+            if (enemyName == "")
             {
-                foreach (string name in statePatch.EnemyNames)
+                if (smolPatch is EnemyStatePatch statePatch && statePatch.EnemyNames.Length > 0)
                 {
-                    UnregisterPatchInCollection(name, smolPatch);
+                    foreach (string name in statePatch.EnemyNames)
+                        UnregisterPatchInCollection(name, smolPatch);
+                    return;
                 }
-                return;
+                else if (smolPatch is EnemyStateActionPatch stateActionPatch && stateActionPatch.EnemyNames.Length > 0)
+                {
+                    foreach (string name in stateActionPatch.EnemyNames)
+                        UnregisterPatchInCollection(name, smolPatch);
+                    return;
+                }
+                else if (smolPatch is EnemyFSMPatch fsmPatch && fsmPatch.EnemyNames.Length > 0)
+                {
+                    foreach (string name in fsmPatch.EnemyNames)
+                        UnregisterPatchInCollection(name, smolPatch);
+                    return;
+                }
+                else
+                    CuteRandoCore.Log.LogWarning($"Register patch called with invalid patch, Name is blank, Enemy Name: {smolPatch.EnemyName}, Type: {smolPatch.GetType()}");
             }
             if (Patches.ContainsKey(enemyName))
             {
@@ -572,7 +724,34 @@ public abstract class EnemyFSMPatchCollections_Base<PatchType, PatchSetType, Pat
         }
         else if (smolPatch is PatchSetType patchSet)
         {
-            UnregisterEnemyPatchCollection(patchSet.Patches, patchSet.EnemyName);
+            if (enemyName == "")
+            {
+                if (patchSet is EnemyStatePatchSet statePatchSet && statePatchSet.EnemyNames.Length > 0)
+                {
+                    foreach (string name in statePatchSet.EnemyNames)
+                        UnregisterEnemyPatchCollection(patchSet.Patches, name);
+
+                    return;
+                }
+                else if (patchSet is EnemyStateActionPatchSet stateActionPatchSet && stateActionPatchSet.EnemyNames.Length > 0)
+                {
+                    foreach (string name in stateActionPatchSet.EnemyNames)
+                        UnregisterEnemyPatchCollection(patchSet.Patches, name);
+
+                    return;
+                }
+                else if (patchSet is EnemyFSMPatchSet fsmPatchSet && fsmPatchSet.EnemyNames.Length > 0)
+                {
+                    foreach (string name in fsmPatchSet.EnemyNames)
+                        UnregisterEnemyPatchCollection(patchSet.Patches, name);
+
+                    return;
+                }
+                else
+                    CuteRandoCore.Log.LogWarning($"Unregister patch called with invalid patch set, Name is blank, Enemy Name: {smolPatch.EnemyName}, Type: {smolPatch.GetType()}");
+            }
+            else
+                UnregisterEnemyPatchCollection(patchSet.Patches, enemyName);
         }
         else
             CuteRandoCore.Log.LogWarning($"Unregister patch called with invalid patch type, Name: {smolPatch.Name}, Type: {smolPatch.GetType()}");
@@ -590,4 +769,7 @@ public interface IEnemyPatch
 {
     /// <summary>Name of the patch target</summary>
     public string EnemyName { get; }
+
+    /// <summary><see cref="Array" /> of enemy names to patch</summary>
+    public string[] EnemyNames { get; }
 }

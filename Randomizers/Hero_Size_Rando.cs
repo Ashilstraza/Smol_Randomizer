@@ -237,11 +237,9 @@ internal class Hero_Size_Rando : Rando_Base
         if (HeroSizeRando) // only patch if rando is enabled
             TryTranspilerPatches();
 
-#if TESTING
         CuteRandoCore.harmony.Patch(AccessTools.Method(
             heroControllerType, nameof(HeroController.CheckClamberLedge)),
             postfix: new HarmonyMethod(typeof(Hero_Size_Rando), nameof(HeroController_CheckClamberLedge_Postfix)));
-#endif
     }
 
     // TODO: Patch HarmonyX to properly handle this?
@@ -259,11 +257,10 @@ internal class Hero_Size_Rando : Rando_Base
             var heroControllerType = typeof(HeroController);
             var randoType = typeof(Hero_Size_Rando);
 
-#if !TESTING // Disable if we are testing
-            CuteRandoCore.harmony.Patch(AccessTools.Method(
+            // Going to not use because it may gernade
+            /*CuteRandoCore.harmony.Patch(AccessTools.Method(
                 heroControllerType, nameof(HeroController.CheckClamberLedge)),
-                transpiler: new HarmonyMethod(randoType, nameof(HeroController_CheckClamberLedge_Transpiler)));
-#endif
+                transpiler: new HarmonyMethod(randoType, nameof(HeroController_CheckClamberLedge_Transpiler)));*/
             CuteRandoCore.harmony.Patch(AccessTools.EnumeratorMoveNext(
                 AccessTools.Method(
                     typeof(NPCControlBase), "MovePlayer")),
@@ -324,7 +321,7 @@ internal class Hero_Size_Rando : Rando_Base
 
     /// <summary>Patch to hook DeSetScale and fix the Y scale of hornet</summary>
     /// <param name="__instance">The instance of <see cref="SetScale" /></param>
-    private static void SetScale_DoSetScale_Postfix(ref SetScale __instance)
+    private static void SetScale_DoSetScale_Postfix(SetScale __instance)
     {
         if (!Instance.HeroSizeRando) return;
         if (__instance.Owner.name.Contains("Knight Spike Death") || __instance.State.Name == "Gooped Start")
@@ -350,9 +347,9 @@ internal class Hero_Size_Rando : Rando_Base
             {
                 yield return instruction; // localScale variable
                 yield return new(OpCodes.Dup); // duplicate that reference
-                yield return new(OpCodes.Ldfld, instructionList[i + 2].operand); // load field localScale.x
+                yield return new(OpCodes.Ldfld, instructionList[i + 2].operand); // load field GetScaleX()
                 yield return new(OpCodes.Ldc_R4, -1f); // -1
-                yield return new(OpCodes.Mul); // Multiply localScale.x by -1
+                yield return new(OpCodes.Mul); // Multiply GetScaleX() by -1
 
                 i++; // we handled yielding the instruction, now step to next
                 continue; // but we are skipping ldc.r4 1 or -1, depending on left or right
@@ -371,7 +368,7 @@ internal class Hero_Size_Rando : Rando_Base
         var getScaleX = AccessTools.Method(typeof(Extensions), "GetScaleX");
         var setScaleX = AccessTools.Method(typeof(Extensions), "SetScaleX");
         var heroSizeRandoInstance = AccessTools.Method(typeof(Hero_Size_Rando), "get_Instance");
-        var playerSizeRando = AccessTools.Method(typeof(Hero_Size_Rando), "get_PlayerSizeRando");
+        var heroSizeRando = AccessTools.Method(typeof(Hero_Size_Rando), "get_HeroSizeRando");
         var controlRelinquished = AccessTools.Field(typeof(HeroController), "controlReqlinquished");
 
         Label skipScaleCheck = ilGenerator.DefineLabel();
@@ -379,7 +376,7 @@ internal class Hero_Size_Rando : Rando_Base
         List<CodeInstruction> skipCheck =
             [
                 new CodeInstruction(OpCodes.Call, heroSizeRandoInstance), // Get the instance of Hero_Size_Rando
-                new(OpCodes.Callvirt, playerSizeRando), // Gets the setting if the rando is enabled or not
+                new(OpCodes.Callvirt, heroSizeRando), // Gets the setting if the rando is enabled or not
                 new(OpCodes.Ldc_I4_1), // Load one (true)
                 new(OpCodes.Ceq), // Compare the setting to the loaded value
                 new(OpCodes.Brtrue_S, skipScaleCheck) // Branch to a label later on in the code that we will be adding
@@ -447,7 +444,7 @@ internal class Hero_Size_Rando : Rando_Base
 
         // We take the scale, subtract 1 from it, multiply by the magic number, then add it to the position and add
         // 0.005f to get it closer to level
-        transform.localPosition = transform.localPosition with { y = ((transform.localScale.y - 1) * 0.513f) + transform.localPosition.y + 0.005f }; // Magic number came from spreadsheeting various scales and figuring out the right number through that
+        transform.localPosition = transform.localPosition with { y = ((transform.GetScaleY() - 1) * 0.513f) + transform.localPosition.y + 0.005f }; // Magic number came from spreadsheeting various scales and figuring out the right number through that
 
         transitionHandled = true;
     }
@@ -455,8 +452,6 @@ internal class Hero_Size_Rando : Rando_Base
     #endregion Basic Scale Patches
 
     #region Ledge Clambering
-
-#if TESTING
 
     /// <summary>
     /// Patch that hooks the end of <see cref="HeroController.CheckClamberLedge" /> to correctly check depending on
@@ -467,7 +462,7 @@ internal class Hero_Size_Rando : Rando_Base
     /// <param name="___col2d">         Private Variable: Hornet's <see cref="BoxCollider2D" /></param>
     /// <param name="y">                The y position that she will land at</param>
     /// <param name="clamberedCollider">What Hornet is clambering onto</param>
-    private static void HeroController_CheckClamberLedge_Postfix(ref HeroController __instance, ref bool __result, ref Collider2D ___col2d, ref float y, ref Collider2D clamberedCollider)
+    private static void HeroController_CheckClamberLedge_Postfix(HeroController __instance, ref bool __result, Collider2D ___col2d, ref float y, ref Collider2D clamberedCollider)
     {
         if (__result || !Instance.HeroSizeRando || !Instance.PatchHeroFSMs) return; // We are already going to clamber, or we aren't randomizing
         // Don't check for roof, other checks cover that later in method
@@ -482,7 +477,7 @@ internal class Hero_Size_Rando : Rando_Base
 
         float multiplier = Instance.heroScale.x;
 
-        float near = 0.37f * multiplier;
+        float near = 0.37f * multiplier; // Change 0.37 and 0.77 to check for wider hornets?
         float far = 0.77f * multiplier;
         float height = 0.67f * multiplier;
         float ceiling = 2.26f * multiplier;
@@ -495,13 +490,19 @@ internal class Hero_Size_Rando : Rando_Base
         Vector2 farOrigin = vector + new Vector2(facingRight ? far : far * -1, height);
         Vector2 nearOrigin = vector + new Vector2(facingRight ? near : near * -1, height);
 
+#if TESTING
         // Hitboxes for initial checks
         Quaternion rotation = Instance.heroTransform.rotation;
-        DebugDrawing.Primitives.Circle(farOrigin, 0.1f, rotation, duration: 1f);
-        DebugDrawing.Primitives.Circle(nearOrigin, 0.1f, rotation, duration: 1f);
+        Primitives.Circle(farOrigin, 0.1f, rotation, Color.magenta, duration: 1f);
+        Primitives.Text(farOrigin + new Vector2(0f, 0.15f), "farCheck", Quaternion.identity, 0.1f, Color.magenta, duration: 1f);
+        Primitives.Circle(nearOrigin, 0.1f, rotation, Color.cyan, duration: 1f);
+        Primitives.Text(nearOrigin + new Vector2(0f, -0.15f), "nearCheck", Quaternion.identity, 0.1f, Color.cyan, duration: 1f);
+#endif
 
         bool directAbove = Helper.IsRayHittingNoTriggers(vector + heightOffset, facingDirection, 0.75f, LAYERMASK);
-        DebugDrawing.Primitives.Arrow(vector + heightOffset, vector + heightOffset + facingDirection * 0.75f, 0.25f, directAbove ? Color.red : Color.cyan, duration: 1f);
+#if TESTING
+        Primitives.Arrow(vector + heightOffset, vector + heightOffset + facingDirection * 0.75f, 0.25f, directAbove ? Color.red : Color.cyan, duration: 1f);
+#endif
 
         if (directAbove) // Directly Above, different than CheckNearRoof, probably allows for clambering through a gap?
             return;
@@ -511,20 +512,26 @@ internal class Hero_Size_Rando : Rando_Base
 
         Vector2 heightGoodVector = new(vector.x, closestNearHit.point.y);
         bool heightGood = !Helper.IsRayHittingNoTriggers(heightGoodVector, Vector2.up, ceiling, LAYERMASK, out var heightHit);
-        DebugDrawing.Primitives.Arrow(heightGoodVector, heightGoodVector + Vector2.up * ceiling, 0.25f, heightGood ? Color.cyan : Color.red, duration: 1f);
+#if TESTING
+        Primitives.Arrow(heightGoodVector, heightGoodVector + Vector2.up * ceiling, 0.25f, heightGood ? Color.blue : Color.red, duration: 1f);
+#endif
 
         if (!heightGood)
             return;
-        DebugDrawing.Primitives.Arrow(farOrigin, farOrigin + Vector2.down * ceiling, 0.25f, farGood ? Color.green : Color.red, duration: 1f);
-        DebugDrawing.Primitives.Arrow(nearOrigin, nearOrigin + Vector2.down * ceiling, 0.25f, nearGood ? Color.green : Color.red, duration: 1f);
+#if TESTING
+        Primitives.Arrow(farOrigin, farOrigin + Vector2.down * ceiling, 0.25f, farGood ? Color.green : Color.red, duration: 1f);
+        Primitives.Arrow(nearOrigin, nearOrigin + Vector2.down * ceiling, 0.25f, nearGood ? Color.green : Color.red, duration: 1f);
+#endif
 
         if (!farGood || !nearGood) // One or both are not good
             return;
 
         Vector2 farHitPoint = closestFarHit.point;
         Vector2 nearHitPoint = closestNearHit.point;
-        DebugDrawing.Primitives.Circle(farHitPoint, 0.1f, rotation, duration: 1f);
-        DebugDrawing.Primitives.Circle(nearHitPoint, 0.1f, rotation, duration: 1f);
+#if TESTING
+        Primitives.Circle(farHitPoint, 0.1f, rotation, duration: 1f);
+        Primitives.Circle(nearHitPoint, 0.1f, rotation, duration: 1f);
+#endif
 
         clamberedCollider = closestNearHit.collider;
 
@@ -541,22 +548,25 @@ internal class Hero_Size_Rando : Rando_Base
             return;
 
         Vector2 n = new(vector.x, ___col2d.bounds.min.y + 0.2f);
+        bool lastCheck = Helper.IsRayHittingNoTriggers(n, Vector2.down, landing, LAYERMASK, out var closestHit3) && farHitPoint.y - closestHit3.point.y < landingHeight;
+#if TESTING
+        Primitives.Arrow(n, n + Vector2.down * landing, 0.25f, lastCheck ? Color.red : Color.green, duration: 1f);
+#endif
 
-        if (Helper.IsRayHittingNoTriggers(n, Vector2.down, landing, LAYERMASK, out var closestHit3) && farHitPoint.y - closestHit3.point.y < landingHeight)
+        if (lastCheck)
             return;
         y = farHitPoint.y;
         __result = true;
     }
 
-#endif
-
+    // Not going to use, may gernade things if someone else touches it
     /// <summary>Patches the ledge clamber check to allow for scaling.</summary>
     /// <param name="instructions">List of IL instructions</param>
     /// <param name="ilGenerator"> The <see cref="ILGenerator" /></param>
     /// <returns>Emits new List of IL instructions</returns>
     private static IEnumerable<CodeInstruction> HeroController_CheckClamberLedge_Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
     {
-        var playerSizeRando = AccessTools.Method(typeof(Hero_Size_Rando), "get_PlayerSizeRando");
+        var heroSizeRando = AccessTools.Method(typeof(Hero_Size_Rando), "get_HeroSizeRando");
         var patchHeroFSMs = AccessTools.Method(typeof(Hero_Size_Rando), "get_PatchHeroFSMs");
         var heroSizeRandoInstance = AccessTools.Method(typeof(Hero_Size_Rando), "get_Instance");
         var heroSizeRandoHeroSize = AccessTools.Field(typeof(Hero_Size_Rando), nameof(heroScale));
@@ -594,7 +604,7 @@ internal class Hero_Size_Rando : Rando_Base
                 new(OpCodes.Ceq), // Compare the setting to the loaded value
                 new(OpCodes.Brfalse_S, notPatchingFSMs), // Branch to a label if the two values were the same
                 new(OpCodes.Call, heroSizeRandoInstance), // Get the instance of Hero_Size_Rando
-                new(OpCodes.Callvirt, playerSizeRando), // Gets the setting if the rando is enabled or not
+                new(OpCodes.Callvirt, heroSizeRando), // Gets the setting if the rando is enabled or not
                 new(OpCodes.Ldc_I4_1), // Load one (true)
                 new(OpCodes.Ceq), // Compare the setting to the loaded value
                 new(OpCodes.Brtrue_S, null), // Branch to a label that we will grab later if the two values were the same
@@ -900,7 +910,7 @@ internal class Hero_Size_Rando : Rando_Base
     /// adds it to a list so we can update it mid scene if needed
     /// </summary>
     /// <param name="__instance">The <see cref="SurfaceWaterRegion" /> we are adjusting</param>
-    private static void SurfaceWaterRegion_Start_Postfix(ref SurfaceWaterRegion __instance)
+    private static void SurfaceWaterRegion_Start_Postfix(SurfaceWaterRegion __instance)
     {
         if (!Instance.HeroSizeRando) return;
 
@@ -1122,9 +1132,7 @@ internal class Hero_Size_Rando : Rando_Base
 
         SquishSize(dashingDown);
 
-#pragma warning disable CS8602
-        sprintUnsquishBox.size = new Vector2(defaultColliderSize.x, defaultColliderSize.y);
-#pragma warning restore CS8602
+        sprintUnsquishBox!.size = new Vector2(defaultColliderSize.x, defaultColliderSize.y);
         sprintUnsquishBox.offset = new Vector2(defaultColliderOffset.x, defaultColliderOffset.y);
     }
 
@@ -1205,7 +1213,7 @@ internal class Hero_Size_Rando : Rando_Base
                 break;
 
             case RandomizerConsistencyC.OnDamageTaken:
-                if (!damageTaken) return;
+                if (!damageTaken && heroSizeChanged) return;
 
                 multiplier = CuteRandoCore.RandomFloat(HeroSizeRange.AsTuple());
                 break;
@@ -1240,7 +1248,7 @@ internal class Hero_Size_Rando : Rando_Base
         HeroController.instance.SPEED_TO_ENTER_SCENE_HOR = (baseSpeedToEnterHor * Instance.heroScale.x) + (0.2f - (0.2f * Instance.heroScale.x));
         HeroController.instance.SPEED_TO_ENTER_SCENE_UP = (baseSpeedToEnterUp * Instance.heroScale.y) + (0.2f - (0.2f * Instance.heroScale.y));
 
-        heroTransform.localScale = heroTransform.localScale.x > 0f ? heroScale : heroScaleFlipped;
+        heroTransform.localScale = heroTransform.GetScaleX() > 0f ? heroScale : heroScaleFlipped;
 
         UpdateMantleFSMSizes();
         UpdateSprintFSMSizes();
@@ -1315,7 +1323,7 @@ internal class Hero_Size_Rando : Rando_Base
 
         FsmVariables sprintFSMVariables = HeroController.instance.sprintFSM.FsmVariables;
 
-        heroTransform.localScale = heroTransform.localScale.x > 0f ? Vector3.one : new(-1f, 1f, 1f);
+        heroTransform.localScale = heroTransform.GetScaleX() > 0f ? Vector3.one : new(-1f, 1f, 1f);
         sprintFSMVariables.FindFsmFloat("Dash Speed").Value = baseDashSpeed;
         sprintFSMVariables.FindFsmFloat("Sprint Speed Regular").Value = baseSprintSpeed;
         sprintFSMVariables.FindFsmFloat("Sprint Start Speed").Value = baseSprintStartSpeed;

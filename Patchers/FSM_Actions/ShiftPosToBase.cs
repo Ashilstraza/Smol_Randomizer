@@ -49,14 +49,14 @@ public class ShiftPosToBase : FsmStateAction
     /// If the <see cref="GameObject" /> should be shifted by a specific number instead of being calculated from the
     /// size and offset, ignored unless <see cref="skipRaycast" /> is used or if no surface found
     /// </summary>
-    public float magicNumber = float.MinValue;
+    public float magicNumber = 0f;
 
     /// <summary>
     /// Reverses the direction, useful for debugging, ignored unless <see cref="skipRaycast" /> is used or if no surface found
     /// </summary>
     public bool reverse = false;
 
-    /// <summary>Overrides <see cref="adjusted"/> to allow for debugging</summary>
+    /// <summary>Overrides <see cref="adjusted" /> to allow for being called multiple times</summary>
     public bool overrideAdjusted = false;
 
     /// <summary><see cref="BoxCollider2D" /> of referenced <see cref="GameObject" /></summary>
@@ -80,7 +80,7 @@ public class ShiftPosToBase : FsmStateAction
         reverseY = false;
         skipRaycast = false;
         cancelYVelocity = true;
-        magicNumber = float.MinValue;
+        magicNumber = 0f;
         overrideAdjusted = false;
 
         col = null;
@@ -107,11 +107,11 @@ public class ShiftPosToBase : FsmStateAction
         if (adjusted && !overrideAdjusted) // prevent multiple calls
         {
 #if TESTING
-            CuteRandoCore.Log.LogWarning($"ShiftPosToBase called multiple times for {base.Fsm.GetOwnerDefaultTarget(gameObject).name}, " +
+            /*CuteRandoCore.Log.LogWarning($"ShiftPosToBase called multiple times for {base.Fsm.GetOwnerDefaultTarget(gameObject).name}, " +
                 $"State: {this.Fsm.ActiveStateName}, " +
                 $"Current Frame Count: {Time.frameCount}, " +
                 $"Hash Code:{this.GetHashCode()},  " +
-                $"Scene: {base.Fsm.GetOwnerDefaultTarget(gameObject).scene.name}");
+                $"Scene: {base.Fsm.GetOwnerDefaultTarget(gameObject).scene.name}");*/
 #endif
             return;
         }
@@ -133,15 +133,15 @@ public class ShiftPosToBase : FsmStateAction
             return;
         }
 #if TESTING
-        CuteRandoCore.Log.LogMessage($"ShiftPosToBase on {enemy.name}, " +
+        /*CuteRandoCore.Log.LogMessage($"ShiftPosToBase on {enemy.name}, " +
             $"State: {this.Fsm.ActiveStateName}, " +
             $"Frame Count: {Time.frameCount}, " +
             $"Hash Code:{this.GetHashCode()}" +
-            $"Scene: {base.Fsm.GetOwnerDefaultTarget(gameObject).scene.name}");
+            $"Scene: {base.Fsm.GetOwnerDefaultTarget(gameObject).scene.name}");*/
 #endif
 
-        if (magicNumber == 0)
-            magicNumber = float.MinValue;
+        if (magicNumber == float.MinValue)
+            magicNumber = 0;
 
         Shift(enemy,
             originalScale,
@@ -168,7 +168,7 @@ public class ShiftPosToBase : FsmStateAction
     /// <param name="magicNumber">    Optional: Alternate value used to shift the object</param>
     /// <param name="reverseX">       Optional: Reverses the direction to shift the X value</param>
     /// <param name="reverseY">       Optional: Reverses the direction to shift the Y value</param>
-    /// <param name="skipRaycast">
+    /// <param name="skipRaycast">    
     /// Optional: Skips using a <see cref="RaycastHit2D" /> to find the ground and instead just calculate
     /// </param>
     /// <param name="cancelYVelocity">Optional: Cancel the Y Velocity of the enemy</param>
@@ -179,7 +179,7 @@ public class ShiftPosToBase : FsmStateAction
         Vector2 originalScale,
         float rotateAdjust = 0,
         Vector2? backupSize = null,
-        float magicNumber = float.MinValue,
+        float magicNumber = 0,
         bool reverseX = false,
         bool reverseY = false,
         bool skipRaycast = false,
@@ -202,11 +202,14 @@ public class ShiftPosToBase : FsmStateAction
         Vector2 scale = transform.localScale;
         Vector2 size;
         float rotationDeg = transform.rotation.eulerAngles.z;
-        float sinRotation = (float)Math.Sin(rotationDeg * Mathf.Deg2Rad);
-        float cosRotation = (float)Math.Cos(rotationDeg * Mathf.Deg2Rad);
-        float sinRotationAdjusted = (float)Math.Sin((rotateAdjust + rotationDeg) * Mathf.Deg2Rad);
-        float cosRotationAdjusted = (float)Math.Cos((rotateAdjust + rotationDeg) * Mathf.Deg2Rad);
+        float sinRotation = Mathf.Sin(rotationDeg * Mathf.Deg2Rad);
+        float cosRotation = Mathf.Cos(rotationDeg * Mathf.Deg2Rad);
+        float sinRotationAdjusted = Mathf.Sin((rotateAdjust + rotationDeg) * Mathf.Deg2Rad);
+        float cosRotationAdjusted = Mathf.Cos((rotateAdjust + rotationDeg) * Mathf.Deg2Rad);
         float yVelocity = 0;
+
+        if (magicNumber == float.MinValue)
+            magicNumber = 0f;
 
         if (collider is BoxCollider2D boxCollider)
             size = boxCollider.size;
@@ -215,11 +218,11 @@ public class ShiftPosToBase : FsmStateAction
         else
             throw new NotImplementedException();
 
-        Vector2 invertedScale = new((1 / Math.Abs(originalScale.x)), (1 / Math.Abs(originalScale.y)));
-        Vector2 calculatedOriginalHalfSize = new(((size.x / 2) * invertedScale.x * Math.Abs(cosRotation))
-                                                + ((size.y / 2) * invertedScale.y * Math.Abs(sinRotation)),
-                                            ((size.y / 2) * invertedScale.y * Math.Abs(cosRotation))
-                                                + ((size.x / 2) * invertedScale.x * Math.Abs(sinRotation)));
+        Vector2 invertedScale = new((1 / originalScale.x.Abs()), (1 / (originalScale.y.Abs())));
+        Vector2 calculatedOriginalHalfSize = new(((size.x / 2) * invertedScale.x * cosRotation.Abs())
+                                                + ((size.y / 2) * invertedScale.y * sinRotation.Abs()),
+                                            ((size.y / 2) * invertedScale.y * cosRotation.Abs())
+                                                + ((size.x / 2) * invertedScale.x * sinRotation.Abs()));
 
         Vector2 calculatedOriginalOffset = ScaleAndRotate(offset, originalScale, cosRotation, sinRotation);
 
@@ -231,8 +234,8 @@ public class ShiftPosToBase : FsmStateAction
             xReverse = !xReverse;
 #if TESTING
         float debugDuration = 60f;
-        DebugDrawing.Primitives.Square(pos + (Vector3)calculatedOriginalOffset, calculatedOriginalHalfSize * 2, Color.grey, duration: debugDuration); // Original position
-        DebugDrawing.Primitives.Circle(pos + (Vector3)calculatedOriginalOffset, 0.05f, color: Color.grey, duration: debugDuration); // Original center
+        Primitives.Square(pos + (Vector3)calculatedOriginalOffset, calculatedOriginalHalfSize * 2, Color.grey, duration: debugDuration); // Original position
+        Primitives.Circle(pos + (Vector3)calculatedOriginalOffset, 0.05f, color: Color.grey, duration: debugDuration); // Original center
 #endif
 
         if (cancelYVelocity)
@@ -259,16 +262,16 @@ public class ShiftPosToBase : FsmStateAction
 
 #if TESTING
             Vector3 endTestPos = pos + (Vector3)rayDirection * ((calculatedOriginalHalfSize.y * 3) * invertedScale.y);
-            DebugDrawing.Primitives.Circle(pos, 0.06f, color: Color.cyan, duration: debugDuration); // Center of transformation
-            DebugDrawing.Primitives.Arrow(pos, endTestPos, 0.5f, Color.cyan, duration: debugDuration); // Test Raycast
+            Primitives.Circle(pos, 0.06f, color: Color.cyan, duration: debugDuration); // Center of transformation
+            Primitives.Arrow(pos, endTestPos, 0.5f, Color.cyan, duration: debugDuration); // Test Raycast
 
             if (hitTerrain)
             {
-                DebugDrawing.Primitives.Circle(closestHit.centroid, 0.1f, color: Color.green, duration: debugDuration); // Closest hit
-                DebugDrawing.Primitives.Square(closestHit.centroid + rayMove, calculatedOriginalHalfSize * 2 * scale, Color.yellow, duration: debugDuration); // Calcualted new position
+                Primitives.Circle(closestHit.centroid, 0.1f, color: Color.green, duration: debugDuration); // Closest hit
+                Primitives.Square(closestHit.centroid + rayMove, calculatedOriginalHalfSize * 2 * scale, Color.yellow, duration: debugDuration); // Calcualted new position
             }
 
-            if (!Enemy_Size_Rando.Instance.UseRaycastBasing)
+            if (!Settings.Settings.UseRaycastBasing)
                 goto skipApplyRaycast;
 #endif
 
@@ -280,19 +283,21 @@ public class ShiftPosToBase : FsmStateAction
                 return;
             }
         }
+#if TESTING
     skipApplyRaycast:
+#endif
 
-        pos.x = magicNumber != float.MinValue ? ShiftN(pos.x, Math.Abs(scale.x), magicNumber, sinRotationAdjusted, xReverse)
-            : ShiftN(pos.x, Math.Abs(scale.x), calculatedOriginalHalfSize.x, offset.x, sinRotationAdjusted, xReverse);
-        pos.y = magicNumber != float.MinValue ? ShiftN(pos.y, Math.Abs(scale.y), magicNumber, cosRotationAdjusted, yReverse)
-            : ShiftN(pos.y, Math.Abs(scale.y), calculatedOriginalHalfSize.y, offset.y, cosRotationAdjusted, yReverse);
+        pos.x = magicNumber != 0 ? ShiftN(pos.x, scale.x.Abs(), magicNumber, sinRotationAdjusted, xReverse)
+            : ShiftN(pos.x, scale.x.Abs(), calculatedOriginalHalfSize.x, offset.x, sinRotationAdjusted, xReverse);
+        pos.y = magicNumber != 0 ? ShiftN(pos.y, scale.y.Abs(), magicNumber, cosRotationAdjusted, yReverse)
+            : ShiftN(pos.y, scale.y.Abs(), calculatedOriginalHalfSize.y, offset.y, cosRotationAdjusted, yReverse);
 
 #if TESTING
         Vector2 rotatedSize = ScaleAndRotate(size, scale, cosRotation, sinRotation);
         Vector2 rotatedOffset = ScaleAndRotate(offset, scale, cosRotation, sinRotation);
         if ((rotationDeg < 315 && rotationDeg > 225 && scale.y < 0) || (rotationDeg < 135 && rotationDeg > 45 && scale.y < 0))
             xReverse = !xReverse;
-        DebugDrawing.Primitives.Square(pos + (Vector3)(rotatedOffset * new Vector2(xReverse ? -1 : 1, yReverse ? -1 : 1)), rotatedSize, SmolRandomizerMenuBuilder.EPurple, duration: debugDuration);
+        Primitives.Square(pos + (Vector3)(rotatedOffset * new Vector2(xReverse ? -1 : 1, yReverse ? -1 : 1)), rotatedSize, SmolRandomizerMenuBuilder.EPurple, duration: debugDuration);
 #endif
         if (pos.z != transform.position.z) CuteRandoCore.Log.LogWarning("Z does not match");
         transform.position = pos;
@@ -315,27 +320,27 @@ public class ShiftPosToBase : FsmStateAction
                                 float scale,
                                 float halfSize,
                                 float offset,
-                                double rotation,
+                                float rotation,
                                 bool reverse = false)
     {
         float scaledBase = n + offset * scale - halfSize * scale;
         float enemyBase = n + offset - halfSize;
-        return (float)(n - ((enemyBase - scaledBase)) * rotation * (reverse ? 1 : -1));
+        return (n - ((enemyBase - scaledBase)) * rotation * (reverse ? 1 : -1));
     }
 
     /// <summary>Shifts the given coordinate by a specific value that is then scaled, rotated, and possibly reversed</summary>
     /// <param name="n">          The coordinate value to shift</param>
     /// <param name="scale">      The scale of the <see cref="GameObject" /></param>
     /// <param name="magicNumber">The special number to shift the coordinate value by</param>
-    /// <param name="rotation">   The rotation of the <see cref="GameObject" /></param>
+    /// <param name="rotation">   Optional: The rotation of the <see cref="GameObject" />, defaults to 1f</param>
     /// <param name="reverse">    Optional: If the value should be reversed in direction</param>
     /// <returns>The adjusted coordinate value</returns>
     public static float ShiftN(float n,
                                 float scale,
                                 float magicNumber,
-                                double rotation,
+                                float rotation = 1f,
                                 bool reverse = false)
     {
-        return (float)(n + (((1 - scale) * 100 * magicNumber) * rotation) * (reverse ? -1 : 1));
+        return (n + (((1 - scale) * 100 * magicNumber) * rotation) * (reverse ? -1 : 1));
     }
 }
