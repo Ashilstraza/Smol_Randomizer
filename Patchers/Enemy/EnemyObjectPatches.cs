@@ -65,61 +65,88 @@ public class EnemyObjectPatchCollection : ObjectPatchCollection_Base<EnemyObject
 
     /// <summary>Register a collection of patches</summary>
     /// <param name="patchCollection">A list containing the patches to register</param>
-    public void RegisterPatchCollection(List<IEnemyObjectPatch> patchCollection)
+    /// <returns>The number of patches registered</returns>
+    public static void RegisterPatchCollection(List<IEnemyObjectPatch> patchCollection)
     {
+        int patchTotal = 0;
+
         foreach (var patch in patchCollection)
         {
             if (patch.Name.Equals(""))
             {
                 if (patch.NameArray.Length == 0)
                 {
-                    CuteRandoCore.Log.LogWarning("Object Patch has empty name and no name array, skipping registering patch.");
+                    CuteRandoCore.DebugLog("Object Patch has empty name and no name array, skipping registering patch.", DebugLogOptions.Error, true);
                     continue;
                 }
 
                 foreach (var name in patch.NameArray)
-                    RegisterPatchInCollection(name, patch);
+                    patchTotal += Instance.RegisterPatchInCollection(name, patch);
             }
             else
-                RegisterPatchInCollection(patch.Name, patch);
+                patchTotal += Instance.RegisterPatchInCollection(patch.Name, patch);
         }
+
+        CuteRandoCore.Log.LogInfo($"Registered {patchTotal} Enemy Object Patches");
     }
 
     /// <summary>Unregister a collection of patches</summary>
     /// <param name="patchCollection">A list containing the patches to unregister</param>
-    public void UnregisterPatchCollection(List<IEnemyObjectPatch> patchCollection)
+    /// <returns>The number of patches unregistered</returns>
+    public static void UnregisterPatchCollection(List<IEnemyObjectPatch> patchCollection)
     {
+        int patchTotal = 0;
+
         foreach (var patch in patchCollection)
         {
             if (patch.Name.Equals(""))
             {
                 if (patch.NameArray.Length == 0)
                 {
-                    CuteRandoCore.Log.LogWarning("Object Patch has empty name and no name array, skipping unregistering patch.");
+                    CuteRandoCore.DebugLog("Object Patch has empty name and no name array, skipping unregistering patch.", DebugLogOptions.Error, true);
                     continue;
                 }
 
                 foreach (var name in patch.NameArray)
-                    UnregisterPatchInCollection(name, patch);
+                    patchTotal += Instance.UnregisterPatchInCollection(name, patch);
             }
             else
-                UnregisterPatchInCollection(patch.Name, patch);
+                patchTotal += Instance.UnregisterPatchInCollection(patch.Name, patch);
         }
+
+        CuteRandoCore.Log.LogInfo($"Unregistered {patchTotal} Enemy Object Patches");
     }
 }
 
 /// <summary>Set of patches for enemy <see cref="GameObject" />s</summary>
 /// <param name="enemyName">Name of the enemy to patch</param>
 /// <param name="patches">  Set of patches to apply to the enemy</param>
-public class EnemyObjectPatchSet(string enemyName, List<EnemyObjectPatch> patches)
-    : ObjectPatchSet_Base<EnemyObjectPatch, GameObject, GameObject>(enemyName, patches), IEnemyObjectPatchSet
+/// <param name="enemyNames">Names of the enemies to patch</param>
+public class EnemyObjectPatchSet : ObjectPatchSet_Base<EnemyObjectPatch, GameObject, GameObject>, IEnemyObjectPatchSet
 {
     /// <inheritdoc cref="EnemyObjectPatchSet" />
-    /// <param name="enemyNames">Names of the enemies to patch</param>
+    public EnemyObjectPatchSet(string enemyName, List<EnemyObjectPatch> patches) 
+        : base(enemyName, patches) 
+        => PopulateChildFields();
+
+    /// <inheritdoc cref="EnemyObjectPatchSet" />
     public EnemyObjectPatchSet(string[] enemyNames, List<EnemyObjectPatch> patches)
         : this("", patches)
     {
         NameArray = enemyNames;
+
+        PopulateChildFields();
+    }
+
+    internal override void PopulateChildFields()
+    {
+        foreach (var patch in Patches)
+        {
+            if (patch.Name is "")
+                patch.Name = Name;
+            if (patch.NameArray is null or [])
+                patch.NameArray = NameArray;
+        }
     }
 
     public override object Clone()

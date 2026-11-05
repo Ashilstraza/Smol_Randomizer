@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -25,6 +26,8 @@ using Smol_Randomizer.Patchers.Enemy;
 using Smol_Randomizer.Patchers.ScenePatches;
 using Smol_Randomizer.Randomizers;
 using Smol_Randomizer.Settings;
+
+using Unity.Audio;
 
 using UnityEngine;
 
@@ -214,6 +217,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         updateActiveLimitRegions = true;
 
         SceneFSMPatches.ApplyPatches(scene);
+        SceneObjectCollection.ApplyPatches(scene);
 
         EnemyObjectPatchCollection.OnSceneLoaded();
     }
@@ -229,6 +233,7 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
         // Remove any FSM patches
         SceneFSMPatches.RemovePatches(currentScene);
+        SceneObjectCollection.RemovePatches();
         EnemyFSMPatches.RemovePatches();
 
         // Remove any Object patches
@@ -527,6 +532,15 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
                         randomizer.Object));
                 break;
 
+            case RandomizerEventType.OnUnload:
+                activeOnUnload.Add(
+                    randomizer.Name,
+                    (Action)DelegateHelper(
+                        typeof(Action),
+                        randomizer.Method,
+                        randomizer.Object));
+                break;
+
             case RandomizerEventType.OnFirstSceneFrame:
                 activeOnFirstSceneFrame.Add(
                     randomizer.Name,
@@ -622,6 +636,10 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
 
             case RandomizerEventType.OnSceneLoad:
                 activeOnSceneLoad.Remove(randomizer.Name);
+                break;
+
+            case RandomizerEventType.OnUnload:
+                Log.LogError("Unable to unregister OnUnload. It is a bad idea, that is why.");
                 break;
 
             case RandomizerEventType.OnFirstSceneFrame:
@@ -739,16 +757,33 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
     /// <summary>Array of boss names that we want to look for</summary>
     public static readonly string[] bossFilter =
     [
-        "Lace",
+        "Lace", // Lace 1,2,3
         "Phantom",
-        "Silk Boss",
-        "Bone Beast",
-        "Trobbio",
+        "Silk Boss", // GMS
+        "Bone Beast", // Bell Beast
+        "Trobbio", // Trobbio 1,2
         "Shakra",
-        "Mapper",
-        "Forebrother",
+        "Mapper", // Shakra
+        "Forebrother", // Signis & Gron
         "Garmond",
-        "SG_head"
+        "SG_head",
+        "Flower Queen Boss", // Nyleth
+        "Seth",
+        "Dancer A", // Cogwork & Clover Dancers
+        "Dancer B", // Cogwork & Clover Dancers
+        "Song Knight", // Second Sentinel
+        "Coral Conch Driller Giant Solo", // Enraged Conchfly
+        "Driller A", // Conchfly Duo
+        "Driller B", // Conchfly Duo
+        "Last Judge",
+        "Splinter Queen", // Sister Splinter
+        "Spinner Boss", // Widow
+        "Vampire Gnat", // Moorwing
+        "Crawfather",
+        "Hunter Queen Boss", // Karmelita
+        "Skull King", // Skull Tyrant
+        "Mossbone Mother", // Moss Mother
+        "Swamp Shaman", // Groal
     ];
 
     /// <summary>
@@ -791,7 +826,55 @@ public class CuteRandoCore : BaseUnityPlugin, IModMenuInterface, IModMenuCustomM
         return name;
     }
 
+    [DebuggerHidden]
+    [System.Diagnostics.Conditional("TESTING")]
+    internal static void TestingLog(string message, DebugLogOptions level, bool debugBreak = false)
+        => DebugLog(message, level, testing);
+
+    [DebuggerHidden]
+    [System.Diagnostics.Conditional("DEBUG")]
+    internal static void DebugLog(string message, DebugLogOptions level, bool debugBreak = false)
+    {
+        switch (level)
+        {
+            case DebugLogOptions.Info:
+                Log.LogInfo(message);
+                break;
+
+            case DebugLogOptions.Message:
+                Log.LogMessage(message);
+                break;
+
+            case DebugLogOptions.Warning:
+                Log.LogWarning(message);
+                break;
+
+            case DebugLogOptions.Error:
+                Log.LogError(message);
+                break;
+
+            case DebugLogOptions.Fatal:
+                Log.LogFatal(message);
+                break;
+
+            default:
+                throw new NotImplementedException();
+        }
+
+        if (debugBreak && (System.Diagnostics.Debugger.IsAttached))
+            System.Diagnostics.Debugger.Break();
+    }
+
     #endregion Helper_Functions
+}
+
+internal enum DebugLogOptions
+{
+    Info,
+    Message,
+    Warning,
+    Error,
+    Fatal
 }
 
 /// <summary>The various types of events to handle for randomizers.</summary>
@@ -825,79 +908,4 @@ public class Randomizer_Info(string name, RandomizerEventType randomizerType, Me
 
     /// <summary>The first argument of the method being called.</summary>
     public object Object => o;
-}
-
-public static class SmolExtensions
-{
-    extension(float f)
-    {
-        /// <summary>Gets the absolute value of the given <see langword="float" /></summary>
-        /// <returns>Returns the absolute value of the <see langword="float" /></returns>
-        public float Abs() => f > 0f ? f : f * -1f;
-    }
-
-    extension(Transform transform)
-    {
-        /// <summary>Gets the absolute x value of the transform scale</summary>
-        /// <returns>Returns the absolute value of localScale.x</returns>
-        public float GetAbsScaleX()
-            => transform.localScale.x > 0f ? transform.localScale.x : transform.localScale.x * -1;
-
-        /// <summary>Gets the absolute y value of the transform scale</summary>
-        /// <returns>Returns the absolute value of localScale.y</returns>
-        public float GetAbsScaleY()
-            => transform.localScale.y > 0f ? transform.localScale.y : transform.localScale.y * -1;
-
-        /// <summary>Gets the absolute z value of the transform scale</summary>
-        /// <returns>Returns the absolute value of localScale.z</returns>
-        public float GetAbsScaleZ()
-            => transform.localScale.z > 0f ? transform.localScale.z : transform.localScale.z * -1;
-
-        /// <summary>Gets the absolute value of the transform scale</summary>
-        /// <returns>Returns the absolute value of localScale</returns>
-        public Vector3 GetAbsScale()
-            => transform.localScale.Abs();
-
-        /// <summary>Gets the absolute x value of the transform scale from a global standpoint</summary>
-        /// <returns>Returns the absolute value of lossyScale.x</returns>
-        public float GetAbsLossyScaleX()
-            => transform.lossyScale.x > 0f ? transform.lossyScale.x : transform.lossyScale.x * -1;
-
-        /// <summary>Gets the absolute y value of the transform scale from a global standpoint</summary>
-        /// <returns>Returns the absolute value of lossyScale.y</returns>
-        public float GetAbsLossyScaleY()
-            => transform.lossyScale.y > 0f ? transform.lossyScale.y : transform.lossyScale.y * -1;
-
-        /// <summary>Gets the absolute z value of the transform scale from a global standpoint</summary>
-        /// <returns>Returns the absolute value of lossyScale.z</returns>
-        public float GetAbsLossyScaleZ()
-            => transform.lossyScale.z > 0f ? transform.lossyScale.z : transform.lossyScale.z * -1;
-
-        /// <summary>Gets the absolute value of the transform scale from a global standpoint</summary>
-        /// <returns>Returns the absolute value of lossyScale</returns>
-        public Vector3 GetAbsLossyScale()
-            => transform.lossyScale.Abs();
-    }
-
-    extension(FsmVariables fsmVariables)
-    {
-        /// <summary>Adds a <see cref="NamedVariable" /> to the fsm's internal lookup array</summary>
-        /// <param name="v">The variable to add</param>
-        public void AddVariableLookup(NamedVariable v)
-        {
-            MethodInfo addVariableLookup = AccessTools.Method(typeof(FsmVariables), "AddVariableLookup");
-
-            addVariableLookup.Invoke(fsmVariables, [v]);
-        }
-
-        /// <summary>Adds an array of <see cref="NamedVariable" /> s to the fsm's internal lookup array</summary>
-        /// <param name="v">The variable to add</param>
-        public void AddVariableLookup(NamedVariable[] vArray)
-        {
-            MethodInfo addVariableLookup = AccessTools.Method(typeof(FsmVariables), "AddVariableLookup");
-
-            foreach (NamedVariable v in vArray)
-                addVariableLookup.Invoke(fsmVariables, [v]);
-        }
-    }
 }

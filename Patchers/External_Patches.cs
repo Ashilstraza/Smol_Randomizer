@@ -131,12 +131,12 @@ internal class External_Patches
             {
                 case ExternalPatchTypes.Scene_State_FSM:
                     foreach (SceneStatePatch patch in patchGroup.Value)
-                        SceneFSMPatches.sceneStateCollection.UnregisterPatchInCollection(patch.SceneName, patch.ObjectName, patch);
+                        SceneFSMPatches.sceneStateCollection.UnregisterPatchInCollection(patch.Name, patch, patch.SceneName);
                     break;
 
                 case ExternalPatchTypes.Scene_State_Action_FSM:
                     foreach (SceneStateActionPatch patch in patchGroup.Value)
-                        SceneFSMPatches.sceneStateActionCollection.UnregisterPatchInCollection(patch.SceneName, patch.ObjectName, patch);
+                        SceneFSMPatches.sceneStateActionCollection.UnregisterPatchInCollection(patch.Name, patch, patch.SceneName);
                     break;
 
                 case ExternalPatchTypes.Enemy_Object:
@@ -145,13 +145,13 @@ internal class External_Patches
                     break;
 
                 case ExternalPatchTypes.Enemy_State_FSM:
-                    foreach (EnemyStatePatch patch in patchGroup.Value)
-                        EnemyFSMPatches.enemyState.UnregisterPatchInCollection(patch.EnemyName, patch);
+                    foreach (StatePatch patch in patchGroup.Value)
+                        EnemyFSMPatches.enemyState.UnregisterPatchInCollection(patch.Name, patch);
                     break;
 
                 case ExternalPatchTypes.Enemy_State_Action_FSM:
-                    foreach (EnemyStateActionPatch patch in patchGroup.Value)
-                        EnemyFSMPatches.enemyStateAction.UnregisterPatchInCollection(patch.EnemyName, patch);
+                    foreach (StateActionPatch patch in patchGroup.Value)
+                        EnemyFSMPatches.enemyStateAction.UnregisterPatchInCollection(patch.Name, patch);
                     break;
 
                 default:
@@ -187,15 +187,15 @@ internal class External_Patches
                         var p = sceneStatePatch.Patch.GeneratePatch();
                         if (p == null)
                         {
-                            Log.LogError($"Patch is null or malformed within Scene State FSM Patch for {sceneStatePatch.SceneName}.{sceneStatePatch.ObjectName}.{sceneStatePatch.Name}");
+                            Log.LogError($"Patch is null or malformed within Scene State FSM Patch for {sceneStatePatch.SceneName}.{sceneStatePatch.Name}");
                             return;
                         }
                         var u = sceneStatePatch.Unpatch?.GeneratePatch();
-                        SceneStatePatch compiledPatch = new SceneStatePatch(sceneStatePatch.SceneName, sceneStatePatch.ObjectName, sceneStatePatch.Name, p, u, sceneStatePatch.FSMName);
+                        SceneStatePatch compiledPatch = new SceneStatePatch(sceneStatePatch.SceneName, sceneStatePatch.Name, sceneStatePatch.State, p, u, sceneStatePatch.FSMName);
 
                         appliedPatch = SceneFSMPatches.OverwritePatch(compiledPatch);
                         if (!appliedPatch)
-                            SceneFSMPatches.sceneStateCollection.RegisterPatchInCollection(sceneStatePatch.SceneName, sceneStatePatch.ObjectName, compiledPatch);
+                            SceneFSMPatches.sceneStateCollection.RegisterPatchInCollection(sceneStatePatch.Name, compiledPatch, sceneStatePatch.SceneName);
                         AddPatchToDictionary(rawPatch.PatchType, compiledPatch);
                     }
                     break;
@@ -212,15 +212,15 @@ internal class External_Patches
                                 $"{(p == null && t == null ? "& " : "")}" +
                                 $"{(t == null ? "Target " : "")}" +
                                 $"{(p == null && t == null ? "are " : "is ")}" +
-                                $"null or malformed within Scene State Action FSM Patch for {sceneStateActionPatch.SceneName}.{sceneStateActionPatch.ObjectName}.{sceneStateActionPatch.Name}");
+                                $"null or malformed within Scene State Action FSM Patch for {sceneStateActionPatch.SceneName}.{sceneStateActionPatch.Name}");
                             return;
                         }
                         var u = sceneStateActionPatch.Unpatch?.GeneratePatch();
-                        SceneStateActionPatch compiledPatch = new SceneStateActionPatch(sceneStateActionPatch.SceneName, sceneStateActionPatch.ObjectName, sceneStateActionPatch.Name, sceneStateActionPatch.Type, p, u, sceneStateActionPatch.FSMName);
+                        SceneStateActionPatch compiledPatch = new SceneStateActionPatch(sceneStateActionPatch.SceneName, sceneStateActionPatch.Name, sceneStateActionPatch.State, sceneStateActionPatch.Type, p, u, sceneStateActionPatch.FSMName);
 
                         appliedPatch = SceneFSMPatches.OverwritePatch(compiledPatch);
                         if (!appliedPatch)
-                            SceneFSMPatches.sceneStateActionCollection.RegisterPatchInCollection(sceneStateActionPatch.SceneName, sceneStateActionPatch.ObjectName, compiledPatch);
+                            SceneFSMPatches.sceneStateActionCollection.RegisterPatchInCollection(sceneStateActionPatch.Name, compiledPatch, sceneStateActionPatch.SceneName);
                         AddPatchToDictionary(rawPatch.PatchType, compiledPatch);
                     }
                     break;
@@ -247,20 +247,24 @@ internal class External_Patches
                         var p = enemyStatePatch.Patch.GeneratePatch();
                         if (p == null)
                         {
-                            Log.LogError($"Patch is null or malformed within Enemy State FSM Patch for {enemyStatePatch.EnemyName}.{enemyStatePatch.Name}");
+                            Log.LogError($"Patch is null or malformed within Enemy State FSM Patch for {enemyStatePatch.Name}");
                             return;
                         }
                         var u = enemyStatePatch.Unpatch?.GeneratePatch();
-                        EnemyStatePatch compiledPatch;
+                        StatePatch compiledPatch;
 
-                        if (enemyStatePatch.Names.Length > 0)
-                            compiledPatch = new EnemyStatePatch(enemyStatePatch.EnemyName, enemyStatePatch.Names, p, u, enemyStatePatch.FSMName);
+                        if (enemyStatePatch.NameArray.Length > 0 && enemyStatePatch.StateArray.Length > 0)
+                            compiledPatch = new StatePatch(enemyStatePatch.NameArray, enemyStatePatch.StateArray, p, u, enemyStatePatch.FSMName);
+                        else if (enemyStatePatch.StateArray.Length > 0)
+                            compiledPatch = new StatePatch(enemyStatePatch.Name, enemyStatePatch.StateArray, p, u, enemyStatePatch.FSMName);
+                        else if (enemyStatePatch.NameArray.Length > 0)
+                            compiledPatch = new StatePatch(enemyStatePatch.NameArray, enemyStatePatch.State, p, u, enemyStatePatch.FSMName);
                         else
-                            compiledPatch = new EnemyStatePatch(enemyStatePatch.EnemyName, enemyStatePatch.Name, p, u, enemyStatePatch.FSMName);
+                            compiledPatch = new StatePatch(enemyStatePatch.Name, enemyStatePatch.State, p, u, enemyStatePatch.FSMName);
 
                         appliedPatch = EnemyFSMPatches.OverwritePatch(compiledPatch);
                         if (!appliedPatch)
-                            EnemyFSMPatches.enemyState.RegisterPatchInCollection(enemyStatePatch.EnemyName, compiledPatch);
+                            EnemyFSMPatches.enemyState.RegisterPatchInCollection(enemyStatePatch.Name, compiledPatch);
                         AddPatchToDictionary(rawPatch.PatchType, compiledPatch);
                     }
                     break;
@@ -277,21 +281,25 @@ internal class External_Patches
                                 $"{(p == null && t == null ? "& " : "")}" +
                                 $"{(t == null ? "Target " : "")}" +
                                 $"{(p == null && t == null ? "are " : "is ")}" +
-                                $"null or malformed within Enemy State Action FSM Patch for {enemyStateActionPatch.EnemyName}.{enemyStateActionPatch.Name}");
+                                $"null or malformed within Enemy State Action FSM Patch for {enemyStateActionPatch.Name}");
                             return;
                         }
                         var u = enemyStateActionPatch.Unpatch?.GeneratePatch();
 
-                        EnemyStateActionPatch compiledPatch = new EnemyStateActionPatch(enemyStateActionPatch.EnemyName, enemyStateActionPatch.Name, enemyStateActionPatch.Type, p, u);
+                        StateActionPatch compiledPatch;
 
-                        if (enemyStateActionPatch.Names.Length > 0)
-                            compiledPatch = new EnemyStateActionPatch(enemyStateActionPatch.EnemyName, enemyStateActionPatch.Names, enemyStateActionPatch.Type, p, u, enemyStateActionPatch.FSMName);
+                        if (enemyStateActionPatch.NameArray.Length > 0 && enemyStateActionPatch.StateArray.Length > 0)
+                            compiledPatch = new StateActionPatch(enemyStateActionPatch.NameArray, enemyStateActionPatch.StateArray, enemyStateActionPatch.Type, p, u, enemyStateActionPatch.FSMName);
+                        else if (enemyStateActionPatch.StateArray.Length > 0)
+                            compiledPatch = new StateActionPatch(enemyStateActionPatch.Name, enemyStateActionPatch.StateArray, enemyStateActionPatch.Type, p, u, enemyStateActionPatch.FSMName);
+                        else if (enemyStateActionPatch.NameArray.Length > 0)
+                            compiledPatch = new StateActionPatch(enemyStateActionPatch.NameArray, enemyStateActionPatch.State, enemyStateActionPatch.Type, p, u, enemyStateActionPatch.FSMName);
                         else
-                            compiledPatch = new EnemyStateActionPatch(enemyStateActionPatch.EnemyName, enemyStateActionPatch.Name, enemyStateActionPatch.Type, p, u, enemyStateActionPatch.FSMName);
+                            compiledPatch = new StateActionPatch(enemyStateActionPatch.Name, enemyStateActionPatch.State, enemyStateActionPatch.Type, p, u, enemyStateActionPatch.FSMName);
 
                         appliedPatch = EnemyFSMPatches.OverwritePatch(compiledPatch);
                         if (!appliedPatch)
-                            EnemyFSMPatches.enemyStateAction.RegisterPatchInCollection(enemyStateActionPatch.EnemyName, compiledPatch);
+                            EnemyFSMPatches.enemyStateAction.RegisterPatchInCollection(enemyStateActionPatch.Name, compiledPatch);
                         AddPatchToDictionary(rawPatch.PatchType, compiledPatch);
                     }
                     break;
@@ -326,7 +334,9 @@ internal class External_Patches
     {
         public string SceneName { get; set; } = "";
 
-        public string ObjectName { get; set; } = "";
+        public string[] SceneArray { get; set; } = [];
+        public override string State { get; set; } = "";
+        public override string[] StateArray { get; set; } = [];
 
         public override PatchInfo_Base<FsmState> Patch { get; set; }
 
@@ -334,12 +344,10 @@ internal class External_Patches
     }
 
     /// <summary>Wrapper for patching an enemy's <see cref="FsmState" /></summary>
-    public class EnemyStateExternalPatch : StateExternalPatch_Base, IEnemyPatch
+    public class EnemyStateExternalPatch : StateExternalPatch_Base, IFSMPatch
     {
-        public string EnemyName { get; set; } = "";
-
-        public string[] EnemyNames { get; set; } = [];
-
+        public override string State { get; set; } = "";
+        public override string[] StateArray { get; set; } = [];
         public override PatchInfo_Base<FsmState> Patch { get; set; }
 
         public override PatchInfo_Base<FsmState>? Unpatch { get; set; }
@@ -380,9 +388,15 @@ internal class External_Patches
 
     /// <summary>Abstract class for wrapping an externally loaded <see cref="FsmState" /> patch</summary>
     public abstract class StateExternalPatch_Base
-    : ObjectExternalPatch_Base<FsmState>, IFSMPatch
+    : ObjectExternalPatch_Base<FsmState>, IFSMPatch, IFSMState
     {
         public string FSMName { get; set; } = "";
+
+        public abstract string State { get; set; }
+        public abstract string[] StateArray { get; set; }
+
+        public override object Clone()
+            => throw new NotImplementedException();
     }
 
     #endregion State Patches
@@ -393,15 +407,16 @@ internal class External_Patches
     /// Wrapper for patching an enemy's <see cref="FsmStateAction" />
     /// <para>Not currently implemented.</para>
     /// </summary>
-    public class EnemyStateActionExternalPatch : StateActionExternalPatch_Base, IEnemyPatch
+    public class EnemyStateActionExternalPatch : StateActionExternalPatch_Base, IFSMPatch
     {
-        public string EnemyName { get; set; } = "";
-
-        public string[] EnemyNames { get; set; } = [];
-
+        public override string State { get; set; } = "";
+        public override string[] StateArray { get; set; } = [];
         public override PatchInfo_Base<FsmStateAction> Patch { get; set; }
 
         public override PatchInfo_Base<FsmStateAction>? Unpatch { get; set; }
+
+        public override object Clone()
+            => throw new NotImplementedException();
     }
 
     /// <summary>
@@ -411,12 +426,16 @@ internal class External_Patches
     public class SceneStateActionExternalPatch : StateActionExternalPatch_Base, IScenePatch
     {
         public string SceneName { get; set; } = "";
-
-        public string ObjectName { get; set; } = "";
+        public string[] SceneArray { get; set; } = [];
+        public override string State { get; set; } = "";
+        public override string[] StateArray { get; set; } = [];
 
         public override PatchInfo_Base<FsmStateAction> Patch { get; set; }
 
         public override PatchInfo_Base<FsmStateAction>? Unpatch { get; set; }
+
+        public override object Clone()
+            => throw new NotImplementedException();
     }
 
     /// <summary>
@@ -426,14 +445,12 @@ internal class External_Patches
     public class StateActionPatchInfo : PatchInfo_Base<FsmStateAction>
     {
         public override Action<FsmStateAction, object[]> GeneratePatch()
-        {
-            throw new NotImplementedException();
-        }
+            => throw new NotImplementedException();
     }
 
     /// <summary>Abstract class for wrapping an externally loaded <see cref="FsmStateAction" /> patch</summary>
     public abstract class StateActionExternalPatch_Base()
-   : ObjectExternalPatch_Base<FsmStateAction>, IFSMPatch, IFSMActionPatch
+   : ObjectExternalPatch_Base<FsmStateAction>, IFSMActionPatch
     {
         public string FSMName { get; set; } = "";
 
@@ -442,11 +459,10 @@ internal class External_Patches
 
         public Type Type
         {
-            get
-            {
-                return Type.GetType(ActionTypeString);
-            }
+            get => Type.GetType(ActionTypeString);
         }
+        public abstract string State { get; set; }
+        public abstract string[] StateArray { get; set; }
     }
 
     #endregion State Action
@@ -462,6 +478,9 @@ internal class External_Patches
         public override PatchInfo_Base<GameObject> Patch { get; set; }
 
         public override PatchInfo_Base<GameObject>? Unpatch { get; set; }
+
+        public override object Clone()
+            => throw new NotImplementedException();
     }
 
     /// <summary>
@@ -471,9 +490,7 @@ internal class External_Patches
     public class ObjectPatchInfo : PatchInfo_Base<GameObject>
     {
         public override Action<GameObject, object[]> GeneratePatch()
-        {
-            throw new NotImplementedException();
-        }
+            => throw new NotImplementedException();
     }
 
     #endregion Object Patches
@@ -486,7 +503,7 @@ internal class External_Patches
     : ISmolExternalPatch
     {
         public string Name { get; set; } = "";
-        public string[] Names { get; set; } = [];
+        public string[] NameArray { get; protected internal set; } = [];
         public ExternalPatchTypes PatchType { get; set; }
 
         /// <summary>Information to create the patch that will be appiled</summary>
@@ -494,6 +511,8 @@ internal class External_Patches
 
         /// <summary>Information to create the unpatcher that will remove the applied patch</summary>
         public abstract PatchInfo_Base<PatchTarget>? Unpatch { get; set; }
+
+        public abstract object Clone();
     }
 
     /// <summary>Abstract class for the patch</summary>
@@ -511,14 +530,8 @@ internal class External_Patches
     #endregion Base Abstract
 
     /// <summary>Interface for external patch setup</summary>
-    public interface ISmolExternalPatch
+    public interface ISmolExternalPatch : ISmolPatch
     {
-        /// <summary>Name of what is being patched</summary>
-        public string Name { get; set; }
-
-        /// <summary><see cref="Array" /> of names for what is being patched</summary>
-        public string[] Names { get; set; }
-
         /// <summary>The type of patch that is being imported</summary>
         public ExternalPatchTypes PatchType { get; set; }
     }

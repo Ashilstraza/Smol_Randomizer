@@ -44,38 +44,38 @@ internal class Hero_Size_Rando : Rando_Base
     private const int LAYERMASK = 8448;
 
     /// <summary><see langword="true" /> if we need to grab Hornet's base values</summary>
-    private static bool grabVariables = true;
+    private bool grabVariables = true;
 
     #region Various base values to save
 
     // FSM Values
     /// <summary>Base dash speed</summary>
-    private static float baseDashSpeed;
+    private float baseDashSpeed;
 
     /// <summary>Base sprint speed (after she has completed her dash)</summary>
-    private static float baseSprintSpeed;
+    private float baseSprintSpeed;
 
     /// <summary>Starting sprint speed, should be same as dash speed?</summary>
-    private static float baseSprintStartSpeed;
+    private float baseSprintStartSpeed;
 
     /// <summary>Sprint speed when high on flea brew?</summary>
-    private static float baseQuickSpeed; // Flea brew?
+    private float baseQuickSpeed; // Flea brew?
 
     /// <summary>Sprint speed while wearing anklets?</summary>
-    private static float baseQuickerSpeed; // Anklets?
+    private float baseQuickerSpeed; // Anklets?
 
     /// <summary>Velocity when entering an up transition</summary>
-    private static float baseSpeedToEnterUp;
+    private float baseSpeedToEnterUp;
 
     /// <summary>Velocity when entereing a horizontal transition</summary>
-    private static float baseSpeedToEnterHor;
+    private float baseSpeedToEnterHor;
 
     // Colliders
     /// <summary>Default <see cref="BoxCollider2D" /> size</summary>
-    private static Vector2 defaultColliderSize;
+    private Vector2 defaultColliderSize;
 
     /// <summary>Default <see cref="BoxCollider2D" /> offset</summary>
-    private static Vector2 defaultColliderOffset;
+    private Vector2 defaultColliderOffset;
     #endregion Various base values to save
 
     /// <summary><see langword="true" /> if we have adjusted Hornet's size</summary>
@@ -94,10 +94,10 @@ internal class Hero_Size_Rando : Rando_Base
     internal Vector3 heroScaleFlipped = new(-1f, 1f, 1f);
 
     /// <summary>The <see cref="Translate" /><see cref="FsmStateAction" /> within the Vault <see cref="FsmState" /></summary>
-    private static Translate mantleVaultTranslate;
+    private Translate mantleVaultTranslate;
 
     /// <summary>The YOffset <see langword="float" /> within Mantle <see cref="PlayMakerFSM" /></summary>
-    private static FsmFloat baseMantleVaultYOffset;
+    private FsmFloat baseMantleVaultYOffset;
 
     /// <summary>Dictionary containing all the <see cref="SurfaceWaterRegion" /> s in the current <see cref="Scene" />.</summary>
     private readonly Dictionary<SurfaceWaterRegion, float> waterRegions = [];
@@ -119,6 +119,9 @@ internal class Hero_Size_Rando : Rando_Base
 
     /// <summary>Used for registeromg tjos randomizer in the core for when a <see cref="Scene" /> is loaded</summary>
     private Randomizer_Info eventOnSceneLoad;
+
+    /// <summary>Used for registering this randomizer in the core for when the mod gets unloaded</summary>
+    private Randomizer_Info eventOnUnload;
 
     #endregion Randomizer_Info
 
@@ -152,6 +155,13 @@ internal class Hero_Size_Rando : Rando_Base
                 typeof(Hero_Size_Rando),
                 nameof(DamageHero_OnEnable)),
             this);
+        eventOnUnload = new(
+            RandomizerName,
+            RandomizerEventType.OnUnload,
+            AccessTools.Method(
+                typeof(Hero_Size_Rando),
+                nameof(OnUnload)),
+            this);
 
         base.InitRandomizer();
     }
@@ -160,6 +170,7 @@ internal class Hero_Size_Rando : Rando_Base
     {
         CuteRandoCore.RegisterRandomizer(eventOnSceneLoad);
         CuteRandoCore.RegisterRandomizer(eventActiveHeroDamager);
+        CuteRandoCore.RegisterRandomizer(eventOnUnload);
 
         SceneFSMPatches.RegisterPatchCollection(sceneFSMPatches);
     }
@@ -838,13 +849,13 @@ internal class Hero_Size_Rando : Rando_Base
     /// <summary>Set of <see cref="FsmState" /> s to patch <see cref="FsmStateAction" /> s into</summary>
     private static readonly StatePatchSet mantleFSMPatchSet = new(
         "Mantle",
-        [new StatePatch(
+        [new StatePatch("",
             "Vault",
             delegate (FsmState state, object[] param)
             {
                 state.Actions = state.Actions.AddToArray(clamberSquishBox);
             }),
-        new StatePatch(
+        new StatePatch("",
             "Idle",
             delegate(FsmState state, object[] param)
             {
@@ -1027,8 +1038,8 @@ internal class Hero_Size_Rando : Rando_Base
 
     /// <summary>Set of <see cref="FsmState" /> s to patch <see cref="FsmStateAction" /> s into</summary>
     private static readonly StatePatchSet sprintFSMPatchSet = new(
-        "Sprint",
-        [new StatePatch(
+        "",
+        [new StatePatch("",
             ["Dashed", "Start Sprint"],
             delegate (FsmState state, object[] param)
             {
@@ -1042,7 +1053,7 @@ internal class Hero_Size_Rando : Rando_Base
 
                 state.Actions = state.Actions.Except([sprintSquishBox]).ToArray();
             }),
-        new StatePatch(
+        new StatePatch("",
             ["Idle", "Dash Stab Dir"],
             delegate(FsmState state, object[] param)
             {
@@ -1192,7 +1203,7 @@ internal class Hero_Size_Rando : Rando_Base
 
         switch (HeroSizeConsistency)
         {
-            case RandomizerConsistencyC.OnSceneTransition:
+            case RandomizerConsistencyC.PerScene:
                 if (currentScene.name == null)
                     return;
                 if (!sceneHeroSize.TryGetValue(currentScene.name, out multiplier))
@@ -1210,6 +1221,13 @@ internal class Hero_Size_Rando : Rando_Base
                     saveHeroSize = CuteRandoCore.RandomFloat(HeroSizeRange.AsTuple(), SaveData.SaveSeed);
                 }
                 multiplier = saveHeroSize;
+                break;
+
+            case RandomizerConsistencyC.OnSceneTransition:
+                if (currentScene.name == null)
+                    return;
+
+                multiplier = CuteRandoCore.RandomFloat(HeroSizeRange.AsTuple());
                 break;
 
             case RandomizerConsistencyC.OnDamageTaken:
@@ -1245,8 +1263,8 @@ internal class Hero_Size_Rando : Rando_Base
 
         mantleVaultTranslate.y = baseMantleVaultYOffset.Value * multiplier;
 
-        HeroController.instance.SPEED_TO_ENTER_SCENE_HOR = (baseSpeedToEnterHor * Instance.heroScale.x) + (0.2f - (0.2f * Instance.heroScale.x));
-        HeroController.instance.SPEED_TO_ENTER_SCENE_UP = (baseSpeedToEnterUp * Instance.heroScale.y) + (0.2f - (0.2f * Instance.heroScale.y));
+        HeroController.instance.SPEED_TO_ENTER_SCENE_HOR = (baseSpeedToEnterHor * Instance.heroScale.x) + (7f - (7 * Instance.heroScale.x));
+        HeroController.instance.SPEED_TO_ENTER_SCENE_UP = (baseSpeedToEnterUp * Instance.heroScale.y) + (1.25f - (1.25f * Instance.heroScale.y));
 
         heroTransform.localScale = heroTransform.GetScaleX() > 0f ? heroScale : heroScaleFlipped;
 
@@ -1318,8 +1336,15 @@ internal class Hero_Size_Rando : Rando_Base
     /// <summary>Returns Hornet's values to default</summary>
     private void ReturnToDefault()
     {
+#if TESTING
+        CuteRandoCore.TestingLog("Hero_Size_Rando.ReturnToDefault() called", DebugLogOptions.Message);
+#endif
         if (!heroSizeChanged || heroTransform == null)
             return;
+
+#if TESTING
+        CuteRandoCore.TestingLog("Hero_Size_Rando.ReturnToDefault() resetting size", DebugLogOptions.Message);
+#endif
 
         FsmVariables sprintFSMVariables = HeroController.instance.sprintFSM.FsmVariables;
 
@@ -1330,8 +1355,8 @@ internal class Hero_Size_Rando : Rando_Base
         sprintFSMVariables.FindFsmFloat("Sprint Speed Quick").Value = baseQuickSpeed;
         sprintFSMVariables.FindFsmFloat("Sprint Speed Quicker").Value = baseQuickerSpeed;
 
-        CuteRandoCore.TraverseCreator(typeof(HeroController), "SPEED_TO_ENTER_SCENE_HOR").SetValue(baseSpeedToEnterHor);
-        CuteRandoCore.TraverseCreator(typeof(HeroController), "SPEED_TO_ENTER_SCENE_UP").SetValue(baseSpeedToEnterUp);
+        HeroController.instance.SPEED_TO_ENTER_SCENE_HOR = baseSpeedToEnterHor;
+        HeroController.instance.SPEED_TO_ENTER_SCENE_UP = baseSpeedToEnterUp;
 
         mantleVaultTranslate.y = baseMantleVaultYOffset;
 

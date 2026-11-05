@@ -106,13 +106,12 @@ public class ShiftPosToBase : FsmStateAction
     {
         if (adjusted && !overrideAdjusted) // prevent multiple calls
         {
-#if TESTING
-            /*CuteRandoCore.Log.LogWarning($"ShiftPosToBase called multiple times for {base.Fsm.GetOwnerDefaultTarget(gameObject).name}, " +
+            CuteRandoCore.TestingLog($"ShiftPosToBase called multiple times for {base.Fsm.GetOwnerDefaultTarget(gameObject).name}, " +
                 $"State: {this.Fsm.ActiveStateName}, " +
                 $"Current Frame Count: {Time.frameCount}, " +
                 $"Hash Code:{this.GetHashCode()},  " +
-                $"Scene: {base.Fsm.GetOwnerDefaultTarget(gameObject).scene.name}");*/
-#endif
+                $"Scene: {base.Fsm.GetOwnerDefaultTarget(gameObject).scene.name}",
+                DebugLogOptions.Message);
             return;
         }
 
@@ -126,19 +125,18 @@ public class ShiftPosToBase : FsmStateAction
         if (enemy == null || transform == null) return;
         if (col == null && backupSize == Vector2.zero)
         {
-#if DEBUG
-            CuteRandoCore.Log.LogError($"Tried to adjust enemy without collider. " +
-                $"Please check {enemy.name} in {enemy.scene.name}.");
-#endif
+            CuteRandoCore.DebugLog($"Tried to adjust enemy without collider. " +
+                $"Please check {enemy.name} in {enemy.scene.name}.",
+                DebugLogOptions.Error,
+                true);
             return;
         }
-#if TESTING
-        /*CuteRandoCore.Log.LogMessage($"ShiftPosToBase on {enemy.name}, " +
-            $"State: {this.Fsm.ActiveStateName}, " +
-            $"Frame Count: {Time.frameCount}, " +
-            $"Hash Code:{this.GetHashCode()}" +
-            $"Scene: {base.Fsm.GetOwnerDefaultTarget(gameObject).scene.name}");*/
-#endif
+        CuteRandoCore.TestingLog($"ShiftPosToBase on {enemy.name}, " +
+        $"State: {this.Fsm.ActiveStateName}, " +
+        $"Frame Count: {Time.frameCount}, " +
+        $"Hash Code:{this.GetHashCode()}" +
+        $"Scene: {base.Fsm.GetOwnerDefaultTarget(gameObject).scene.name}",
+        DebugLogOptions.Message);
 
         if (magicNumber == float.MinValue)
             magicNumber = 0;
@@ -278,7 +276,7 @@ public class ShiftPosToBase : FsmStateAction
             if (hitTerrain)
             {
                 pos = closestHit.centroid + rayMove - calculatedOriginalOffset * scale.Abs();
-                if (pos.z != transform.position.z) CuteRandoCore.Log.LogWarning("Z does not match");
+                if (pos.z != transform.position.z) CuteRandoCore.DebugLog("Z does not match (hitTerrain)", DebugLogOptions.Warning);
                 transform.position = pos;
                 return;
             }
@@ -299,7 +297,7 @@ public class ShiftPosToBase : FsmStateAction
             xReverse = !xReverse;
         Primitives.Square(pos + (Vector3)(rotatedOffset * new Vector2(xReverse ? -1 : 1, yReverse ? -1 : 1)), rotatedSize, SmolRandomizerMenuBuilder.EPurple, duration: debugDuration);
 #endif
-        if (pos.z != transform.position.z) CuteRandoCore.Log.LogWarning("Z does not match");
+        if (pos.z != transform.position.z) CuteRandoCore.DebugLog("Z does not match (ShiftN)", DebugLogOptions.Warning);
         transform.position = pos;
 
         Vector2 ScaleAndRotate(Vector2 original, Vector2 scale, float cos, float sin)

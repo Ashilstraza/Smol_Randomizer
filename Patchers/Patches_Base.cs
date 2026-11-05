@@ -2,18 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using UnityEngine;
+
 namespace Smol_Randomizer.Patchers;
 
-/// <summary>Base class of patches that want to patch objects</summary>
+/// <summary>Base class of patches that want to patch <see cref="GameObject"/>s</summary>
 /// <typeparam name="PatchTarget">The patch target</typeparam>
-/// <typeparam name="ObjectType"> The type of object the patch is applying to</typeparam>
-/// <param name="objectName">     Name of the object the patch is for</param>
-/// <param name="patch">          The delegate to patch the object</param>
-/// <param name="unpatch">        Optional delegate to unpatch the object</param>
+/// <typeparam name="ObjectType"> The type of <see cref="GameObject"/> the patch is applying to</typeparam>
+/// <param name="objectName">     Name of the <see cref="GameObject"/> the patch is for</param>
+/// <param name="patch">          The delegate to patch the <see cref="GameObject"/></param>
+/// <param name="unpatch">        Optional delegate to unpatch the <see cref="GameObject"/></param>
 public abstract class ObjectPatch_Base<PatchTarget, ObjectType>(string objectName, Action<PatchTarget, object[]> patch, Action<PatchTarget, object[]>? unpatch = null)
     : ISmolPatch
 {
-    public string Name => objectName;
+    public string Name { get; protected internal set; } = objectName;
     public string[] NameArray { get; protected internal set; } = [];
 
     /// <summary>The delegate to patch the object</summary>
@@ -55,7 +57,7 @@ public abstract class ObjectPatchSet_Base<PatchType, ObjectType, PatchTarget>(st
     : ISmolPatchSet
     where PatchType : ObjectPatch_Base<PatchTarget, ObjectType>
 {
-    public string Name => name;
+    public string Name { get; protected internal set; } = name;
     public string[] NameArray { get; protected internal set; } = [];
 
     /// <summary>The list of patches for the object</summary>
@@ -121,6 +123,9 @@ public abstract class ObjectPatchSet_Base<PatchType, ObjectType, PatchTarget>(st
     /// <param name="patchSet">The set of patches to be removed</param>
     public virtual void UnregisterPatches(PatchType[] patchSet) => Patches.RemoveAll(patchSet.Contains);
 
+    /// <summary>Populates the various child fields if they are empty</summary>
+    internal abstract void PopulateChildFields();
+
     public abstract object Clone();
 }
 
@@ -169,78 +174,162 @@ public abstract class ObjectPatchCollection_Base<PatchType, PatchSetType, Object
         }
     }
 
-    /// <summary>Register a collection of patches</summary>
-    /// <param name="patchCollection">A list containing the patches to be applied</param>
-    public virtual void RegisterPatchCollection(List<PatchType> patchCollection)
+    /// <summary>Registers a collection of FSM patches</summary>
+    /// <param name="patchCollection">The collection of patches to register</param>
+    /// <param name="objectName">      The name of the object the patches are for</param>
+    /// <returns>The number of patches registered</returns>
+    public virtual int RegisterPatchCollection(List<PatchType> patchCollection, string objectName)
     {
+        int patchTotal = 0;
+
         foreach (var patch in patchCollection)
         {
-            RegisterPatchInCollection(patch.Name, patch);
+            string name = patch.Name is "" ?
+                                patch.NameArray.Length > 0 ?
+                                    ""
+                                    : objectName
+                                : patch.Name;
+
+            patchTotal += RegisterPatchInCollection(name, patch);
         }
+
+        return patchTotal;
     }
 
-    /// <summary>Registers the patch for the object</summary>
-    /// <param name="objectName">The object's name that is to be patched</param>
-    /// <param name="smolPatch"> The patch to register</param>
-    public virtual void RegisterPatchInCollection(string objectName, ISmolPatch smolPatch)
+    /// <summary>Registers FSM patches</summary>
+    /// <param name="objectName">The name of the object the patches are for</param>
+    /// <param name="smolPatch">The patch or patch set to register</param>
+    /// <returns>The number of patches registered</returns>
+    public virtual int RegisterPatchInCollection(string objectName, ISmolPatch smolPatch)
     {
+        int patchTotal = 0;
+
         if (smolPatch is PatchType patch)
         {
+            if (objectName is "")
+            {
+                if (smolPatch.NameArray.Length > 0)
+                {
+                    foreach (string name in smolPatch.NameArray)
+                        patchTotal += RegisterPatchInCollection(name, smolPatch);
+
+                    return patchTotal;
+                }
+                else
+                    CuteRandoCore.DebugLog($"Register patch called with blank name and empty name array; Type: {smolPatch.GetType()}", DebugLogOptions.Error, true);
+            }
             if (Patches.ContainsKey(objectName))
             {
                 if (!Patches[objectName].Add(patch))
-                    return; // The patch is already in there
+                    return patchTotal; // The patch is already in there
             }
             else
                 Patches[objectName] = new() { { patch } };
 
-            if (patchedObjects.ContainsKey(objectName))
-                patchedObjects[objectName]++;
+            if (PatchedObjects.ContainsKey(objectName))
+                PatchedObjects[objectName]++;
             else
-                patchedObjects.Add(objectName, 1);
+                PatchedObjects.Add(objectName, 1);
+            patchTotal++;
         }
         else if (smolPatch is PatchSetType patchSet)
         {
-            RegisterPatchCollection(patchSet.Patches);
+            if (objectName == "")
+            {
+                if (smolPatch.NameArray.Length > 0)
+                {
+                    foreach (string name in smolPatch.NameArray)
+                        patchTotal += RegisterPatchCollection(patchSet.Patches, name);
+
+                    return patchTotal;
+                }
+                else
+                    CuteRandoCore.DebugLog($"Register patch called with blank name and empty name array; Type: {smolPatch.GetType()}", DebugLogOptions.Error, true);
+            }
+            else
+                patchTotal += RegisterPatchCollection(patchSet.Patches, objectName);
         }
         else
-            CuteRandoCore.Log.LogError($"Register patch called with invalid patch type, Name: {smolPatch.Name}, Type: {smolPatch.GetType()}");
+            CuteRandoCore.DebugLog($"Register patch called with invalid patch type, Name: {smolPatch.Name}, Type: {smolPatch.GetType()}", DebugLogOptions.Error, true);
+
+        return patchTotal;
     }
 
     /// <summary> Unregister a collection of patches </summary>
     /// <param name="patchCollection">A list containing the patches to no longer be applied<</param>
-    public virtual void UnregisterPatchCollection(List<PatchType> patchCollection)
+    /// <returns>The number of patches unregistered</returns>
+    public virtual int UnregisterPatchCollection(List<PatchType> patchCollection, string objectName)
     {
+        int unpatchTotal = 0;
+
         foreach (var patch in patchCollection)
         {
-            UnregisterPatchInCollection(patch.Name, patch);
+            string name = patch.Name is "" ?
+                                patch.NameArray.Length > 0 ?
+                                    ""
+                                    : objectName
+                                : patch.Name;
+
+            unpatchTotal += UnregisterPatchInCollection(name, patch);
         }
+
+        return unpatchTotal;
     }
 
     /// <summary>Unregisters the patch for the object</summary>
     /// <param name="objectName">The object's name that is to no longer be patched</param>
     /// <param name="smolPatch"> The patch to unregister</param>
-    public virtual void UnregisterPatchInCollection(string objectName, ISmolPatch smolPatch)
+    /// <returns>The number of patches unregistered</returns>
+    public virtual int UnregisterPatchInCollection(string objectName, ISmolPatch smolPatch)
     {
+        int unpatchTotal = 0;
+
         if (smolPatch is PatchType patch)
         {
+            if (objectName == "")
+            {
+                if (smolPatch.NameArray.Length > 0)
+                {
+                    foreach (string name in smolPatch.NameArray)
+                        unpatchTotal += UnregisterPatchInCollection(name, smolPatch);
+                    return unpatchTotal;
+                }
+                else
+                    CuteRandoCore.DebugLog($"Unregister patch called with blank name and empty name array; Type: {smolPatch.GetType()}", DebugLogOptions.Error, true);
+            }
             if (Patches.ContainsKey(objectName))
             {
                 if (Patches[objectName].Remove(patch))
                 {
-                    if (patchedObjects[objectName] == 1)
-                        patchedObjects.Remove(objectName);
+                    if (PatchedObjects[objectName] == 1)
+                        PatchedObjects.Remove(objectName);
                     else
-                        patchedObjects[objectName]--;
+                        PatchedObjects[objectName]--;
                 }
+                unpatchTotal++;
             }
         }
         else if (smolPatch is PatchSetType patchSet)
         {
-            UnregisterPatchCollection(patchSet.Patches);
+            if (objectName == "")
+            {
+                if (patchSet.NameArray.Length > 0)
+                {
+                    foreach (string name in patchSet.NameArray)
+                        unpatchTotal += UnregisterPatchCollection(patchSet.Patches, name);
+
+                    return unpatchTotal;
+                }
+                else
+                    CuteRandoCore.DebugLog($"Unregister patch called with blank name and empty name array; Type: {smolPatch.GetType()}", DebugLogOptions.Error, true);
+            }
+            else
+                unpatchTotal += UnregisterPatchCollection(patchSet.Patches, objectName);
         }
         else
-            CuteRandoCore.Log.LogError($"Unregister patch called with invalid patch type, Name: {smolPatch.Name}, Type: {smolPatch.GetType()}");
+            CuteRandoCore.DebugLog($"Unregister patch called with invalid patch type, Name: {smolPatch.Name}, Type: {smolPatch.GetType()}", DebugLogOptions.Error, true);
+
+        return unpatchTotal;
     }
 }
 

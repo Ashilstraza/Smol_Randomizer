@@ -1,9 +1,10 @@
 [
   {
     "PatchType": "Enemy_State_FSM",
-    "EnemyName": "EnemyName",
-    "Name": "Init",
-    "Names": [],
+    "Name": "EnemyName",
+    "NameArray": [],
+    "State": "Init",
+    "States": [],
     "FSMName": "Control",
     "Patch": {
       "PatchType": "State",

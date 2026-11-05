@@ -28,6 +28,8 @@ using UnityEngine.SceneManagement;
 using HutongGames.PlayMaker;
 
 using Smol_Randomizer.Patchers.FSM_Actions;
+using Smol_Randomizer.Patchers.ScenePatches;
+using Smol_Randomizer.Patchers;
 
 namespace Smol_Randomizer.Randomizers;
 
@@ -51,7 +53,8 @@ internal partial class Enemy_Size_Rando : Rando_Base
 
     public readonly HashSet<string> excludedEnemies = [ "Splinter Queen Spike", // Looks bad in boss arena
                                                         "Swamp Barnacle", // TODO Figure it out
-                                                        "Centipede Trap"]; // No Point to scale
+                                                        "Centipede Trap", // No Point to scale
+                                                        "Enemy"]; // No Point to scale
 
     #region Randomizer_Info
 
@@ -61,6 +64,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
     /// <summary>Used for registering this randomizer in the core for when a <see cref="Scene" /> loads</summary>
     private Randomizer_Info eventOnFirstSceneFrame;
 
+    /// <summary>Used for registering this randomizer in the core for when a <see cref="PlayMakerFSM" /> starts</summary>
     private Randomizer_Info eventOnFsmStart;
 
     #endregion Randomizer_Info
@@ -115,7 +119,8 @@ internal partial class Enemy_Size_Rando : Rando_Base
 
         // Located in Enemy_Size_Rando_Patches
         EnemyFSMPatches.RegisterPatchCollection(enemyFSMPatches);
-        EnemyObjectPatchCollection.Instance.RegisterPatchCollection(enemyObjectPatches);
+        EnemyObjectPatchCollection.RegisterPatchCollection(enemyObjectPatches);
+        SceneObjectCollection.RegisterPatchCollection(sceneObjectPatches);
     }
 
     protected override void Unregister()
@@ -126,7 +131,8 @@ internal partial class Enemy_Size_Rando : Rando_Base
 
         // Located in Enemy_Size_Rando_Patches
         EnemyFSMPatches.UnregisterPatchCollection(enemyFSMPatches);
-        EnemyObjectPatchCollection.Instance.UnregisterPatchCollection(enemyObjectPatches);
+        EnemyObjectPatchCollection.UnregisterPatchCollection(enemyObjectPatches);
+        SceneObjectCollection.UnregisterPatchCollection(sceneObjectPatches);
     }
 
     // Unused as we don't need
@@ -335,15 +341,16 @@ internal partial class Enemy_Size_Rando : Rando_Base
 
     #endregion Crawler ShouldTurn()
 
-    /// <summary>Patch that applies the correct x scale on enemies' SetScale FSM Action</summary>
+    /// <summary>Patch that applies the correct scale on enemies' SetScale FSM Action</summary>
     /// <param name="__instance">The SetScale Action of the enemy</param>
+    /// <param name="__state">   State that contains the original SetScale setting</param>
     /// <returns>always true to continue processing SetScale</returns>
     private static bool SetScale_DoSetScale_Prefix(SetScale __instance, out Vector3 __state)
     {
         __state = Vector3.zero;
         if (__instance.Owner != null)
         {
-            GameObject? obj = __instance.gameObject.GameObject.Value ?? (__instance.gameObject.OwnerOption == OwnerDefaultOption.UseOwner ? __instance.Owner : null);
+            GameObject? obj = __instance.gameObject.OwnerOption == OwnerDefaultOption.UseOwner ? __instance.Owner : (__instance.gameObject.GameObject.Value ?? null);
             if (obj != null)
             {
                 HealthManager healthManager = __instance.Owner.GetComponent<HealthManager>();
@@ -367,7 +374,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
                     var xScale = obj?.transform.GetScaleX() ?? __instance.Owner.transform.GetScaleX();
 
                     if (__instance.x.Value != xScale && __instance.x.Value != 0f)
-                        __instance.x = Math.Abs(xScale) * (__instance.x.Value < 0 ? -1 : 1);
+                        __instance.x = Math.Abs(xScale) * __instance.x.Value;
                 }
 
                 if (!__instance.y.UseVariable)
@@ -375,7 +382,7 @@ internal partial class Enemy_Size_Rando : Rando_Base
                     var yScale = obj?.transform.GetScaleY() ?? __instance.Owner.transform.GetScaleY();
 
                     if (__instance.y.Value != yScale && __instance.y.Value != 0f)
-                        __instance.y = Math.Abs(yScale) * (__instance.y.Value < 0 ? -1 : 1);
+                        __instance.y = Math.Abs(yScale) * __instance.y.Value;
                 }
             }
         }
@@ -383,21 +390,21 @@ internal partial class Enemy_Size_Rando : Rando_Base
         return true;
     }
 
+    /// <summary>Dictionary with the original size of objects that were scaled</summary>
     private readonly Dictionary<GameObject, Vector3> currentScaledObjects = [];
 
+    /// <summary>Reset SetScale to the original value</summary>
+    /// <param name="__instance">The SetScale Action of the enemy</param>
+    /// <param name="__state">   State that contains the original SetScale setting</param>
     private static void SetScale_DoSetScale_Postfix(SetScale __instance, Vector3 __state)
     {
-        if (__instance.Owner != null && __state != Vector3.zero)
+        if (__state != Vector3.zero)
         {
-            HealthManager healthManager = __instance.Owner.GetComponent<HealthManager>();
-            if (healthManager != null && Instance.currentEnemyHealthManagers.ContainsKey(healthManager))
-            {
-                if (!__instance.x.UseVariable)
-                    __instance.x.Value = __state.x;
+            if (!__instance.x.UseVariable)
+                __instance.x.Value = __state.x;
 
-                if (!__instance.y.UseVariable)
-                    __instance.y.Value = __state.y;
-            }
+            if (!__instance.y.UseVariable)
+                __instance.y.Value = __state.y;
         }
     }
 
@@ -450,6 +457,9 @@ internal partial class Enemy_Size_Rando : Rando_Base
         {"Understore Thrower", ["Cartwheel Range"] },
         {"Pilgrim 03 Understore", ["Alert Range"] },
         {"Song Knight", ["DashStop Range", "Parry Range"] },
+        {"Grasshppper Slasher", ["Alert Range", "Listen Range"] },
+        {"Grasshppper Slasher Crowd", ["Alert Range"] },
+        {"Coral Warrior", ["Close Range", "Block Range", "Far Range", "Patrol Range"] }
     };
 
     /// <summary>Record to hold the various options for adjusting specific children</summary>
@@ -480,6 +490,10 @@ internal partial class Enemy_Size_Rando : Rando_Base
 
         /// <summary>If the child should not be scaled</summary>
         public bool NoScale = false;
+        /// <summary>If only X should be scaled</summary>
+        public bool OnlyScaleX = false;
+        /// <summary>If only Y should be scaled</summary>
+        public bool OnlyScaleY = false;
     }
 
     /// <summary>List of specific adjustment options</summary>
@@ -491,9 +505,18 @@ internal partial class Enemy_Size_Rando : Rando_Base
         new(){ParentName = "Song Automaton Shield", Name = "Alert Range", ShiftY = true},
         new(){ParentName = "Song Automaton Shield", Name = "Unalert Range", ShiftY = true},
         new(){Name = "Swing Flame", IgnoreX = true},
-        new(){Name = "Projectile Point", MagicNumber = 0.104245f, NoScale = true },
+        new(){Name = "Projectile Point", ParentName = "Song Knight", MagicNumber = 0.104245f, NoScale = true },
         new(){Name = "Throw Point", AlternateNullColliderScale= true},
-        new(){Name = "Near Range", ParentName = "Crawfather", ShiftY = true}
+        new(){Name = "Bubble Spawn Point Charge", AlternateNullColliderScale = true},
+        new(){Name = "Near Range", ParentName = "Crawfather", ShiftY = true},
+        new(){Name = "Floor Ray", IgnoreY= true},
+        new(){Name = "Behind Ray", IgnoreY= true},
+        new(){Name = "Short Ray", IgnoreY= true},
+        new(){Name = "Hole Ray", IgnoreY= true},
+        new(){Name = "Patrol Range", ParentName = "Coral Warrior", IgnoreY = true}, // Probably not needed
+        new(){Name = "Under Range", ParentName = "Coral Flyer Throw", ShiftY = true, ReverseY = true},
+        new(){Name = "Suck Zone", OnlyScaleX = true},
+        new(){Name = "Suck Effect", OnlyScaleX = true},
     };
 
     /// <summary>
@@ -520,10 +543,18 @@ internal partial class Enemy_Size_Rando : Rando_Base
         "Projectile Point", // Second Sentinel
         "Chains", // Crawfather
         "Stomp Blast", // Seth
+        "Nodes", // Dragonflys
+        "Floor Ray", // Cloverstag
+        "Behind Ray", // Cloverstag
+        "Short Ray", // Cloverstag
+        "Hole Ray", // Cloverstag
+        "Cross Slash", // Lace 2
+        "Roof Point", // Coral Big Jellyfish
+        "Bubble Spawn Point Charge", // Bubble Brute
+        "pollen_flare_attack_boss", // Nyleth
+        "Suck Zone", // Groal
+        "Suck Effect", // Groal
         //"Tendril",
-        "a",
-        "b",
-        "c"
         ];
 
     /// <summary>Fixes any and all Alert style Ranges to be their default pre-scaled size.</summary>
@@ -545,9 +576,8 @@ internal partial class Enemy_Size_Rando : Rando_Base
         {
             if (child == null || (ignoredChildAdjusts.ContainsKey(parentName) && ignoredChildAdjusts[parentName].Contains(child.name))) return;
 
-#if TESTING
-            //CuteRandoCore.Log.LogInfo($"Patching {child.name} for {parent.name} in scene {parent.scene.name}");
-#endif
+            CuteRandoCore.DebugLog($"Patching {child.name} for {parent.name} in scene {parent.scene.name}", DebugLogOptions.Info);
+
             bool reverseX = false;
             bool reverseY = false;
             bool alternateNullColliderScale = false;
@@ -557,6 +587,8 @@ internal partial class Enemy_Size_Rando : Rando_Base
             bool shiftY = false;
             float magicNumber = 0f;
             bool noScale = false;
+            bool onlyXScale = false;
+            bool onlyYScale = false;
 
             if (child.name.Equals("Tendril"))
             {
@@ -585,6 +617,8 @@ internal partial class Enemy_Size_Rando : Rando_Base
                 shiftY = adjustOptions.ShiftY;
                 magicNumber = adjustOptions.MagicNumber;
                 noScale = adjustOptions.NoScale;
+                onlyXScale = adjustOptions.OnlyScaleX;
+                onlyYScale = adjustOptions.OnlyScaleY;
 
                 float rotation = parent.transform.rotation.eulerAngles.z;
                 if ((rotation > 45 && rotation < 135) || (rotation > 225 && rotation < 315))
@@ -610,7 +644,12 @@ internal partial class Enemy_Size_Rando : Rando_Base
                 child.localScale = child.localScale.DivideElements(child.GetAbsScale());
 
             if (!noScale)
-                child.localScale = new((child.lossyScale.x.Abs() * (negX ? -1 : 1)) / (parentScale.x * parentScale.x), (child.lossyScale.y.Abs() * (negY ? -1 : 1)) / (parentScale.y * parentScale.y));
+                child.localScale = new(onlyYScale ?
+                                            child.localScale.x
+                                            : (child.lossyScale.x.Abs() * (negX ? -1 : 1)) / (parentScale.x * parentScale.x),
+                                        onlyXScale ?
+                                            child.localScale.y
+                                            : (child.lossyScale.y.Abs() * (negY ? -1 : 1)) / (parentScale.y * parentScale.y));
 
             if (childCollider == null)
             {
@@ -823,7 +862,10 @@ internal partial class Enemy_Size_Rando : Rando_Base
     {
         if (resizing)
             transform.localScale = transform.localScale.DivideElements(transform.GetAbsScale());
+
+        var zScale = transform.GetScaleZ();
         transform.localScale *= multiplier;
+        transform.SetScaleZ(zScale);
 
         if (walker != null)
         {

@@ -425,11 +425,12 @@ public enum RandomizerConsistencyB
     PerSave
 }
 
-/// <summary>Randomizer Consistency Types; OnDamageTaken, OnSceneTransition, Never</summary>
+/// <summary>Randomizer Consistency Types; OnDamageTaken, OnSceneTransition, PerScene, PerSave</summary>
 public enum RandomizerConsistencyC
 {
     OnDamageTaken,
     OnSceneTransition,
+    PerScene,
     PerSaveFile
 }
 

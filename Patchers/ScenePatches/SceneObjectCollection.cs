@@ -1,4 +1,6 @@
-﻿using System;
+﻿using HutongGames.PlayMaker;
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -7,7 +9,7 @@ using UnityEngine.SceneManagement;
 
 namespace Smol_Randomizer.Patchers.ScenePatches;
 
-public class SceneObjectCollection : ObjectPatchCollection_Base<SceneObjectPatch, SceneObjectPatchSet, GameObject, GameObject>
+public class SceneObjectCollection : ScenePatchCollections_Base<SceneObjectPatch, SceneObjectPatchSet, GameObject, GameObject>
 {
     /// <summary>Make a singleton of this class</summary>
     private static readonly Lazy<SceneObjectCollection> instance = new(() => new SceneObjectCollection());
@@ -16,11 +18,6 @@ public class SceneObjectCollection : ObjectPatchCollection_Base<SceneObjectPatch
     public static SceneObjectCollection Instance => instance.Value;
 
     private HashSet<GameObject> patchedSceneObjects = [];
-
-    private readonly Dictionary<string, Dictionary<string, int>> patchedObjects = [];
-    public new Dictionary<string, Dictionary<string, int>> PatchedObjects => patchedObjects;
-
-    public new Dictionary<string, Dictionary<string, HashSet<SceneObjectPatch>>> Patches { get; } = [];
 
     /// <summary>Called when the scene loads to clear out unloaded enemies</summary>
     internal static void OnSceneLoaded()
@@ -38,16 +35,29 @@ public class SceneObjectCollection : ObjectPatchCollection_Base<SceneObjectPatch
         Instance.ApplyPatches(scene, objects);
     }
 
-    public void ApplyPatches(Scene scene, HashSet<GameObject> objects)
+    public override bool ApplyPatches(Scene scene, HashSet<GameObject> objects)
     {
         if (Patches.TryGetValue(scene.name, out Dictionary<string, HashSet<SceneObjectPatch>> patches))
         {
             foreach (var patchGroup in patches)
             {
                 foreach (var setPatch in patchGroup.Value)
-                    setPatch.ApplyPatch(objects.FirstOrDefault(obj => obj.name.Equals(patchGroup.Key)), []);
+                {
+                    var filteredObjects = objects.Where(obj => CuteRandoCore.CullName(obj.name).Equals(patchGroup.Key)).ToArray();
+
+                    foreach (var obj in filteredObjects)
+                    {
+                        setPatch.ApplyPatch(obj, [obj, patchGroup.Key, scene, scene.name]);
+
+                        patchedSceneObjects.Add(obj);
+                    }
+                } 
             }
+
+            return true;
         }
+
+        return false;
     }
 
     internal static void RemovePatches()
@@ -65,173 +75,128 @@ public class SceneObjectCollection : ObjectPatchCollection_Base<SceneObjectPatch
         Instance.RemovePatches(scene, objects);
     }
 
-    public void RemovePatches(Scene scene, HashSet<GameObject> objects)
+    public override bool RemovePatches(Scene scene, HashSet<GameObject> objects)
     {
         if (Patches.TryGetValue(scene.name, out Dictionary<string, HashSet<SceneObjectPatch>> patches))
         {
             foreach (var patchGroup in patches)
             {
                 foreach (var setPatch in patchGroup.Value)
-                    setPatch.RemovePatch(objects.FirstOrDefault(obj => obj.name.Equals(patchGroup.Key)), []);
-            }
-        }
-    }
-
-    /// <summary>Register a collection of patches</summary>
-    /// <param name="patchCollection">The dictionary containing the patches to be applied to <see cref="GameObject" />s</param>
-    public virtual void RegisterPatchCollection(Dictionary<string, Dictionary<string, SceneObjectPatch>> patchCollection)
-    {
-        foreach (var patchGroup in patchCollection)
-        {
-            foreach (var patchSet in patchGroup.Value)
-            {
-                RegisterPatchInCollection(patchGroup.Key, patchSet.Key, patchSet.Value);
-            }
-        }
-    }
-
-    /// <summary>Register a collection of patches</summary>
-    /// <param name="sceneName">      Name of the <see cref="Scene" /> that the <see cref="GameObject" /> is within</param>
-    /// <param name="objectName">     Name of the <see cref="GameObject" /></param>
-    /// <param name="patchCollection">List containing patches to apply</param>
-    public virtual void RegisterPatchCollection(string sceneName, string objectName, List<SceneObjectPatch> patchCollection)
-    {
-        foreach (var patch in patchCollection)
-        {
-            RegisterPatchInCollection(sceneName, objectName, patch);
-        }
-    }
-
-    /// <summary>Register a patch for an <see cref="GameObject" /> in a <see cref="Scene" /></summary>
-    /// <param name="sceneName"> Name of the <see cref="Scene" /> that the <see cref="GameObject" /> is within</param>
-    /// <param name="objectName">Name of the <see cref="GameObject" /></param>
-    /// <param name="scenePatch"> Patch to apply</param>
-    public virtual void RegisterPatchInCollection(string sceneName, string objectName, ISceneObjectPatch scenePatch)
-    {
-        if (scenePatch is SceneObjectPatch patch)
-        {
-            if (Patches.ContainsKey(sceneName))
-            {
-                if (Patches[sceneName].ContainsKey(objectName))
                 {
-                    if (!Patches[sceneName][objectName].Add(patch))
-                        return; // The patch is already in there
-                }
-                else
-                    Patches[sceneName][objectName] = new() { { patch } };
-            }
-            else
-                Patches[sceneName] = new() { { objectName, [patch] } };
+                    var filteredObjects = objects.Where(obj => CuteRandoCore.CullName(obj.name).Equals(patchGroup.Key)).ToArray();
 
-            if (PatchedObjects.ContainsKey(sceneName))
-            {
-                if (PatchedObjects[sceneName].ContainsKey(objectName))
-                {
-                    PatchedObjects[sceneName][objectName]++;
-                }
-                else
-                    PatchedObjects[sceneName].Add(objectName, 1);
-            }
-            else
-                PatchedObjects[sceneName] = new() { { objectName, 1 } };
-        }
-        else if (scenePatch is SceneObjectPatchSet patchSet)
-        {
-            RegisterPatchCollection(sceneName, objectName, patchSet.Patches);
-        }
-        else
-            CuteRandoCore.Log.LogWarning($"Register patch called with invalid patch type, Name: {scenePatch.Name}, Type: {scenePatch.GetType()}");
-    }
-
-    /// <summary>Unregister a collection of patches</summary>
-    /// <param name="patchCollection">The dictionary containing the patches to be removed from <see cref="GameObject" />s</param>
-    public virtual void UnregisterPatchCollection(Dictionary<string, Dictionary<string, SceneObjectPatch>> patchCollection)
-    {
-        foreach (var patchGroup in patchCollection)
-        {
-            foreach (var patchSet in patchGroup.Value)
-            {
-                UnregisterPatchInCollection(patchGroup.Key, patchSet.Key, patchSet.Value);
-            }
-        }
-    }
-
-    /// <summary>Unregister a collection of patches</summary>
-    /// <param name="sceneName">      Name of the <see cref="Scene" /> that the <see cref="GameObject" /> is within</param>
-    /// <param name="objectName">     Name of the <see cref="GameObject" /></param>
-    /// <param name="patchCollection">List containing patches to remove</param>
-    public virtual void UnregisterPatchCollection(string sceneName, string objectName, List<SceneObjectPatch> patchCollection)
-    {
-        foreach (var patch in patchCollection)
-        {
-            UnregisterPatchInCollection(sceneName, objectName, patch);
-        }
-    }
-
-    /// <summary>Unregister a patch for an object in a <see cref="Scene" /></summary>
-    /// <param name="sceneName"> Name of the <see cref="Scene" /> that the <see cref="GameObject" /> is within</param>
-    /// <param name="objectName">Name of the <see cref="GameObject" /></param>
-    /// <param name="scenePatch"> Patch to remove</param>
-    public virtual void UnregisterPatchInCollection(string sceneName, string objectName, ISceneObjectPatch scenePatch)
-    {
-        if (scenePatch is SceneObjectPatch patch)
-        {
-            if (Patches.ContainsKey(sceneName))
-            {
-                if (Patches[sceneName].ContainsKey(objectName))
-                {
-                    if (Patches[sceneName][objectName].Remove(patch))
+                    foreach (var obj in filteredObjects)
                     {
-                        if (PatchedObjects[sceneName][objectName] == 1)
-                            PatchedObjects[sceneName].Remove(objectName);
-                        else
-                            PatchedObjects[sceneName][objectName]--;
+                        setPatch.RemovePatch(obj, [obj, patchGroup.Key, scene, scene.name]);
+
+                        patchedSceneObjects.Remove(obj);
                     }
-                    if (PatchedObjects[sceneName].Count == 0)
-                        PatchedObjects.Remove(sceneName);
                 }
             }
+
+            return true;
         }
-        else if (scenePatch is SceneObjectPatchSet patchSet)
-        {
-            RegisterPatchCollection(sceneName, objectName, patchSet.Patches);
-        }
-        else
-            CuteRandoCore.Log.LogWarning($"Register patch called with invalid patch {scenePatch.Name}");
+
+        return false;
     }
 
-    #region Overridden Register/Unregister Methods
+    /// <summary>Registers a collection of patches</summary>
+    /// <param name="scenePatchCollection">The collection of patches to add</param>
+    public static void RegisterPatchCollection(List<ISceneObjectPatch> scenePatchCollection)
+    {
+        int patchCount = 0;
 
-#pragma warning disable CS0809 // Obsolete member overrides non-obsolete member
+        foreach (var patch in scenePatchCollection)
+        {
+            if (patch is SceneObjectPatch or SceneObjectPatchSet)
+                patchCount += Instance.RegisterPatchInCollection(patch.Name, patch, patch.SceneName);
+            else
+                CuteRandoCore.DebugLog($"Register patch called with invalid patch type, Name: {patch.Name}, Type: {patch.GetType()} Scene: {patch.SceneName}", DebugLogOptions.Error, true);
+        }
 
-    [Obsolete("Class Requires Dictionary{string, Dictionary{string, PatchType}} for Scene Detection", true)]
-    public override void RegisterPatchCollection(List<SceneObjectPatch> patchCollection) { }
+        CuteRandoCore.Log.LogInfo($"Registered {patchCount} Scene Object Patches");
+    }
 
-    [Obsolete("Class Requires Dictionary{string, Dictionary{string, ISmolPatch}} for Scene Detection", true)]
-    public override void RegisterPatchInCollection(string objectName, ISmolPatch smolPatch) { }
+    /// <summary>Unregisters a collection of patches</summary>
+    /// <param name="scenePatchCollection">The collection of patches to remove</param>
+    public static void UnregisterPatchCollection(List<ISceneObjectPatch> scenePatchCollection)
+    {
+        int patchCount = 0;
 
-    [Obsolete("Class Requires Dictionary{string, Dictionary{string, PatchType}} for Scene Detection", true)]
-    public override void UnregisterPatchCollection(List<SceneObjectPatch> patchCollection) { }
+        foreach (var patch in scenePatchCollection)
+        {
+            if (patch is SceneObjectPatch or SceneObjectPatchSet)
+                patchCount += Instance.UnregisterPatchInCollection(patch.Name, patch, patch.SceneName);
+            else
+                CuteRandoCore.DebugLog($"Unregister patch called with invalid patch type, Name: {patch.Name}, Type: {patch.GetType()} Scene: {patch.SceneName}", DebugLogOptions.Error, true);
+        }
 
-    [Obsolete("Class Requires Dictionary{string, Dictionary{string, ISmolPatch}} for Scene Detection", true)]
-    public override void UnregisterPatchInCollection(string objectName, ISmolPatch smolPatch) { }
-
-#pragma warning restore CS0809 // Obsolete member overrides non-obsolete member
-
-    #endregion Overridden Register/Unregister Methods
+        CuteRandoCore.Log.LogInfo($"Unregistered {patchCount} Scene Object Patches");
+    }
 }
 
-public class SceneObjectPatchSet(string sceneName, string objectName, List<SceneObjectPatch> patches)
-    : ObjectPatchSet_Base<SceneObjectPatch, GameObject, GameObject>(objectName, patches), ISceneObjectPatchSet
+/// <summary>Contains a set of patches for a game object for a specific scene</summary>
+/// <param name="sceneName"> Name of the <see cref="Scene" /> that the <see cref="GameObject" /> is within</param>
+/// <param name="objectName">Name of the <see cref="GameObject" /> being patched</param>
+/// <param name="patches">   The set of patches for the <see cref="GameObject" /></param>
+/// <param name="objectNames"><see cref="Array" /> of <see cref="GameObject" /> names to patch</param>
+/// <param name="sceneNames"><see cref="Array" /> of <see cref="Scene" /> names to patch</param>
+public class SceneObjectPatchSet : ObjectPatchSet_Base<SceneObjectPatch, GameObject, GameObject>, ISceneObjectPatchSet
 {
-    public SceneObjectPatchSet(string sceneName, string[] objectNames, List<SceneObjectPatch> patches)
+    /// <inheritdoc cref="SceneObjectPatchSet"/>
+    public SceneObjectPatchSet(string sceneName, string objectName, List<SceneObjectPatch> patches) 
+        : base(objectName, patches)
+    {
+        SceneName = sceneName;
+
+        PopulateChildFields();
+    }
+
+    /// <inheritdoc cref="SceneObjectPatchSet" />
+    private SceneObjectPatchSet(string sceneName, string[] objectNames, List<SceneObjectPatch> patches)
         : this(sceneName, "", patches)
     {
         NameArray = objectNames;
-    }
-    public string SceneName => sceneName;
 
-    public string ObjectName { get; } = objectName;
+        PopulateChildFields();
+    }
+
+    /// <inheritdoc cref="SceneObjectPatchSet" />
+    private SceneObjectPatchSet(string[] sceneNames, string objectName, List<SceneObjectPatch> patches)
+        : this("", objectName, patches)
+    {
+        SceneArray = sceneNames;
+
+        PopulateChildFields();
+    }
+
+    /// <inheritdoc cref="SceneObjectPatchSet" />
+    private SceneObjectPatchSet(string[] sceneNames, string[] objectNames, List<SceneObjectPatch> patches)
+        : this("", "", patches)
+    {
+        NameArray = objectNames;
+        SceneArray = sceneNames;
+
+        PopulateChildFields();
+    }
+    public string SceneName { get; set; }
+
+    public string[] SceneArray { get; set; } = [];
+
+    internal override void PopulateChildFields()
+    {
+        foreach (var patch in Patches)
+        {
+            if (patch.Name is "")
+                patch.Name = Name;
+            if (patch.NameArray is null or [])
+                patch.NameArray = NameArray;
+            if(patch.SceneName is "")
+                patch.SceneName = SceneName;
+            if(patch.SceneArray is null or [])
+                patch.SceneArray = SceneArray;
+        }
+    }
 
     public override object Clone()
     {
@@ -240,24 +205,52 @@ public class SceneObjectPatchSet(string sceneName, string objectName, List<Scene
         foreach (var patch in Patches)
             newList.Add(patch);
 
-        if (NameArray.Length > 0)
+        if (NameArray.Length > 0 && SceneArray.Length > 0)
+            return new SceneObjectPatchSet(SceneArray, NameArray, newList);
+        else if (SceneArray.Length > 0)
+            return new SceneObjectPatchSet(SceneArray, Name, newList);
+        else if (NameArray.Length > 0)
             return new SceneObjectPatchSet(SceneName, NameArray, newList);
-        return new SceneObjectPatchSet(SceneName, Name, newList);
+        else
+            return new SceneObjectPatchSet(SceneName, Name, newList);
     }
 }
 
+/// <summary>Contains a patch for a game object for a specific scene</summary>
+/// <param name="sceneName"> Name of the <see cref="Scene" /> that the <see cref="GameObject" /> is within</param>
+/// <param name="objectName">Name of the <see cref="GameObject" /> being patched</param>
+/// <param name="patch">    The patch for modifying the <see cref="GameObject" /></param>
+/// <param name="unpatch">  Optional: The patch for removing the <see cref="GameObject" /> modification</param>
+/// <param name="objectNames"><see cref="Array" /> of <see cref="GameObject" /> names to patch</param>
+/// <param name="sceneNames"><see cref="Array" /> of <see cref="Scene" /> names to patch</param>
 public class SceneObjectPatch(string sceneName, string objectName, Action<GameObject, object[]> patch, Action<GameObject, object[]>? unpatch = null)
     : ObjectPatch_Base<GameObject, GameObject>(objectName, patch, unpatch), ISceneObjectPatch
 {
+    /// <inheritdoc cref="SceneObjectPatch"/>
     public SceneObjectPatch(string sceneName, string[] objectNames, Action<GameObject, object[]> patch, Action<GameObject, object[]>? unpatch = null)
-        : this(sceneName, "", patch, unpatch)
+        : this(sceneName, "", patch)
     {
         NameArray = objectNames;
     }
 
-    public string SceneName => sceneName;
+    /// <inheritdoc cref="SceneObjectPatch" />
+    public SceneObjectPatch(string[] sceneNames, string objectName, Action<GameObject, object[]> patch, Action<GameObject, object[]>? unpatch = null)
+        : this("", objectName, patch)
+    {
+        SceneArray = sceneNames;
+    }
 
-    public string ObjectName { get; } = objectName;
+    /// <inheritdoc cref="SceneObjectPatch" />
+    public SceneObjectPatch(string[] sceneNames, string[] objectNames, Action<GameObject, object[]> patch, Action<GameObject, object[]>? unpatch = null)
+        : this("", "", patch)
+    {
+        SceneArray = sceneNames;
+        NameArray = objectNames;
+    }
+
+    public string SceneName { get; set; } = sceneName;
+
+    public string[] SceneArray { get; set; } = [];
 
     public override void ApplyPatch(GameObject patchTarget, object[] param)
     {
@@ -288,14 +281,19 @@ public class SceneObjectPatch(string sceneName, string objectName, Action<GameOb
 
     public override object Clone()
     {
-        if (NameArray.Length > 0)
+        if (NameArray.Length > 0 && SceneArray.Length > 0)
+            return new SceneObjectPatch(SceneArray, NameArray, (Action<GameObject, object[]>)Patch.Clone(), (Action<GameObject, object[]>?)Unpatch?.Clone());
+        else if (NameArray.Length > 0)
             return new SceneObjectPatch(SceneName, NameArray, (Action<GameObject, object[]>)Patch.Clone(), (Action<GameObject, object[]>?)Unpatch?.Clone());
-        return new SceneObjectPatch(SceneName, Name, (Action<GameObject, object[]>)Patch.Clone(), (Action<GameObject, object[]>?)Unpatch?.Clone());
+        else if (SceneArray.Length > 0)
+            return new SceneObjectPatch(SceneArray, Name, (Action<GameObject, object[]>)Patch.Clone(), (Action<GameObject, object[]>?)Unpatch?.Clone());
+        else
+            return new SceneObjectPatch(SceneName, Name, (Action<GameObject, object[]>)Patch.Clone(), (Action<GameObject, object[]>?)Unpatch?.Clone());
     }
 }
 
 /// <summary>Marks a patch as a Scene Object Patch</summary>
-public interface ISceneObjectPatch : ISmolPatch, IScenePatch;
+public interface ISceneObjectPatch : IScenePatch;
 
 /// <summary>Marks a patch set as a Scene Object Patch Set</summary>
-public interface ISceneObjectPatchSet : ISceneObjectPatch, ISmolPatchSet;
+public interface ISceneObjectPatchSet : ISceneObjectPatch, IScenePatchSet;
